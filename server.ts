@@ -22,7 +22,7 @@ function runCli(args: string[]): Promise<{ stdout: string; stderr: string; code:
       resolve({
         stdout: stdout || '',
         stderr: stderr || '',
-        code: error ? (error.code || 1) : 0,
+        code: error ? (typeof error.code === 'number' ? error.code : 1) : 0,
       });
     });
   });
@@ -35,7 +35,7 @@ function runShell(cmd: string): Promise<{ stdout: string; stderr: string; code: 
       resolve({
         stdout: stdout || '',
         stderr: stderr || '',
-        code: error ? (error.code || 1) : 0,
+        code: error ? (typeof error.code === 'number' ? error.code : 1) : 0,
       });
     });
   });
@@ -72,7 +72,9 @@ async function startServer() {
 
   // Serve Omarchy Quattro manifest.json
   app.get('/manifest.json', (req, res) => {
-    const p = path.join(process.cwd(), 'omastack', 'manifest.json');
+    const rootPath = path.join(process.cwd(), 'manifest.json');
+    const subPath = path.join(process.cwd(), 'omastack', 'manifest.json');
+    const p = fs.existsSync(rootPath) ? rootPath : subPath;
     if (fs.existsSync(p)) {
       res.setHeader('Content-Type', 'application/json');
       res.send(fs.readFileSync(p, 'utf-8'));
@@ -83,7 +85,9 @@ async function startServer() {
 
   // Serve Omarchy Quattro BarWidget.qml
   app.get('/BarWidget.qml', (req, res) => {
-    const p = path.join(process.cwd(), 'omastack', 'BarWidget.qml');
+    const rootPath = path.join(process.cwd(), 'BarWidget.qml');
+    const subPath = path.join(process.cwd(), 'omastack', 'BarWidget.qml');
+    const p = fs.existsSync(rootPath) ? rootPath : subPath;
     if (fs.existsSync(p)) {
       res.setHeader('Content-Type', 'text/plain');
       res.send(fs.readFileSync(p, 'utf-8'));
@@ -94,7 +98,9 @@ async function startServer() {
 
   // Serve Omarchy Quattro Panel.qml
   app.get('/Panel.qml', (req, res) => {
-    const p = path.join(process.cwd(), 'omastack', 'Panel.qml');
+    const rootPath = path.join(process.cwd(), 'Panel.qml');
+    const subPath = path.join(process.cwd(), 'omastack', 'Panel.qml');
+    const p = fs.existsSync(rootPath) ? rootPath : subPath;
     if (fs.existsSync(p)) {
       res.setHeader('Content-Type', 'text/plain');
       res.send(fs.readFileSync(p, 'utf-8'));
@@ -315,7 +321,7 @@ async function startServer() {
       const omarchyBin = path.join(process.cwd(), 'omastack', 'bin', 'omarchy');
       const { stdout, stderr, code } = await new Promise<{ stdout: string; stderr: string; code: number }>((resolve) => {
         execFile('bash', [omarchyBin, ...subArgs], { cwd: process.cwd(), env: process.env }, (err, stdout, stderr) => {
-          resolve({ stdout: stdout || '', stderr: stderr || '', code: err ? (err.code || 1) : 0 });
+          resolve({ stdout: stdout || '', stderr: stderr || '', code: err ? (typeof err.code === 'number' ? err.code : 1) : 0 });
         });
       });
       return res.json({ stdout, stderr, code });
