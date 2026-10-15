@@ -1,0 +1,42 @@
+version: '3.8'
+
+networks:
+  omastack-net:
+    external: true
+
+services:
+  rpc-proxy:
+    image: nginx:alpine
+    container_name: omastack-web3-rpc
+    restart: unless-stopped
+    ports:
+      - "${PORT_RPC:-8545}:8545"
+    networks:
+      - omastack-net
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: omastack-web3-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: web3db
+      POSTGRES_USER: web3
+      POSTGRES_PASSWORD: web3secret
+    ports:
+      - "${PORT_POSTGRES:-5432}:5432"
+    networks:
+      - omastack-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U web3 -d web3db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:alpine
+    container_name: omastack-web3-redis
+    restart: unless-stopped
+    ports:
+      - "${PORT_REDIS:-6379}:6379"
+    networks:
+      - omastack-net

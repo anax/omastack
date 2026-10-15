@@ -1,0 +1,52 @@
+version: '3.8'
+
+networks:
+  omastack-net:
+    external: true
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: omastack-supabase-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgrespassword
+    ports:
+      - "${PORT_POSTGRES:-5432}:5432"
+    networks:
+      - omastack-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  postgrest:
+    image: postgrest/postgrest:v12.0.2
+    container_name: omastack-supabase-rest
+    restart: unless-stopped
+    environment:
+      PGRST_DB_URI: "postgres://postgres:postgrespassword@postgres:5432/postgres"
+      PGRST_DB_SCHEMA: "public"
+      PGRST_DB_ANON_ROLE: "postgres"
+    ports:
+      - "${PORT_POSTGREST:-3000}:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - omastack-net
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: omastack-supabase-pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: "admin@omastack.local"
+      PGADMIN_DEFAULT_PASSWORD: "admin"
+    ports:
+      - "${PORT_PGADMIN:-5051}:80"
+    networks:
+      - omastack-net

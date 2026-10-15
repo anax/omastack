@@ -1,0 +1,6 @@
+{
+  "name": "OmaStack",
+  "description": "Native, zero-bloat, keyboard-first ephemeral full-stack sandbox launcher and Docker environment manager built for Omarchy Linux.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

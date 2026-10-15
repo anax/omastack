@@ -1,0 +1,26 @@
+[plugin]
+id = "omastack"
+name = "OmaStack"
+version = "1.0.0"
+author = "Omarchy DevOps Team <devops@omarchy.org>"
+description = "Native, zero-bloat, keyboard-first ephemeral full-stack sandbox launcher and Docker environment manager built specifically for Omarchy Linux."
+license = "MIT"
+repository = "https://github.com/omarchy/omastack"
+
+[dependencies]
+system = ["docker", "docker-compose", "iproute2", "wl-clipboard", "libnotify"]
+optional = ["gum", "fzf", "walker", "rofi", "caddy", "mkcert"]
+
+[desktop]
+keybinding = "Super+Alt+Space"
+shortcut_name = "OmaStack Sandbox Launcher"
+exec = "omastack menu"
+icon = "utilities-terminal"
+
+[waybar]
+module_type = "custom/script"
+exec = "omastack status --waybar"
+return_type = "json"
+interval = 5
+on_click = "omastack menu"
+on_click_right = "omastack down --all"

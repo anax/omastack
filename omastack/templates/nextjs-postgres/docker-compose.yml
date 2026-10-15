@@ -1,0 +1,42 @@
+version: '3.8'
+
+networks:
+  omastack-net:
+    external: true
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: omastack-nextjs-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: appdb
+      POSTGRES_USER: appuser
+      POSTGRES_PASSWORD: apppassword
+    ports:
+      - "${PORT_POSTGRES:-5432}:5432"
+    networks:
+      - omastack-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U appuser -d appdb"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:alpine
+    container_name: omastack-nextjs-redis
+    restart: unless-stopped
+    ports:
+      - "${PORT_REDIS:-6379}:6379"
+    networks:
+      - omastack-net
+
+  adminer:
+    image: adminer:latest
+    container_name: omastack-nextjs-adminer
+    restart: unless-stopped
+    ports:
+      - "${PORT_ADMINER:-8080}:8080"
+    networks:
+      - omastack-net
