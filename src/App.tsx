@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { LandingPage } from './components/LandingPage';
 import { WaybarHeader } from './components/WaybarHeader';
 import { WalkerMenuModal } from './components/WalkerMenuModal';
 import { WidgetPanel } from './components/WidgetPanel';
@@ -24,7 +25,7 @@ export default function App() {
   const [themeKey, setThemeKey] = useState<OmarchyThemeKey>('tokyo-night');
   const currentTheme = OMARCHY_THEMES[themeKey];
 
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'terminal' | 'templates' | 'codebase' | 'system'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'landing' | 'dashboard' | 'terminal' | 'templates' | 'codebase' | 'system'>('landing');
   const [isWalkerOpen, setIsWalkerOpen] = useState(false);
   const [isWidgetPanelOpen, setIsWidgetPanelOpen] = useState(false);
 
@@ -273,6 +274,24 @@ export default function App() {
 
       {/* Main Content */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6">
+        {activeTab === 'landing' && (
+          <LandingPage
+            currentTheme={currentTheme}
+            templates={templates}
+            activeStacks={activeStacks}
+            onLaunchStack={handleLaunchStack}
+            onStopStack={handleStopStack}
+            onOpenDashboard={() => setActiveTab('dashboard')}
+            onOpenTerminal={() => setActiveTab('terminal')}
+            onOpenWalkerMenu={() => setIsWalkerOpen(true)}
+            onOpenWidgetPanel={() => setIsWidgetPanelOpen(true)}
+            onCopySnippet={(text) => {
+              navigator.clipboard.writeText(text);
+              addNotification('Copied to Clipboard', 'Text copied successfully.');
+            }}
+          />
+        )}
+
         {activeTab === 'dashboard' && (
           <div className="space-y-8">
             <ActiveStackInspector

@@ -7,7 +7,7 @@ import JSZip from 'jszip';
 import { createServer as createViteServer } from 'vite';
 
 const isProd = process.env.NODE_ENV === 'production';
-const PORT = process.env.PORT || 3000;
+const PORT = Number(process.env.PORT) || 3000;
 const OMASTACK_BIN = path.join(process.cwd(), 'omastack', 'bin', 'omastack');
 const HOME_DIR = process.env.HOME || '/root';
 const STATE_DIR = path.join(HOME_DIR, '.local', 'share', 'omastack', 'state');

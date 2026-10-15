@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Terminal, HardDrive, Palette, Power, RefreshCw, Cpu, Activity, Layers } from 'lucide-react';
+import { Terminal, HardDrive, Palette, Power, RefreshCw, Cpu, Activity, Layers, Sparkles } from 'lucide-react';
 import { OmarchyTheme, OmarchyThemeKey, ActiveStack, WaybarPayload, SystemStats } from '../types';
 import { OMARCHY_THEMES } from '../themes';
+import { OmaStackLogo } from './OmaStackLogo';
 
 interface WaybarHeaderProps {
   currentTheme: OmarchyTheme;
@@ -12,8 +13,8 @@ interface WaybarHeaderProps {
   onOpenWalkerMenu: () => void;
   onOpenWidgetPanel: () => void;
   onStopAllStacks: () => void;
-  activeTab: 'dashboard' | 'terminal' | 'templates' | 'codebase' | 'system';
-  setActiveTab: (tab: 'dashboard' | 'terminal' | 'templates' | 'codebase' | 'system') => void;
+  activeTab: 'landing' | 'dashboard' | 'terminal' | 'templates' | 'codebase' | 'system';
+  setActiveTab: (tab: 'landing' | 'dashboard' | 'terminal' | 'templates' | 'codebase' | 'system') => void;
 }
 
 export const WaybarHeader: React.FC<WaybarHeaderProps> = ({
@@ -55,8 +56,16 @@ export const WaybarHeader: React.FC<WaybarHeaderProps> = ({
         color: currentTheme.fg,
       }}
     >
-      {/* Left: Waybar Hyprland Workspace & Omarchy Launcher */}
+      {/* Left: OmaStack Brand Logo & Omarchy Launcher */}
       <div className="flex items-center gap-2">
+        <div
+          onClick={() => setActiveTab('landing')}
+          className="flex items-center gap-2 cursor-pointer pr-2.5 border-r border-white/10 hover:opacity-90 transition-opacity"
+          title="OmaStack — Ephemeral Full-Stack Sandboxes for Omarchy Linux"
+        >
+          <OmaStackLogo size={22} showWordmark={true} />
+        </div>
+
         <button
           onClick={onOpenWalkerMenu}
           className="px-2.5 py-1 rounded font-bold flex items-center gap-1.5 transition-all shadow-sm hover:brightness-110"
@@ -79,6 +88,19 @@ export const WaybarHeader: React.FC<WaybarHeaderProps> = ({
 
         {/* Tab Switcher */}
         <div className="flex items-center gap-1 ml-2 border-l border-white/10 pl-2">
+          <button
+            onClick={() => setActiveTab('landing')}
+            className={`px-2.5 py-1 rounded transition-colors flex items-center gap-1.5 ${
+              activeTab === 'landing' ? 'font-bold' : 'opacity-70 hover:opacity-100'
+            }`}
+            style={{
+              backgroundColor: activeTab === 'landing' ? currentTheme.cardBg : 'transparent',
+              color: activeTab === 'landing' ? currentTheme.accent : currentTheme.fg,
+            }}
+          >
+            <Sparkles className="w-3 h-3 text-amber-400" />
+            <span>Overview</span>
+          </button>
           <button
             onClick={() => setActiveTab('dashboard')}
             className={`px-2 py-1 rounded transition-colors ${

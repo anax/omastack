@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/omastack-logo.svg" alt="OmaStack Logo" width="180" />
+</p>
+
 # OmaStack (`omastack`)
 
 > **Native, zero-bloat, keyboard-first ephemeral full-stack sandbox launcher and Docker environment manager built specifically for Omarchy Linux.**

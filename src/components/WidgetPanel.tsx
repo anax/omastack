@@ -211,14 +211,25 @@ export const WidgetPanel: React.FC<WidgetPanelProps> = ({
                             <span className="text-[10px] opacity-70">({stk.ramUsageMB || 0} MB)</span>
                           </div>
                           <div className="flex flex-wrap gap-1 mt-1.5">
-                            {stk.ports.map((p) => (
-                              <span
-                                key={p.service}
-                                className="text-[9px] px-1.5 py-0.5 rounded bg-black/40 border border-white/10 font-mono"
-                              >
-                                {p.service}:{p.port}
-                              </span>
-                            ))}
+                            {Array.isArray(stk.ports)
+                              ? stk.ports.map((p: any) => (
+                                  <span
+                                    key={p.service || p.port}
+                                    className="text-[9px] px-1.5 py-0.5 rounded bg-black/40 border border-white/10 font-mono"
+                                  >
+                                    {p.service ? `${p.service}:` : ''}{p.port}
+                                  </span>
+                                ))
+                              : typeof stk.ports === 'object' && stk.ports !== null
+                              ? Object.entries(stk.ports).map(([srv, port]) => (
+                                  <span
+                                    key={srv}
+                                    className="text-[9px] px-1.5 py-0.5 rounded bg-black/40 border border-white/10 font-mono"
+                                  >
+                                    {srv}:{String(port)}
+                                  </span>
+                                ))
+                              : null}
                           </div>
                         </div>
 

@@ -21,7 +21,10 @@ export interface OmarchyTheme {
 
 export interface ServiceDetail {
   name: string;
+  image?: string;
   defaultPort: number;
+  assignedPort?: number;
+  status?: string;
 }
 
 export interface StackTemplate {
@@ -41,10 +44,11 @@ export interface ActiveStack {
   status: 'running' | 'starting' | 'stopped';
   ramUsageMB: number;
   startedAt: string;
-  ports: Record<string, number>;
+  ports: Record<string, number> | any;
   domains?: { url: string; port: number }[];
   composeContent?: string;
   envSnippet?: string;
+  generatedEnvSnippet?: string;
 }
 
 export interface SystemPort {

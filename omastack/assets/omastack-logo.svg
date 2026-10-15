@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800" width="800" height="800">
+  <defs>
+    <!-- Omarchy Signature Stepped Color Bands -->
+    <linearGradient id="omarchy-stepped" x1="0" y1="0" x2="0" y2="100%">
+      <stop offset="0%" stop-color="#daecc6" />
+      <stop offset="25%" stop-color="#daecc6" />
+      <stop offset="25%" stop-color="#bbdd97" />
+      <stop offset="50%" stop-color="#bbdd97" />
+      <stop offset="50%" stop-color="#9ece6a" />
+      <stop offset="75%" stop-color="#9ece6a" />
+      <stop offset="75%" stop-color="#678549" />
+      <stop offset="100%" stop-color="#39482e" />
+    </linearGradient>
+
+    <!-- Tokyo Night / Omarchy Cyan Neon Glow -->
+    <filter id="cyan-glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="8" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+
+    <radialGradient id="ambient-glow" cx="50%" cy="45%" r="45%">
+      <stop offset="0%" stop-color="#7dcfff" stop-opacity="0.18" />
+      <stop offset="60%" stop-color="#9ece6a" stop-opacity="0.08" />
+      <stop offset="100%" stop-color="#1a1b26" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+
+  <!-- Background (Dark Tokyo Night Slate) -->
+  <rect width="800" height="800" rx="48" fill="#1a1b26" />
+
+  <!-- Ambient Glow Behind Stack -->
+  <circle cx="400" cy="380" r="280" fill="url(#ambient-glow)" />
+
+  <g transform="translate(0, -30)">
+    <!-- ==================== TIER 3 (BOTTOM FOUNDATION SLAB) ==================== -->
+    <!-- Left Face -->
+    <path d="M 220 440 L 400 544 L 400 600 L 220 496 Z" fill="#465a38" />
+    <!-- Right Face -->
+    <path d="M 400 544 L 580 440 L 580 496 L 400 600 Z" fill="#2d3a24" />
+    <!-- Top Face Lip -->
+    <path d="M 220 440 L 400 544 L 580 440 L 400 336 Z" fill="#678549" opacity="0.4" />
+
+    <!-- ==================== CYAN INTER-TIER LIGHTNING CORE ==================== -->
+    <!-- Glowing Inter-tier Emitter (Active Sandboxes) -->
+    <path d="M 230 422 L 400 520 L 570 422 L 400 324 Z" fill="#00f0ff" opacity="0.9" filter="url(#cyan-glow)" />
+    <path d="M 230 422 L 400 520 L 400 526 L 230 428 Z" fill="#7dcfff" />
+    <path d="M 400 520 L 570 422 L 570 428 L 400 526 Z" fill="#00c8db" />
+
+    <!-- ==================== TIER 2 (MIDDLE RUNTIME SLAB) ==================== -->
+    <!-- Top Face (Layer 2) -->
+    <path fill-rule="evenodd" d="M 400 246 L 580 350 L 400 454 L 220 350 Z M 400 298 L 310 350 L 400 402 L 490 350 Z" fill="#bbdd97" />
+    <!-- Left Face -->
+    <path d="M 220 350 L 400 454 L 400 498 L 220 394 Z" fill="#8cb363" />
+    <!-- Right Face -->
+    <path d="M 400 454 L 580 350 L 580 394 L 400 498 Z" fill="#678549" />
+    <!-- Inner Portal Faces (Hole) -->
+    <path d="M 400 402 L 490 350 L 490 380 L 400 432 Z" fill="#4d6438" />
+    <path d="M 310 350 L 400 402 L 400 432 L 310 380 Z" fill="#5c7542" />
+
+    <!-- Neon Light Slit between Tier 2 and Tier 1 -->
+    <path d="M 224 336 L 400 438 L 576 336 L 400 234 Z" fill="#00f0ff" opacity="0.6" filter="url(#cyan-glow)" />
+
+    <!-- ==================== TIER 1 (TOP "O" SLAB) ==================== -->
+    <!-- Left Face -->
+    <path d="M 220 260 L 400 364 L 400 314 L 220 210 Z" fill="#bbdd97" />
+    <!-- Right Face -->
+    <path d="M 400 364 L 580 260 L 580 210 L 400 314 Z" fill="#9ece6a" />
+    
+    <!-- Top Face of Tier 1 (The Iconic "O" Aperture) -->
+    <path fill-rule="evenodd" d="M 400 106 L 580 210 L 400 314 L 220 210 Z M 400 158 L 310 210 L 400 262 L 490 210 Z" fill="#daecc6" />
+
+    <!-- Inner Well of Tier 1 (Looking down into the Stack) -->
+    <path d="M 400 262 L 490 210 L 490 252 L 400 304 Z" fill="#7da153" />
+    <path d="M 310 210 L 400 262 L 400 304 L 310 252 Z" fill="#90b861" />
+
+    <!-- Inner Core Bottom Portal (Glowing Cyan Kernel) -->
+    <path d="M 400 240 L 470 280 L 400 320 L 330 280 Z" fill="#00f0ff" opacity="0.85" filter="url(#cyan-glow)" />
+  </g>
+
+  <!-- ==================== BRAND WORDMARK ==================== -->
+  <g transform="translate(400, 680)" text-anchor="middle">
+    <!-- Main Title -->
+    <text y="0" font-family="system-ui, -apple-system, 'SF Pro Display', 'JetBrains Mono', monospace" font-size="54" font-weight="900" letter-spacing="9" fill="#eceff4">
+      OMA<tspan fill="#9ece6a">STACK</tspan>
+    </text>
+    <!-- Subtitle / Tagline -->
+    <text y="36" font-family="'JetBrains Mono', Menlo, Consolas, monospace" font-size="14" font-weight="600" letter-spacing="4" fill="#7dcfff" opacity="0.85">
+      EPHEMERAL DOCKER SANDBOXES
+    </text>
+  </g>
+</svg>

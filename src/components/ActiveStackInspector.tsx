@@ -135,7 +135,7 @@ export const ActiveStackInspector: React.FC<ActiveStackInspectorProps> = ({
                           <td className="p-2 font-bold" style={{ color: currentTheme.primary }}>
                             {key}
                           </td>
-                          <td className="p-2 opacity-90">127.0.0.1:{val}</td>
+                          <td className="p-2 opacity-90">127.0.0.1:{String(val)}</td>
                           <td className="p-2">
                             <span className="text-emerald-400 font-bold">● Active</span>
                           </td>
