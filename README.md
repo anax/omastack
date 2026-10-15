@@ -21,17 +21,11 @@ Install OmaStack with a single command via the native Omarchy plugin manager:
 omarchy plugin add https://github.com/anax/omastack
 ```
 
-### Option 2: 1-Line Curl Installer
+### Option 2: Clone & Local Setup
 ```bash
-curl -fsSL https://raw.githubusercontent.com/anax/omastack/main/install.sh | bash
-```
-
-### Option 3: Manual Clone
-```bash
-git clone https://github.com/anax/omastack.git ~/.local/share/omastack
-mkdir -p ~/.local/bin
-ln -sf ~/.local/share/omastack/bin/omastack ~/.local/bin/omastack
-chmod +x ~/.local/bin/omastack
+git clone https://github.com/anax/omastack.git ~/.config/omarchy/plugins/io.github.anax.omastack
+cd ~/.config/omarchy/plugins/io.github.anax.omastack
+./install.sh
 ```
 
 ### 🗑️ Safe Removal & Uninstallation
@@ -39,11 +33,11 @@ chmod +x ~/.local/bin/omastack
 To cleanly remove OmaStack and tear down all active sandboxes:
 
 ```bash
-# Option 1: Via Omarchy Plugin Manager
+# Option 1: Via Omarchy Plugin Manager (Recommended)
 omarchy plugin remove io.github.anax.omastack
 
-# Option 2: 1-Line uninstaller
-curl -fsSL https://raw.githubusercontent.com/anax/omastack/main/install.sh | bash -s -- --uninstall
+# Option 2: Run local uninstaller script
+~/.config/omarchy/plugins/io.github.anax.omastack/install.sh --uninstall
 
 # Option 3: Manual removal
 omastack down --all

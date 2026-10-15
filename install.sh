@@ -22,16 +22,7 @@ print_banner() {
     echo -e "${RESET}"
 }
 
-# Temporary directory handling
-CLEANUP_DIR=""
-cleanup() {
-    if [ -n "${CLEANUP_DIR}" ] && [ -d "${CLEANUP_DIR}" ]; then
-        rm -rf "${CLEANUP_DIR}"
-    fi
-}
-trap cleanup EXIT
-
-# Resolve source directory (local repo or fetch via curl/git)
+# Resolve source directory from local repository
 resolve_source_dir() {
     local script_dir=""
     if [ -n "${BASH_SOURCE[0]:-}" ] && [ -f "${BASH_SOURCE[0]}" ]; then
@@ -53,25 +44,8 @@ resolve_source_dir() {
         return
     fi
 
-    # Running via pipe (curl | bash) - fetch from GitHub archive
-    echo -e "${CYAN}➜ Downloading latest OmaStack release from GitHub...${RESET}" >&2
-    CLEANUP_DIR=$(mktemp -d 2>/dev/null || mktemp -d -t 'omastack')
-    local repo_url="https://github.com/anax/omastack/archive/refs/heads/main.tar.gz"
-    
-    if command -v curl >/dev/null 2>&1; then
-        curl -fsSL "${repo_url}" | tar -xz -C "${CLEANUP_DIR}" --strip-components=1
-    elif command -v wget >/dev/null 2>&1; then
-        wget -qO- "${repo_url}" | tar -xz -C "${CLEANUP_DIR}" --strip-components=1
-    else
-        echo -e "${RED}✖ Error: curl or wget is required to download OmaStack.${RESET}" >&2
-        exit 1
-    fi
-
-    if [ -d "${CLEANUP_DIR}/omastack/lib" ]; then
-        echo "${CLEANUP_DIR}/omastack"
-    else
-        echo "${CLEANUP_DIR}"
-    fi
+    echo -e "${RED}✖ Error: OmaStack source directory not found. Please run install.sh from within the cloned repository.${RESET}" >&2
+    exit 1
 }
 
 run_test_suite() {
@@ -381,8 +355,8 @@ EOF
     cp "${config_dir}/widgets/omastack.json" "${widget_dir}/omastack.json" 2>/dev/null || true
     echo -e "${CYAN}➜ Configured Omarchy Widget Panel in ~/.config/omarchy/widgets/omastack.json${RESET}"
 
-    # Install Omarchy Quattro Plugin & Bar-Widget (~/.config/omarchy/plugins/omacom.omastack)
-    local omarchy_plugins_dir="${HOME}/.config/omarchy/plugins/omacom.omastack"
+    # Install Omarchy Quattro Plugin & Bar-Widget (~/.config/omarchy/plugins/io.github.anax.omastack)
+    local omarchy_plugins_dir="${HOME}/.config/omarchy/plugins/io.github.anax.omastack"
     mkdir -p "${omarchy_plugins_dir}"
     for f in manifest.json BarWidget.qml Panel.qml LICENSE; do
         if [ -f "${source_dir}/${f}" ]; then

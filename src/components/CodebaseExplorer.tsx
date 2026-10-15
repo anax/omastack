@@ -337,7 +337,7 @@ export const CodebaseExplorer: React.FC<CodebaseExplorerProps> = ({
 }) => {
   const [selectedFile, setSelectedFile] = useState<string>('README.md');
   const [copied, setCopied] = useState(false);
-  const [copiedCurl, setCopiedCurl] = useState(false);
+  const [copiedClone, setCopiedClone] = useState(false);
   const [copiedPlugin, setCopiedPlugin] = useState(false);
 
   const handleCopyFile = () => {
@@ -346,11 +346,11 @@ export const CodebaseExplorer: React.FC<CodebaseExplorerProps> = ({
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleCopyCurl = () => {
-    const command = 'curl -fsSL https://raw.githubusercontent.com/anax/omastack/main/install.sh | bash';
+  const handleCopyClone = () => {
+    const command = 'git clone https://github.com/anax/omastack.git ~/.config/omarchy/plugins/io.github.anax.omastack && cd ~/.config/omarchy/plugins/io.github.anax.omastack && ./install.sh';
     onCopyText(command);
-    setCopiedCurl(true);
-    setTimeout(() => setCopiedCurl(false), 2000);
+    setCopiedClone(true);
+    setTimeout(() => setCopiedClone(false), 2000);
   };
 
   const handleCopyPlugin = () => {
@@ -395,12 +395,12 @@ export const CodebaseExplorer: React.FC<CodebaseExplorerProps> = ({
           </button>
 
           <button
-            onClick={handleCopyCurl}
+            onClick={handleCopyClone}
             className="px-3.5 py-2 rounded-lg font-bold border flex items-center gap-2 transition-all hover:bg-black/30"
             style={{ borderColor: currentTheme.border, color: currentTheme.fg }}
           >
-            {copiedCurl ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
-            <span>{copiedCurl ? 'Command Copied!' : 'curl install.sh'}</span>
+            {copiedClone ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+            <span>{copiedClone ? 'Command Copied!' : 'git clone & install'}</span>
           </button>
 
           <button

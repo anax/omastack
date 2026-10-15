@@ -59,7 +59,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   onCopySnippet,
 }) => {
   const [copiedInstallCmd, setCopiedInstallCmd] = useState<string | null>(null);
-  const [activeInstallTab, setActiveInstallTab] = useState<'plugin' | 'curl' | 'git'>('plugin');
+  const [activeInstallTab, setActiveInstallTab] = useState<'plugin' | 'git'>('plugin');
   const [activeArchitectureStep, setActiveArchitectureStep] = useState<number>(1);
   const [demoSelectedTemplate, setDemoSelectedTemplate] = useState<string>('laravel-stack');
   const [demoSimulatedPortConflict, setDemoSimulatedPortConflict] = useState<boolean>(true);
@@ -71,12 +71,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({
     setTimeout(() => setCopiedInstallCmd(null), 2500);
   };
 
-  const curlCmd = 'curl -fsSL https://raw.githubusercontent.com/anax/omastack/main/install.sh | bash';
   const pluginCmd = 'omarchy plugin add https://github.com/anax/omastack';
-  const gitCmd = `git clone https://github.com/anax/omastack.git ~/.local/share/omastack
-mkdir -p ~/.local/bin
-ln -sf ~/.local/share/omastack/bin/omastack ~/.local/bin/omastack
-chmod +x ~/.local/bin/omastack`;
+  const gitCmd = `git clone https://github.com/anax/omastack.git ~/.config/omarchy/plugins/io.github.anax.omastack
+cd ~/.config/omarchy/plugins/io.github.anax.omastack
+./install.sh`;
 
   // Pipeline steps for architecture section
   const pipelineSteps = [
@@ -234,19 +232,19 @@ chmod +x ~/.local/bin/omastack`;
           >
             <div className="flex items-center gap-2 overflow-x-auto text-[11px] font-mono text-left pl-2 text-white/90">
               <span style={{ color: currentTheme.primary }}>$</span>
-              <span className="truncate">{curlCmd}</span>
+              <span className="truncate">{pluginCmd}</span>
             </div>
             <button
-              onClick={() => copyText(curlCmd, 'curl')}
+              onClick={() => copyText(pluginCmd, 'plugin-hero')}
               className="px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all text-[11px] font-bold shrink-0 hover:brightness-125"
               style={{
-                backgroundColor: copiedInstallCmd === 'curl' ? '#10b981' : currentTheme.cardBg,
-                color: copiedInstallCmd === 'curl' ? '#ffffff' : currentTheme.accent,
+                backgroundColor: copiedInstallCmd === 'plugin-hero' ? '#10b981' : currentTheme.cardBg,
+                color: copiedInstallCmd === 'plugin-hero' ? '#ffffff' : currentTheme.accent,
                 border: `1px solid ${currentTheme.border}`,
               }}
             >
-              {copiedInstallCmd === 'curl' ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-              <span>{copiedInstallCmd === 'curl' ? 'Copied!' : 'Copy'}</span>
+              {copiedInstallCmd === 'plugin-hero' ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+              <span>{copiedInstallCmd === 'plugin-hero' ? 'Copied!' : 'Copy'}</span>
             </button>
           </div>
 
@@ -1228,18 +1226,6 @@ chmod +x ~/.local/bin/omastack`;
             Omarchy Plugin Manager
           </button>
           <button
-            onClick={() => setActiveInstallTab('curl')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-              activeInstallTab === 'curl' ? 'shadow-md' : 'opacity-60 hover:opacity-100'
-            }`}
-            style={{
-              backgroundColor: activeInstallTab === 'curl' ? currentTheme.primary : 'transparent',
-              color: activeInstallTab === 'curl' ? currentTheme.bg : currentTheme.fg,
-            }}
-          >
-            1-Line Curl Installer
-          </button>
-          <button
             onClick={() => setActiveInstallTab('git')}
             className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
               activeInstallTab === 'git' ? 'shadow-md' : 'opacity-60 hover:opacity-100'
@@ -1278,34 +1264,6 @@ chmod +x ~/.local/bin/omastack`;
                 >
                   {copiedInstallCmd === 'omarchy-plugin' ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
                   <span>{copiedInstallCmd === 'omarchy-plugin' ? 'Copied' : 'Copy'}</span>
-                </button>
-              </div>
-            </div>
-          )}
-
-          {activeInstallTab === 'curl' && (
-            <div className="space-y-3">
-              <p className="text-xs opacity-80 font-sans">
-                Self-contained curl installer. Performs automated environment audit, permissions checks, and symlinking:
-              </p>
-              <div
-                className="p-3.5 rounded-xl border bg-black/60 flex items-center justify-between gap-3"
-                style={{ borderColor: currentTheme.border }}
-              >
-                <code className="text-cyan-300 font-mono text-[11px] overflow-x-auto">
-                  {curlCmd}
-                </code>
-                <button
-                  onClick={() => copyText(curlCmd, 'curl-tab')}
-                  className="px-3 py-1.5 rounded-lg flex items-center gap-1.5 text-[11px] font-bold shrink-0 transition-all"
-                  style={{
-                    backgroundColor: copiedInstallCmd === 'curl-tab' ? '#10b981' : currentTheme.cardBg,
-                    color: copiedInstallCmd === 'curl-tab' ? '#fff' : currentTheme.accent,
-                    border: `1px solid ${currentTheme.border}`,
-                  }}
-                >
-                  {copiedInstallCmd === 'curl-tab' ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                  <span>{copiedInstallCmd === 'curl-tab' ? 'Copied' : 'Copy'}</span>
                 </button>
               </div>
             </div>

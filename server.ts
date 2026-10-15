@@ -50,7 +50,9 @@ async function startServer() {
 
   // Serve raw install script
   app.get('/install.sh', (req, res) => {
-    const installPath = path.join(process.cwd(), 'omastack', 'install.sh');
+    const rootPath = path.join(process.cwd(), 'install.sh');
+    const subPath = path.join(process.cwd(), 'omastack', 'install.sh');
+    const installPath = fs.existsSync(rootPath) ? rootPath : subPath;
     if (fs.existsSync(installPath)) {
       res.setHeader('Content-Type', 'text/plain');
       res.send(fs.readFileSync(installPath, 'utf-8'));
