@@ -59,6 +59,11 @@ cmd_up() {
         exit 1
     fi
 
+    if [[ ! "${template}" =~ ^[a-zA-Z0-9_-]+$ ]]; then
+        log_error "Invalid template name '${template}' (alphanumerics, hyphens, and underscores only)."
+        exit 1
+    fi
+
     local tmpl_dir="${SCRIPT_DIR}/templates/${template}"
     if [ ! -d "${tmpl_dir}" ]; then
         tmpl_dir="${OMASTACK_TEMPLATES_DIR}/${template}"
@@ -80,7 +85,6 @@ cmd_up() {
 
     # Dynamic Port Scanner & Conflict Resolution
     log_info "Scanning local network ports with ss..."
-    local port_eval=""
     local port_args=""
 
     if [ -f "${conf_file}" ]; then
@@ -89,7 +93,7 @@ cmd_up() {
             default_port=$(echo "${default_port}" | tr -d ' "\r')
             local resolved_port
             resolved_port=$(find_available_port "${default_port}")
-            port_eval="${port_eval} ${port_var}=${resolved_port}"
+            export "${port_var}=${resolved_port}"
             port_args="${port_args} ${port_var}=${resolved_port}"
             if [ "${resolved_port}" != "${default_port}" ]; then
                 log_warn "Port collision detected for ${port_var}! Dynamically remapped ${default_port} -> ${resolved_port}"
@@ -102,7 +106,7 @@ cmd_up() {
 
     if is_docker_available; then
         log_info "Launching Docker Compose containers..."
-        eval "${port_eval}" docker compose -f "${compose_dest}" -p "omastack-${template}" up -d
+        docker compose -f "${compose_dest}" -p "omastack-${template}" up -d
         wait_for_stack_healthy "${compose_dest}"
     else
         log_info "Docker daemon offline; initialized ephemeral sandbox state in localized mode."

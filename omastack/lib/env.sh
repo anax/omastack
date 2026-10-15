@@ -11,8 +11,12 @@ generate_env_snippet() {
 
     local snippet="# --- OmaStack Generated Envs for ${stack_name} ---"
     
-    # Parse port_mapping
-    eval "${port_mapping}"
+    # Parse port_mapping safely without eval
+    for item in ${port_mapping}; do
+        if [[ "${item}" =~ ^[A-Z0-9_]+=[0-9]+$ ]]; then
+            export "${item}"
+        fi
+    done
 
     case "${stack_name}" in
         laravel-stack)

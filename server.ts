@@ -103,6 +103,17 @@ async function startServer() {
     }
   });
 
+  // Serve repository LICENSE
+  app.get('/LICENSE', (req, res) => {
+    const p = path.join(process.cwd(), 'LICENSE');
+    if (fs.existsSync(p)) {
+      res.setHeader('Content-Type', 'text/plain');
+      res.send(fs.readFileSync(p, 'utf-8'));
+    } else {
+      res.status(404).send('LICENSE not found');
+    }
+  });
+
   // API: Get real templates dynamically parsed from omastack/templates
   app.get('/api/templates', (req, res) => {
     if (!fs.existsSync(TEMPLATES_DIR)) {

@@ -329,6 +329,11 @@ main() {
     if [ -f "${source_dir}/omastore.toml" ]; then
         cp "${source_dir}/omastore.toml" "${install_dir}/"
     fi
+    if [ -f "${source_dir}/LICENSE" ]; then
+        cp "${source_dir}/LICENSE" "${install_dir}/"
+    elif [ -f "${source_dir}/../LICENSE" ]; then
+        cp "${source_dir}/../LICENSE" "${install_dir}/"
+    fi
 
     # Copy and setup binaries
     cp "${source_dir}/bin/omastack" "${install_dir}/bin/omastack"
@@ -379,7 +384,7 @@ EOF
     # Install Omarchy Quattro Plugin & Bar-Widget (~/.config/omarchy/plugins/omacom.omastack)
     local omarchy_plugins_dir="${HOME}/.config/omarchy/plugins/omacom.omastack"
     mkdir -p "${omarchy_plugins_dir}"
-    for f in manifest.json BarWidget.qml Panel.qml; do
+    for f in manifest.json BarWidget.qml Panel.qml LICENSE; do
         if [ -f "${source_dir}/${f}" ]; then
             cp "${source_dir}/${f}" "${omarchy_plugins_dir}/"
         elif [ -f "${source_dir}/../${f}" ]; then
