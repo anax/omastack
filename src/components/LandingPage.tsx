@@ -87,7 +87,7 @@ chmod +x ~/.local/bin/omastack`;
   const doctrinePrinciples = [
     {
       number: '01',
-      title: "Chef's Choice (Omakase) Sandboxes",
+      title: 'Curated OmaStack Sandboxes',
       subtitle: 'We pick the tools and tune the details, so you can get straight to work.',
       desc: 'No more writing verbose 200-line docker-compose files for every test project. OmaStack ships with carefully tuned, alpine-based multi-service environments for Laravel, Supabase, Next.js, n8n, and Web3. But this is your computer: you are free to customize and extend everything.',
       icon: Boxes,
@@ -225,7 +225,7 @@ chmod +x ~/.local/bin/omastack`;
           {/* Main Headline */}
           <div className="space-y-4">
             <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black tracking-tight leading-[1.08] select-text">
-              The Omakase Sandboxes for{' '}
+              The OmaStack Sandboxes for{' '}
               <span
                 className="bg-clip-text text-transparent bg-gradient-to-r"
                 style={{
@@ -709,12 +709,12 @@ chmod +x ~/.local/bin/omastack`;
         </div>
       </section>
 
-      {/* 6. CURATED STACK SHOWCASE (CHEF'S CHOICE OMACASE) */}
+      {/* 6. CURATED STACK SHOWCASE */}
       <section className="max-w-5xl mx-auto space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
           <div className="space-y-1">
             <div className="text-[11px] font-bold uppercase tracking-wider font-mono" style={{ color: currentTheme.primary }}>
-              Chef's Choice Omakase
+              Curated OmaStack Sandboxes
             </div>
             <h2 className="text-2xl sm:text-3xl font-black">A Stack for Every Project</h2>
             <p className="text-xs opacity-75">
