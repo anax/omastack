@@ -34,9 +34,14 @@ is_port_in_use() {
 find_available_port() {
     local start_port="$1"
     local port="${start_port}"
-    while is_port_in_use "${port}"; do
-        log_warn "Port ${port} in use, checking next port..."
+    local max_attempts=500
+    local attempt=0
+    while is_port_in_use "${port}" && [ "${attempt}" -lt "${max_attempts}" ]; do
         port=$((port + 1))
+        if [ "${port}" -gt 65535 ]; then
+            port=1024
+        fi
+        attempt=$((attempt + 1))
     done
     echo "${port}"
 }
