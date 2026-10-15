@@ -1,5 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Terminal, HardDrive, Palette, Power, RefreshCw, Cpu, Activity, Layers, Sparkles } from 'lucide-react';
+import {
+  Terminal,
+  HardDrive,
+  Palette,
+  Layers,
+  Sparkles,
+  ChevronDown,
+} from 'lucide-react';
 import { OmarchyTheme, OmarchyThemeKey, ActiveStack, WaybarPayload, SystemStats } from '../types';
 import { OMARCHY_THEMES } from '../themes';
 import { OmaStackLogo } from './OmaStackLogo';
@@ -16,6 +23,20 @@ interface WaybarHeaderProps {
   activeTab: 'landing' | 'dashboard' | 'terminal' | 'templates' | 'codebase' | 'system';
   setActiveTab: (tab: 'landing' | 'dashboard' | 'terminal' | 'templates' | 'codebase' | 'system') => void;
 }
+
+const NAV_TABS: Array<{
+  id: 'landing' | 'dashboard' | 'terminal' | 'templates' | 'system' | 'codebase';
+  label: string;
+  shortLabel?: string;
+  hasSparkle?: boolean;
+}> = [
+  { id: 'landing', label: 'Overview', hasSparkle: true },
+  { id: 'dashboard', label: 'Dashboard' },
+  { id: 'terminal', label: 'Live CLI', shortLabel: 'CLI' },
+  { id: 'templates', label: 'Templates' },
+  { id: 'system', label: 'Ports & Caddy', shortLabel: 'Ports' },
+  { id: 'codebase', label: 'Codebase & Install', shortLabel: 'Install' },
+];
 
 export const WaybarHeader: React.FC<WaybarHeaderProps> = ({
   currentTheme,
@@ -47,28 +68,32 @@ export const WaybarHeader: React.FC<WaybarHeaderProps> = ({
     return () => clearInterval(interval);
   }, []);
 
+  const totalRamUsed = activeStacks.reduce((acc, s) => acc + (s.ramUsageMB || 0), 0);
+
   return (
     <header
-      className="w-full border-b transition-colors duration-200 px-4 py-2 flex flex-wrap items-center justify-between text-xs font-mono select-none"
+      className="w-full h-13 px-3 sm:px-4 border-b transition-colors duration-200 flex flex-nowrap items-center justify-between text-xs font-mono select-none sticky top-0 z-40 backdrop-blur-md"
       style={{
-        backgroundColor: currentTheme.waybarBg,
+        backgroundColor: `${currentTheme.waybarBg}f5`,
         borderColor: currentTheme.border,
         color: currentTheme.fg,
       }}
     >
-      {/* Left: OmaStack Brand Logo & Omarchy Launcher */}
-      <div className="flex items-center gap-2">
+      {/* 1. LEFT: Brand, Walker Menu & Hyprland Workspaces */}
+      <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
         <div
           onClick={() => setActiveTab('landing')}
-          className="flex items-center gap-2 cursor-pointer pr-2.5 border-r border-white/10 hover:opacity-90 transition-opacity"
-          title="OmaStack — Ephemeral Full-Stack Sandboxes for Omarchy Linux"
+          className="flex items-center gap-2 cursor-pointer hover:opacity-90 transition-opacity"
+          title="OmaStack — Ephemeral Sandboxes for Omarchy Linux"
         >
           <OmaStackLogo size={22} showWordmark={true} />
         </div>
 
+        <div className="h-4 w-px bg-white/10 hidden sm:block" />
+
         <button
           onClick={onOpenWalkerMenu}
-          className="px-2.5 py-1 rounded font-bold flex items-center gap-1.5 transition-all shadow-sm hover:brightness-110"
+          className="px-2 py-1 rounded text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm hover:brightness-110 shrink-0"
           style={{
             backgroundColor: currentTheme.primary,
             color: currentTheme.bg,
@@ -76,98 +101,46 @@ export const WaybarHeader: React.FC<WaybarHeaderProps> = ({
           title="Open Omarchy Walker Menu (Super + Alt + Space)"
         >
           <Terminal className="w-3.5 h-3.5" />
-          <span>Omarchy</span>
+          <span className="hidden md:inline">Omarchy</span>
         </button>
 
-        {/* Workspaces */}
-        <div className="flex items-center gap-1 bg-black/30 p-1 rounded border border-white/10">
+        {/* Workspaces Pill */}
+        <div className="hidden lg:flex items-center gap-0.5 bg-black/30 p-0.5 rounded border border-white/10 text-[11px]">
           <span className="w-5 h-5 flex items-center justify-center rounded font-bold text-white bg-white/20">1</span>
           <span className="w-5 h-5 flex items-center justify-center rounded text-white/50 hover:bg-white/10 cursor-pointer">2</span>
           <span className="w-5 h-5 flex items-center justify-center rounded text-white/50 hover:bg-white/10 cursor-pointer">3</span>
         </div>
-
-        {/* Tab Switcher */}
-        <div className="flex items-center gap-1 ml-2 border-l border-white/10 pl-2">
-          <button
-            onClick={() => setActiveTab('landing')}
-            className={`px-2.5 py-1 rounded transition-colors flex items-center gap-1.5 ${
-              activeTab === 'landing' ? 'font-bold' : 'opacity-70 hover:opacity-100'
-            }`}
-            style={{
-              backgroundColor: activeTab === 'landing' ? currentTheme.cardBg : 'transparent',
-              color: activeTab === 'landing' ? currentTheme.accent : currentTheme.fg,
-            }}
-          >
-            <Sparkles className="w-3 h-3 text-amber-400" />
-            <span>Overview</span>
-          </button>
-          <button
-            onClick={() => setActiveTab('dashboard')}
-            className={`px-2 py-1 rounded transition-colors ${
-              activeTab === 'dashboard' ? 'font-bold' : 'opacity-70 hover:opacity-100'
-            }`}
-            style={{
-              backgroundColor: activeTab === 'dashboard' ? currentTheme.cardBg : 'transparent',
-              color: activeTab === 'dashboard' ? currentTheme.accent : currentTheme.fg,
-            }}
-          >
-            Dashboard
-          </button>
-          <button
-            onClick={() => setActiveTab('terminal')}
-            className={`px-2 py-1 rounded transition-colors ${
-              activeTab === 'terminal' ? 'font-bold' : 'opacity-70 hover:opacity-100'
-            }`}
-            style={{
-              backgroundColor: activeTab === 'terminal' ? currentTheme.cardBg : 'transparent',
-              color: activeTab === 'terminal' ? currentTheme.accent : currentTheme.fg,
-            }}
-          >
-            Live CLI
-          </button>
-          <button
-            onClick={() => setActiveTab('templates')}
-            className={`px-2 py-1 rounded transition-colors ${
-              activeTab === 'templates' ? 'font-bold' : 'opacity-70 hover:opacity-100'
-            }`}
-            style={{
-              backgroundColor: activeTab === 'templates' ? currentTheme.cardBg : 'transparent',
-              color: activeTab === 'templates' ? currentTheme.accent : currentTheme.fg,
-            }}
-          >
-            Templates
-          </button>
-          <button
-            onClick={() => setActiveTab('system')}
-            className={`px-2 py-1 rounded transition-colors ${
-              activeTab === 'system' ? 'font-bold' : 'opacity-70 hover:opacity-100'
-            }`}
-            style={{
-              backgroundColor: activeTab === 'system' ? currentTheme.cardBg : 'transparent',
-              color: activeTab === 'system' ? currentTheme.accent : currentTheme.fg,
-            }}
-          >
-            Ports & Caddy
-          </button>
-          <button
-            onClick={() => setActiveTab('codebase')}
-            className={`px-2 py-1 rounded transition-colors ${
-              activeTab === 'codebase' ? 'font-bold' : 'opacity-70 hover:opacity-100'
-            }`}
-            style={{
-              backgroundColor: activeTab === 'codebase' ? currentTheme.cardBg : 'transparent',
-              color: activeTab === 'codebase' ? currentTheme.accent : currentTheme.fg,
-            }}
-          >
-            Codebase & Install
-          </button>
-        </div>
       </div>
 
-      {/* Center: Live Waybar OmaStack JSON Status Pill & Widget Panel Toggle */}
-      <div className="flex items-center gap-2">
+      {/* 2. CENTER: Clean Segmented Navigation Tabs */}
+      <nav className="flex items-center gap-0.5 sm:gap-1 bg-black/25 p-1 rounded-xl border border-white/10 overflow-x-auto no-scrollbar mx-2 shrink min-w-0">
+        {NAV_TABS.map((tab) => {
+          const isActive = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`px-2 sm:px-2.5 py-1 rounded-lg text-xs transition-all whitespace-nowrap flex items-center gap-1.5 ${
+                isActive ? 'font-bold shadow-sm' : 'opacity-70 hover:opacity-100 hover:bg-white/5'
+              }`}
+              style={{
+                backgroundColor: isActive ? currentTheme.cardBg : 'transparent',
+                color: isActive ? currentTheme.accent : currentTheme.fg,
+              }}
+            >
+              {tab.hasSparkle && <Sparkles className="w-3 h-3 text-amber-400 shrink-0" />}
+              <span className="hidden xl:inline">{tab.label}</span>
+              <span className="xl:hidden">{tab.shortLabel || tab.label}</span>
+            </button>
+          );
+        })}
+      </nav>
+
+      {/* 3. RIGHT: Unified Sandbox Status, RAM Gauge, Theme Switcher & Clock */}
+      <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
+        {/* Unified Sandbox Status & Widget Panel Toggle */}
         <div
-          className="group relative flex items-center gap-2 px-3.5 py-1 rounded-full border shadow-sm transition-all cursor-pointer hover:border-primary/80"
+          className="group relative flex items-center gap-2 px-2.5 py-1 rounded-full border shadow-sm transition-all cursor-pointer hover:border-white/30"
           style={{
             backgroundColor: currentTheme.cardBg,
             borderColor: activeStacks.length > 0 ? currentTheme.accent : currentTheme.border,
@@ -177,32 +150,40 @@ export const WaybarHeader: React.FC<WaybarHeaderProps> = ({
             e.preventDefault();
             onStopAllStacks();
           }}
-          title="Click to open OmaStack Widget Panel (Super + Alt + W) | Right-click to stop all"
+          title="Click to toggle OmaStack Widget Panel (W) | Right-click to stop all"
         >
           <span className="relative flex h-2 w-2">
             <span
               className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
                 activeStacks.length > 0 ? 'bg-emerald-400' : 'bg-gray-400'
               }`}
-            ></span>
+            />
             <span
               className={`relative inline-flex rounded-full h-2 w-2 ${
                 activeStacks.length > 0 ? 'bg-emerald-500' : 'bg-gray-500'
               }`}
-            ></span>
+            />
           </span>
-          <span className="font-bold" style={{ color: currentTheme.accent }}>
-            {waybarStatus?.text || `⚡ ${activeStacks.length}`}
+
+          <span className="font-bold text-xs" style={{ color: currentTheme.accent }}>
+            {activeStacks.length}
           </span>
-          {activeStacks.length > 0 && (
-            <span className="opacity-70 border-l border-white/20 pl-2 text-[10px]">
-              {activeStacks.reduce((acc, s) => acc + (s.ramUsageMB || 0), 0)} MB
+
+          {activeStacks.length > 0 && totalRamUsed > 0 && (
+            <span className="hidden sm:inline opacity-70 text-[10px]">
+              {totalRamUsed}MB
             </span>
           )}
 
-          {/* Real Tooltip from omastack status --waybar */}
+          <div className="flex items-center gap-1 border-l border-white/10 pl-2">
+            <Layers className="w-3 h-3 opacity-70" />
+            <span className="hidden sm:inline text-[11px] font-medium opacity-80">Panel</span>
+            <kbd className="hidden md:inline text-[9px] px-1 py-0.2 rounded bg-white/10 opacity-60">W</kbd>
+          </div>
+
+          {/* Hover Tooltip */}
           <div
-            className="absolute top-full mt-2 left-1/2 -translate-x-1/2 hidden group-hover:block z-50 w-72 p-3 rounded-lg shadow-2xl border text-[11px] backdrop-blur-md pointer-events-none"
+            className="absolute top-full mt-2 right-0 hidden group-hover:block z-50 w-72 p-3 rounded-lg shadow-2xl border text-[11px] backdrop-blur-md pointer-events-none"
             style={{
               backgroundColor: currentTheme.bg,
               borderColor: currentTheme.border,
@@ -219,41 +200,34 @@ export const WaybarHeader: React.FC<WaybarHeaderProps> = ({
           </div>
         </div>
 
-        {/* Quick Widget Panel Button */}
-        <button
-          onClick={onOpenWidgetPanel}
-          className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] font-bold shadow-sm transition-all hover:brightness-110"
-          style={{
-            backgroundColor: currentTheme.cardBg,
-            borderColor: currentTheme.border,
-            color: currentTheme.accent,
-          }}
-          title="Toggle OmaStack Widget Panel (Super + Alt + W)"
-        >
-          <Layers className="w-3 h-3" />
-          <span>Widget Panel</span>
-          <kbd className="text-[9px] px-1 py-0.2 rounded bg-white/10 opacity-70">W</kbd>
-        </button>
-      </div>
-
-      {/* Right: Theme Selector, System Stats & Clock */}
-      <div className="flex items-center gap-3">
-        {/* Real System RAM from OS */}
+        {/* Real System RAM Chip (Desktop only) */}
         {systemStats && (
-          <div className="hidden lg:flex items-center gap-1.5 opacity-80" title={`OS: ${systemStats.platform} (${systemStats.arch})`}>
-            <HardDrive className="w-3.5 h-3.5 text-cyan-400" />
-            <span>RAM: {systemStats.usedMemMB}/{systemStats.totalMemMB}MB</span>
+          <div
+            className="hidden xl:flex items-center gap-1.5 px-2 py-1 rounded bg-black/25 border border-white/10 text-[11px] opacity-80"
+            title={`OS: ${systemStats.platform} (${systemStats.arch}) — ${systemStats.usedMemMB}/${systemStats.totalMemMB}MB`}
+          >
+            <HardDrive className="w-3 h-3 text-cyan-400" />
+            <span>{Math.round((systemStats.usedMemMB / systemStats.totalMemMB) * 100)}% RAM</span>
           </div>
         )}
 
-        {/* Theme Picker */}
-        <div className="flex items-center gap-1.5 bg-black/30 px-2 py-1 rounded border border-white/10">
-          <Palette className="w-3.5 h-3.5 opacity-70" />
+        {/* Styled Theme Selector Pill */}
+        <div className="relative flex items-center gap-1.5 bg-black/30 hover:bg-black/50 px-2 py-1 rounded-lg border border-white/10 transition-colors cursor-pointer">
+          <span
+            className="w-2.5 h-2.5 rounded-full shrink-0 shadow-sm"
+            style={{ backgroundColor: currentTheme.primary }}
+          />
+          <span className="text-xs font-bold max-w-[70px] sm:max-w-none truncate" style={{ color: currentTheme.primary }}>
+            {currentTheme.name}
+          </span>
+          <ChevronDown className="w-3 h-3 opacity-60 shrink-0" />
+          <kbd className="hidden lg:inline text-[9px] px-1 py-0.2 rounded bg-white/10 opacity-60">T</kbd>
+
           <select
             value={currentTheme.key}
             onChange={(e) => onSelectTheme(e.target.value as OmarchyThemeKey)}
-            className="bg-transparent border-none text-xs focus:outline-none cursor-pointer font-bold"
-            style={{ color: currentTheme.primary }}
+            className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+            title="Change Theme (Press T to cycle)"
           >
             {Object.values(OMARCHY_THEMES).map((t) => (
               <option key={t.key} value={t.key} className="bg-gray-900 text-white">
@@ -265,7 +239,7 @@ export const WaybarHeader: React.FC<WaybarHeaderProps> = ({
 
         {/* Clock */}
         <div
-          className="px-2 py-1 rounded font-bold tracking-wider"
+          className="hidden sm:block px-2.5 py-1 rounded-lg text-xs font-mono font-bold tracking-wider border border-white/5"
           style={{ backgroundColor: currentTheme.cardBg, color: currentTheme.fg }}
         >
           {time}
