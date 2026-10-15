@@ -5,7 +5,15 @@
 set -euo pipefail
 
 # Resolve script directory and source libraries
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+if [ -d "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/lib" ]; then
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+elif [ -d "${OMASTACK_HOME:-${HOME}/.local/share/omastack}/lib" ]; then
+    SCRIPT_DIR="${OMASTACK_HOME:-${HOME}/.local/share/omastack}"
+elif [ -d "${HOME}/.local/share/omastack/lib" ]; then
+    SCRIPT_DIR="${HOME}/.local/share/omastack"
+else
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+fi
 
 # Source libraries
 source "${SCRIPT_DIR}/lib/core.sh"
