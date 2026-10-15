@@ -10,7 +10,7 @@ services:
     container_name: omastack-automation-n8n
     restart: unless-stopped
     ports:
-      - "${PORT_N8N:-5678}:5678"
+      - "127.0.0.1:${PORT_N8N:-5678}:5678"
     environment:
       - DB_TYPE=postgresdb
       - DB_POSTGRESDB_HOST=postgres
@@ -35,7 +35,7 @@ services:
       POSTGRES_USER: n8n
       POSTGRES_PASSWORD: n8npassword
     ports:
-      - "${PORT_POSTGRES:-5432}:5432"
+      - "127.0.0.1:${PORT_POSTGRES:-5432}:5432"
     networks:
       - omastack-net
     healthcheck:
@@ -49,6 +49,6 @@ services:
     container_name: omastack-automation-redis
     restart: unless-stopped
     ports:
-      - "${PORT_REDIS:-6379}:6379"
+      - "127.0.0.1:${PORT_REDIS:-6379}:6379"
     networks:
       - omastack-net

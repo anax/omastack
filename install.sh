@@ -260,6 +260,27 @@ run_test_suite() {
         fail_test "Missing Panel.qml"
     fi
 
+    # 7. Test Repository License
+    echo -e "\n${BOLD}7. Validating Repository License:${RESET}"
+    local license_path=""
+    if [ -f "${src_dir}/LICENSE" ]; then
+        license_path="${src_dir}/LICENSE"
+    elif [ -f "${src_dir}/../LICENSE" ]; then
+        license_path="${src_dir}/../LICENSE"
+    elif [ -f "$(pwd)/LICENSE" ]; then
+        license_path="$(pwd)/LICENSE"
+    fi
+
+    if [ -n "${license_path}" ] && [ -f "${license_path}" ]; then
+        if grep -q "MIT License" "${license_path}"; then
+            pass_test "Found valid MIT LICENSE in repository root (${license_path})"
+        else
+            fail_test "LICENSE file does not specify MIT License"
+        fi
+    else
+        fail_test "Missing LICENSE file in repository root"
+    fi
+
     echo -e "\n${GREEN}${BOLD}======================================================${RESET}"
     echo -e "${GREEN}${BOLD}✔ ALL ${passed_tests}/${total_tests} OMASTACK SELF-TESTS PASSED SUCCESSFULLY!${RESET}"
     echo -e "${GREEN}${BOLD}======================================================${RESET}\n"
