@@ -94,12 +94,28 @@ register_proxy_domain() {
   docker exec omastack-proxy caddy reload --config /etc/caddy/Caddyfile
 }`,
 
+  'bin/omarchy': `#!/usr/bin/env bash
+# Omarchy System CLI & Plugin Manager
+set -euo pipefail
+
+case "\${1:-}" in
+  plugin)
+    if [ "\${2:-}" = "add" ]; then
+      echo "⚡ [Omarchy PM] Installing OmaStack from \${3:-}..."
+      echo "✔ Bound Super + Alt + Space to 'omastack menu' in Hyprland"
+      echo "✔ Configured Waybar custom/omastack module: 'omastack status --waybar'"
+      echo "✔ Plugin 'omastack' successfully installed and activated!"
+    fi
+    ;;
+esac`,
+
   'omastore.toml': `[plugin]
 id = "omastack"
 name = "OmaStack"
 version = "1.0.0"
 author = "Omarchy DevOps Team"
 description = "Native, zero-bloat, keyboard-first ephemeral full-stack sandbox launcher for Omarchy Linux."
+repository = "https://github.com/anax/omastack"
 
 [dependencies]
 system = ["docker", "docker-compose", "iproute2", "wl-clipboard", "libnotify"]
@@ -127,15 +143,32 @@ cp bin/omastack ~/.local/bin/omastack
 chmod +x ~/.local/bin/omastack
 
 echo "✔ OmaStack successfully installed! Run: omastack up laravel-stack"`,
+
+  'README.md': `# OmaStack (omastack)
+Native, zero-bloat, keyboard-first ephemeral sandbox launcher for Omarchy Linux.
+
+## Quick Install
+\`\`\`bash
+omarchy plugin add https://github.com/anax/omastack
+\`\`\`
+
+## Features
+- Curated stacks: laravel-stack, supabase-lite, nextjs-postgres, automation-hub, web3-node
+- Dynamic port allocation & collision scan with ss -tuln
+- Wayland clipboard sync (wl-copy) & safe .env backup
+- Local HTTPS reverse proxy (*.oma.local) via Caddy & mkcert
+- Hyprland keybinding: Super + Alt + Space
+- Native Waybar custom module (omastack status --waybar)`,
 };
 
 export const CodebaseExplorer: React.FC<CodebaseExplorerProps> = ({
   currentTheme,
   onCopyText,
 }) => {
-  const [selectedFile, setSelectedFile] = useState<string>('bin/omastack');
+  const [selectedFile, setSelectedFile] = useState<string>('README.md');
   const [copied, setCopied] = useState(false);
   const [copiedCurl, setCopiedCurl] = useState(false);
+  const [copiedPlugin, setCopiedPlugin] = useState(false);
 
   const handleCopyFile = () => {
     onCopyText(FILE_CONTENTS[selectedFile] || '');
@@ -144,10 +177,17 @@ export const CodebaseExplorer: React.FC<CodebaseExplorerProps> = ({
   };
 
   const handleCopyCurl = () => {
-    const command = 'curl -fsSL https://raw.githubusercontent.com/omarchy/omastack/main/install.sh | bash';
+    const command = 'curl -fsSL https://raw.githubusercontent.com/anax/omastack/main/install.sh | bash';
     onCopyText(command);
     setCopiedCurl(true);
     setTimeout(() => setCopiedCurl(false), 2000);
+  };
+
+  const handleCopyPlugin = () => {
+    const command = 'omarchy plugin add https://github.com/anax/omastack';
+    onCopyText(command);
+    setCopiedPlugin(true);
+    setTimeout(() => setCopiedPlugin(false), 2000);
   };
 
   const handleDownloadZip = () => {
@@ -167,21 +207,30 @@ export const CodebaseExplorer: React.FC<CodebaseExplorerProps> = ({
         <div className="space-y-1">
           <div className="font-bold text-sm flex items-center gap-2" style={{ color: currentTheme.primary }}>
             <ShieldCheck className="w-5 h-5 text-emerald-400" />
-            <span>Install Directly on Omarchy Linux / Arch Linux</span>
+            <span>Install on Omarchy Linux via Plugin Manager</span>
           </div>
           <p className="opacity-70 text-xs">
-            1-click install via curl or download the complete source repository zip.
+            Repository: <code className="text-cyan-300">https://github.com/anax/omastack</code>
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
           <button
+            onClick={handleCopyPlugin}
+            className="px-3.5 py-2 rounded-lg font-bold border flex items-center gap-2 transition-all hover:bg-black/30"
+            style={{ borderColor: currentTheme.accent, color: currentTheme.accent }}
+          >
+            {copiedPlugin ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+            <span>{copiedPlugin ? 'Copied Plugin Command!' : 'omarchy plugin add'}</span>
+          </button>
+
+          <button
             onClick={handleCopyCurl}
             className="px-3.5 py-2 rounded-lg font-bold border flex items-center gap-2 transition-all hover:bg-black/30"
-            style={{ borderColor: currentTheme.border, color: currentTheme.accent }}
+            style={{ borderColor: currentTheme.border, color: currentTheme.fg }}
           >
             {copiedCurl ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
-            <span>{copiedCurl ? 'Command Copied!' : 'Copy curl install.sh'}</span>
+            <span>{copiedCurl ? 'Command Copied!' : 'curl install.sh'}</span>
           </button>
 
           <button
@@ -190,7 +239,7 @@ export const CodebaseExplorer: React.FC<CodebaseExplorerProps> = ({
             style={{ backgroundColor: currentTheme.primary, color: currentTheme.bg }}
           >
             <Download className="w-4 h-4" />
-            <span>Download Repository ZIP</span>
+            <span>Download ZIP</span>
           </button>
         </div>
       </div>

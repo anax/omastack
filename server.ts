@@ -209,10 +209,13 @@ async function startServer() {
       return res.status(400).json({ error: 'Command string required' });
     }
 
-    // Whitelist or direct dispatch to omastack
+    // Whitelist or direct dispatch to omastack or omarchy
     let cmdToRun = command.trim();
     if (cmdToRun.startsWith('omastack')) {
       cmdToRun = cmdToRun.replace(/^omastack/, `bash "${OMASTACK_BIN}"`);
+    } else if (cmdToRun.startsWith('omarchy')) {
+      const omarchyBin = path.join(process.cwd(), 'omastack', 'bin', 'omarchy');
+      cmdToRun = cmdToRun.replace(/^omarchy/, `bash "${omarchyBin}"`);
     }
 
     const { stdout, stderr, code } = await runShell(cmdToRun);

@@ -98,6 +98,13 @@ export const TerminalSimulator: React.FC<TerminalSimulatorProps> = ({
       <div className="px-4 py-2 border-b flex flex-wrap gap-2 items-center bg-black/20" style={{ borderColor: currentTheme.border }}>
         <span className="opacity-60 text-[11px]">Quick Run:</span>
         <button
+          onClick={() => handleQuickCommand('omarchy plugin add https://github.com/anax/omastack')}
+          className="px-2 py-0.5 rounded border text-[11px] font-bold hover:brightness-125 transition-all"
+          style={{ borderColor: currentTheme.accent, backgroundColor: currentTheme.cardBg, color: currentTheme.accent }}
+        >
+          omarchy plugin add
+        </button>
+        <button
           onClick={() => handleQuickCommand('omastack up laravel-stack')}
           className="px-2 py-0.5 rounded border text-[11px] hover:brightness-125 transition-all"
           style={{ borderColor: currentTheme.border, backgroundColor: currentTheme.cardBg, color: currentTheme.primary }}

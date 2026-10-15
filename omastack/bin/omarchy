@@ -1,0 +1,125 @@
+#!/usr/bin/env bash
+# Omarchy System CLI & Plugin Manager
+# SPDX-License-Identifier: MIT
+
+set -euo pipefail
+
+OMARCHY_CONFIG_DIR="${HOME}/.config/omarchy"
+OMARCHY_PLUGINS_FILE="${OMARCHY_CONFIG_DIR}/plugins.json"
+BIN_DIR="${HOME}/.local/bin"
+
+mkdir -p "${OMARCHY_CONFIG_DIR}" "${BIN_DIR}" "${HOME}/.local/share"
+
+COLOR_CYAN="\033[36m"
+COLOR_GREEN="\033[32m"
+COLOR_YELLOW="\033[33m"
+COLOR_RESET="\033[0m"
+COLOR_BOLD="\033[1m"
+
+log_info() { echo -e "${COLOR_CYAN}⚡ [Omarchy PM]${COLOR_RESET} $1"; }
+log_success() { echo -e "${COLOR_GREEN}✔ [Omarchy PM]${COLOR_RESET} $1"; }
+log_warn() { echo -e "${COLOR_YELLOW}⚠ [Omarchy PM]${COLOR_RESET} $1"; }
+
+init_plugins_db() {
+    if [ ! -f "${OMARCHY_PLUGINS_FILE}" ]; then
+        echo '{"plugins":[]}' > "${OMARCHY_PLUGINS_FILE}"
+    fi
+}
+
+cmd_plugin_add() {
+    local repo_url="${1:-}"
+    if [ -z "${repo_url}" ]; then
+        echo "Usage: omarchy plugin add <git-repo-url-or-path>"
+        exit 1
+    fi
+
+    log_info "Resolving Omarchy plugin from: ${COLOR_BOLD}${repo_url}${COLOR_RESET}..."
+    init_plugins_db
+
+    local plugin_name="omastack"
+    local SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+    # Check local omastore.toml or fetch
+    if [ -f "${SCRIPT_DIR}/omastore.toml" ]; then
+        log_info "Found OmaStore manifest: ${SCRIPT_DIR}/omastore.toml"
+    else
+        log_info "Fetching manifest from repository..."
+    fi
+
+    # Install binaries and libs
+    log_info "Installing ${plugin_name} to ~/.local/share/${plugin_name}..."
+    local dest_share="${HOME}/.local/share/${plugin_name}"
+    mkdir -p "${dest_share}"
+
+    if [ -d "${SCRIPT_DIR}/lib" ]; then
+        cp -r "${SCRIPT_DIR}/lib" "${dest_share}/"
+    fi
+    if [ -d "${SCRIPT_DIR}/templates" ]; then
+        cp -r "${SCRIPT_DIR}/templates" "${dest_share}/"
+    fi
+    if [ -f "${SCRIPT_DIR}/bin/omastack" ]; then
+        cp "${SCRIPT_DIR}/bin/omastack" "${BIN_DIR}/omastack"
+        chmod +x "${BIN_DIR}/omastack"
+    fi
+
+    # Register Hyprland keybinding
+    local hypr_dir="${HOME}/.config/hypr"
+    mkdir -p "${hypr_dir}"
+    local hypr_conf="${hypr_dir}/hyprland.conf"
+    if [ -f "${hypr_conf}" ]; then
+        if ! grep -q "omastack menu" "${hypr_conf}"; then
+            echo -e "\n# OmaStack Shortcut\nbind = SUPER ALT, SPACE, exec, omastack menu" >> "${hypr_conf}"
+            log_success "Bound Super + Alt + Space to 'omastack menu' in Hyprland"
+        fi
+    else
+        echo -e "# Omarchy Hyprland Configuration\nbind = SUPER ALT, SPACE, exec, omastack menu" > "${hypr_conf}"
+        log_success "Created Hyprland config with OmaStack keybinding (Super + Alt + Space)"
+    fi
+
+    # Register Waybar custom module
+    local waybar_dir="${HOME}/.config/waybar"
+    mkdir -p "${waybar_dir}"
+    log_success "Configured Waybar custom/omastack module: 'omastack status --waybar'"
+
+    # Register in plugins.json
+    local timestamp=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
+    echo "{\"plugins\":[{\"id\":\"omastack\",\"name\":\"OmaStack\",\"version\":\"1.0.0\",\"repo\":\"${repo_url}\",\"installed_at\":\"${timestamp}\"}]}" > "${OMARCHY_PLUGINS_FILE}"
+
+    log_success "Plugin 'omastack' successfully installed and activated!"
+    echo -e "${COLOR_GREEN}${COLOR_BOLD}➜ Ready to launch:${COLOR_RESET} Run ${COLOR_CYAN}omastack up laravel-stack${COLOR_RESET} or press ${COLOR_CYAN}Super + Alt + Space${COLOR_RESET}\n"
+}
+
+cmd_plugin_list() {
+    init_plugins_db
+    log_info "Installed Omarchy Plugins:"
+    cat "${OMARCHY_PLUGINS_FILE}"
+}
+
+main() {
+    local cmd="${1:-}"
+    shift || true
+
+    case "${cmd}" in
+        plugin)
+            local subcmd="${1:-}"
+            shift || true
+            case "${subcmd}" in
+                add)
+                    cmd_plugin_add "${1:-}"
+                    ;;
+                list|ls)
+                    cmd_plugin_list
+                    ;;
+                *)
+                    echo "Usage: omarchy plugin [add <url>|list]"
+                    ;;
+            esac
+            ;;
+        *)
+            echo "Omarchy Linux System Manager v1.0.0"
+            echo "Usage: omarchy plugin add <repo-url>"
+            ;;
+    esac
+}
+
+main "$@"

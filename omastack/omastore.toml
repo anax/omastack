@@ -5,7 +5,7 @@ version = "1.0.0"
 author = "Omarchy DevOps Team <devops@omarchy.org>"
 description = "Native, zero-bloat, keyboard-first ephemeral full-stack sandbox launcher and Docker environment manager built specifically for Omarchy Linux."
 license = "MIT"
-repository = "https://github.com/omarchy/omastack"
+repository = "https://github.com/anax/omastack"
 
 [dependencies]
 system = ["docker", "docker-compose", "iproute2", "wl-clipboard", "libnotify"]
