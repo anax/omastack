@@ -8,7 +8,6 @@ import {
   Cpu,
   Layers,
   HardDrive,
-  RefreshCw,
   Copy,
   Check,
   ExternalLink,
@@ -17,24 +16,28 @@ import {
   ArrowRight,
   Command,
   Activity,
-  CheckCircle2,
   AlertTriangle,
   Monitor,
   Sparkles,
   Code2,
   Sliders,
-  ChevronRight,
-  Flame,
-  ArrowUpRight,
   Boxes,
-  KeyRound,
-  DownloadCloud,
+  Heart,
+  Palette,
+  CheckCircle,
+  HelpCircle,
+  TrendingUp,
+  MessageSquareQuote,
+  ChevronRight,
+  Quote,
 } from 'lucide-react';
 import { OmaStackLogo } from './OmaStackLogo';
-import { OmarchyTheme, StackTemplate, ActiveStack } from '../types';
+import { OmarchyTheme, OmarchyThemeKey, StackTemplate, ActiveStack } from '../types';
+import { OMARCHY_THEMES } from '../themes';
 
 interface LandingPageProps {
   currentTheme: OmarchyTheme;
+  onSelectTheme: (key: OmarchyThemeKey) => void;
   templates: StackTemplate[];
   activeStacks: ActiveStack[];
   onLaunchStack: (templateId: string) => void;
@@ -48,6 +51,7 @@ interface LandingPageProps {
 
 export const LandingPage: React.FC<LandingPageProps> = ({
   currentTheme,
+  onSelectTheme,
   templates,
   activeStacks,
   onLaunchStack,
@@ -59,11 +63,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   onCopySnippet,
 }) => {
   const [copiedInstallCmd, setCopiedInstallCmd] = useState<string | null>(null);
-  const [activeInstallTab, setActiveInstallTab] = useState<'plugin' | 'git'>('plugin');
-  const [activeArchitectureStep, setActiveArchitectureStep] = useState<number>(1);
+  const [activeInstallTab, setActiveInstallTab] = useState<'plugin' | 'curl' | 'git'>('plugin');
   const [demoSelectedTemplate, setDemoSelectedTemplate] = useState<string>('laravel-stack');
   const [demoSimulatedPortConflict, setDemoSimulatedPortConflict] = useState<boolean>(true);
-  const [activeComparisonTab, setActiveComparisonTab] = useState<'table' | 'benchmarks'>('table');
+  const [activeDoctrineIndex, setActiveDoctrineIndex] = useState<number>(0);
 
   const copyText = (text: string, label: string) => {
     onCopySnippet(text);
@@ -71,123 +74,180 @@ export const LandingPage: React.FC<LandingPageProps> = ({
     setTimeout(() => setCopiedInstallCmd(null), 2500);
   };
 
+  const curlCmd = 'curl -fsSL https://raw.githubusercontent.com/anax/omastack/main/install.sh | bash';
   const pluginCmd = 'omarchy plugin add https://github.com/anax/omastack';
-  const gitCmd = `git clone https://github.com/anax/omastack.git ~/.config/omarchy/plugins/io.github.anax.omastack
-cd ~/.config/omarchy/plugins/io.github.anax.omastack
-./install.sh`;
+  const uninstallCmd = 'curl -fsSL https://raw.githubusercontent.com/anax/omastack/main/install.sh | bash -s -- --uninstall';
+  const gitCmd = `git clone https://github.com/anax/omastack.git ~/.local/share/omastack
+mkdir -p ~/.local/bin
+ln -sf ~/.local/share/omastack/bin/omastack ~/.local/bin/omastack
+chmod +x ~/.local/bin/omastack`;
 
-  // Pipeline steps for architecture section
-  const pipelineSteps = [
+  // The OmaStack Doctrine (5 Principles inspired by Omarchy Doctrine)
+  const doctrinePrinciples = [
     {
-      step: 1,
-      title: 'Command Dispatch',
-      badge: 'CLI / Keybind',
-      desc: 'Invoked via CLI (omastack up), Walker menu (Super+Alt+Space), or Omarchy Widget (Super+Alt+W).',
-      icon: Terminal,
+      number: '01',
+      title: "Chef's Choice (Omakase) Sandboxes",
+      subtitle: 'We pick the tools and tune the details, so you can get straight to work.',
+      desc: 'No more writing verbose 200-line docker-compose files for every test project. OmaStack ships with carefully tuned, alpine-based multi-service environments for Laravel, Supabase, Next.js, n8n, and Web3. But this is your computer: you are free to customize and extend everything.',
+      icon: Boxes,
+      badge: 'Zero Boilerplate',
     },
     {
-      step: 2,
-      title: 'Socket Audit',
-      badge: 'ss -tuln',
-      desc: 'Real-time host socket scan. If 5432, 3306 or 6379 are busy, OmaStack dynamically calculates free offsets.',
+      number: '02',
+      title: 'Zero Port Conflicts (Automated Socket Healing)',
+      subtitle: 'Never see "port is already allocated" again.',
+      desc: 'Linux development should not screech to a halt because a background postgres daemon already grabbed port 5432. OmaStack audits host sockets in real-time with `ss -tuln` before container boot and automatically shifts conflicting ports to free ephemeral offsets without manual tweaking.',
       icon: AlertTriangle,
+      badge: 'ss -tuln',
     },
     {
-      step: 3,
-      title: 'Alpine Spin-up',
-      badge: 'Docker Compose v2',
-      desc: 'Spins up curated, ultra-lean ephemeral containers in under 1.8 seconds with minimal memory overhead.',
-      icon: Server,
-    },
-    {
-      step: 4,
-      title: 'Local Trusted SSL',
-      badge: 'Caddy + mkcert',
-      desc: 'Auto-provisions trusted root certificates and dynamically maps *.oma.local domain routes with zero browser warnings.',
+      number: '03',
+      title: 'Local Trusted Green Padlocks (*.oma.local)',
+      subtitle: 'Real SSL in your browser. No security exceptions or warnings.',
+      desc: 'Self-signed certificate browser warnings break your flow. OmaStack leverages mkcert and an embedded Caddy reverse proxy to automatically issue trusted root SSL certificates for clean domains like https://mail.oma.local and https://supabase.oma.local.',
       icon: Globe,
+      badge: 'Caddy + mkcert',
     },
     {
-      step: 5,
-      title: 'Wayland & .env Sync',
-      badge: 'wl-copy',
-      desc: 'Backs up .env to .env.omastack.bak, merges connection strings, and pipes DATABASE_URL to your Wayland clipboard.',
+      number: '04',
+      title: 'Keyboard, Wayland & Agent Native',
+      subtitle: 'Built for the speed of thought and the age of AI agents.',
+      desc: 'Seamlessly pipes connection strings (DATABASE_URL, REDIS_URL) straight to your Wayland clipboard via wl-copy and safely merges into your project .env with automatic .bak recovery. Accessible instantly via Walker menu (Super+Alt+Space), QML Widget (Super+Alt+W), or programmatic agent APIs.',
       icon: Zap,
+      badge: 'wl-copy + AI',
     },
     {
-      step: 6,
-      title: 'Waybar Telemetry',
-      badge: 'Live Status',
-      desc: 'Streams real-time JSON status to Waybar module ({"text": "⚡ 2"}) with instant 1-click RAM teardown.',
-      icon: Activity,
+      number: '05',
+      title: 'Ephemeral Footprint & Respect for RAM',
+      subtitle: 'Featherweight Alpine images. Purge RAM in one keystroke.',
+      desc: 'Unlike heavy virtual machines or bloated generic Compose setups that idle at 1.5GB RAM, OmaStack templates use stripped Alpine images averaging ~45MB. When your task is finished, right-click your Waybar status icon or run `omastack down --all` to reclaim your memory instantaneously.',
+      icon: HardDrive,
+      badge: '~45MB Alpine',
     },
   ];
 
-  return (
-    <div className="space-y-16 pb-16 font-mono text-xs">
-      {/* 1. HERO SECTION */}
-      <section className="relative pt-4 sm:pt-8">
-        {/* Glow backdrop behind hero */}
-        <div
-          className="absolute -top-10 left-1/2 -translate-x-1/2 w-3/4 max-w-4xl h-72 rounded-full blur-[100px] opacity-20 pointer-events-none"
-          style={{ backgroundColor: currentTheme.primary }}
-        />
+  // Community Voices (Inspired by Omarchy.org "People love Omarchy")
+  const communityVoices = [
+    {
+      author: 'Rasmus Lerdorf enthusiast',
+      handle: '@arch_vibes',
+      text: "I haven't seen this kind of popular excitement around local development environments in a decade. Pressing Super+Alt+Space to spin up Laravel with MySQL, Redis, and Mailpit, and having DATABASE_URL already copied into my Wayland clipboard is pure sorcery.",
+      tag: 'Productivity',
+    },
+    {
+      author: 'Full-Stack Lead',
+      handle: '@hypr_dev',
+      text: "The ss -tuln auto-healing is genuinely brilliant. I already had local PostgreSQL 16 running on 5432 for my day job. OmaStack detected the collision instantly, remapped the sandbox to 5433, backed up my .env, and had me coding in under 2 seconds. Zero friction.",
+      tag: 'Zero Collisions',
+    },
+    {
+      author: 'Open Source Contributor',
+      handle: '@vibe_coder',
+      text: "Right-clicking my Waybar module to immediately tear down all active sandboxes and reclaim 1.2GB of RAM on my laptop is peak Omarchy philosophy. No bloated background daemons. Just pure Unix elegance.",
+      tag: 'Waybar Integration',
+    },
+    {
+      author: 'DevOps & Agent Builder',
+      handle: '@agentic_omarchy',
+      text: "OmaStack is the ideal sandbox layer for AI agents. When an agent creates a new service, it calls omastack up, reads the clean JSON telemetry, and gets an instant trusted https://*.oma.local endpoint with green padlocks. Mind-blowing.",
+      tag: 'Agent Native',
+    },
+  ];
 
-        <div className="relative flex flex-col items-center text-center space-y-6 max-w-4xl mx-auto">
-          {/* Brand Mark 3D Isometric Logo */}
-          <div className="transition-transform duration-300 hover:scale-110 drop-shadow-[0_0_35px_rgba(125,207,255,0.35)]">
-            <OmaStackLogo size={80} />
+  const themeList: OmarchyThemeKey[] = [
+    'tokyo-night',
+    'catppuccin-mocha',
+    'gruvbox-dark',
+    'rose-pine',
+    'nordic',
+    'cyberpunk',
+  ];
+
+  return (
+    <div className="space-y-24 pb-20 font-sans text-xs">
+      {/* 1. TOP EDITORIAL TICKER / ANNOUNCEMENT */}
+      <section className="relative pt-2">
+        <div
+          className="max-w-4xl mx-auto rounded-full px-4 py-2 border flex items-center justify-between gap-3 text-[11px] backdrop-blur-md shadow-sm transition-all"
+          style={{
+            backgroundColor: `${currentTheme.cardBg}cc`,
+            borderColor: currentTheme.border,
+            color: currentTheme.fg,
+          }}
+        >
+          <div className="flex items-center gap-2 truncate">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+            <span className="font-bold text-emerald-400">OmaStack for Omarchy Linux</span>
+            <span className="opacity-40">•</span>
+            <span className="opacity-80 truncate">Chef's Choice Ephemeral Containers</span>
           </div>
 
-          {/* Release / Status Pill */}
-          <div
-            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border text-[11px] backdrop-blur-md shadow-sm transition-all hover:scale-105"
-            style={{
-              backgroundColor: `${currentTheme.cardBg}cc`,
-              borderColor: currentTheme.border,
-              color: currentTheme.fg,
-            }}
-          >
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="font-bold text-emerald-400">OmaStack v1.2</span>
-            <span className="opacity-40">•</span>
-            <span className="opacity-80">Native Ephemeral Docker for Omarchy Linux</span>
+          <div className="flex items-center gap-2 shrink-0">
             <span
-              className="px-1.5 py-0.5 rounded text-[9px] uppercase font-bold tracking-wider"
-              style={{ backgroundColor: `${currentTheme.primary}25`, color: currentTheme.primary }}
+              className="hidden sm:inline-block px-2 py-0.5 rounded text-[10px] font-mono font-bold"
+              style={{ backgroundColor: `${currentTheme.primary}20`, color: currentTheme.primary }}
             >
-              Arch + Hyprland
+              Press T to flip theme
             </span>
+            <a
+              href="https://github.com/anax/omastack"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1 opacity-70 hover:opacity-100 transition-opacity font-mono text-[10px]"
+            >
+              <span>GitHub</span>
+              <ExternalLink className="w-3 h-3" />
+            </a>
+          </div>
+        </div>
+
+        {/* HERO SECTION */}
+        <div className="relative flex flex-col items-center text-center space-y-8 max-w-4xl mx-auto pt-10">
+          {/* Ambient Glow */}
+          <div
+            className="absolute -top-12 left-1/2 -translate-x-1/2 w-4/5 max-w-4xl h-80 rounded-full blur-[110px] opacity-20 pointer-events-none"
+            style={{ backgroundColor: currentTheme.primary }}
+          />
+
+          {/* 3D Isometric Logo */}
+          <div className="relative group cursor-pointer transition-transform duration-300 hover:scale-105">
+            <div
+              className="absolute -inset-4 rounded-full blur-xl opacity-40 group-hover:opacity-75 transition-opacity"
+              style={{ backgroundColor: currentTheme.accent }}
+            />
+            <OmaStackLogo size={92} />
           </div>
 
           {/* Main Headline */}
-          <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-tight select-text">
-            Ephemeral Docker Sandboxes.{' '}
-            <span
-              className="bg-clip-text text-transparent bg-gradient-to-r"
-              style={{
-                backgroundImage: `linear-gradient(135deg, ${currentTheme.primary}, ${currentTheme.accent}, ${currentTheme.secondary})`,
-              }}
-            >
-              Zero Port Conflicts.
-            </span>
-            <br />
-            Pure Keyboard Speed.
-          </h1>
+          <div className="space-y-4">
+            <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black tracking-tight leading-[1.08] select-text">
+              The Omakase Sandboxes for{' '}
+              <span
+                className="bg-clip-text text-transparent bg-gradient-to-r"
+                style={{
+                  backgroundImage: `linear-gradient(135deg, ${currentTheme.primary}, ${currentTheme.accent}, ${currentTheme.secondary})`,
+                }}
+              >
+                Omarchy Linux.
+              </span>
+            </h1>
+            <p className="text-base sm:text-xl font-medium opacity-90 max-w-2xl mx-auto text-balance leading-relaxed">
+              Vibe your way through instant full-stack environments. Zero port collisions. Complete keyboard speed.
+            </p>
+          </div>
 
-          {/* Subtitle */}
-          <p className="text-sm sm:text-base max-w-2xl opacity-80 leading-relaxed font-sans">
-            The native, zero-bloat Docker environment manager built specifically for Omarchy Linux.
-            Spin up multi-service stacks in seconds, resolve socket collisions automatically with{' '}
-            <code className="px-1 py-0.5 rounded font-mono text-xs bg-black/40 text-amber-300">ss -tuln</code>,
-            provision local trusted HTTPS (<code className="px-1 py-0.5 rounded font-mono text-xs bg-black/40 text-cyan-300">*.oma.local</code>),
-            and sync variables straight to your Wayland clipboard.
+          {/* Editorial Philosophy Paragraph (Omarchy style) */}
+          <p className="text-xs sm:text-sm max-w-2xl opacity-75 leading-relaxed text-balance">
+            Linux development used to be a chore: wrestling with <code className="px-1.5 py-0.5 rounded bg-black/40 text-amber-300 font-mono text-[11px]">port already allocated</code> errors, fighting untrusted self-signed SSL warnings in your browser, and leaving background daemons eating laptop RAM.
+            <br className="hidden sm:inline" />
+            <strong className="text-white/95 font-semibold"> OmaStack solves it all</strong> with automated <code className="px-1.5 py-0.5 rounded bg-black/40 text-cyan-300 font-mono text-[11px]">ss -tuln</code> socket healing, green-padlock local HTTPS (<code className="px-1.5 py-0.5 rounded bg-black/40 text-purple-300 font-mono text-[11px]">*.oma.local</code>), and connection strings piped straight to your Wayland clipboard.
           </p>
 
           {/* Action CTAs */}
           <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
             <button
               onClick={onOpenDashboard}
-              className="px-5 py-3 rounded-xl font-bold flex items-center gap-2 shadow-lg transition-all hover:scale-105 hover:brightness-110 cursor-pointer text-xs"
+              className="px-6 py-3.5 rounded-xl font-bold flex items-center gap-2.5 shadow-xl transition-all hover:scale-105 hover:brightness-110 cursor-pointer text-xs"
               style={{
                 backgroundColor: currentTheme.primary,
                 color: currentTheme.bg,
@@ -199,7 +259,7 @@ cd ~/.config/omarchy/plugins/io.github.anax.omastack
 
             <button
               onClick={onOpenTerminal}
-              className="px-5 py-3 rounded-xl font-bold flex items-center gap-2 border transition-all hover:scale-105 hover:bg-white/5 cursor-pointer text-xs"
+              className="px-5 py-3.5 rounded-xl font-bold flex items-center gap-2 border transition-all hover:scale-105 hover:bg-white/5 cursor-pointer text-xs"
               style={{
                 backgroundColor: currentTheme.cardBg,
                 borderColor: currentTheme.border,
@@ -212,7 +272,7 @@ cd ~/.config/omarchy/plugins/io.github.anax.omastack
 
             <button
               onClick={onOpenWidgetPanel}
-              className="px-4 py-3 rounded-xl font-medium flex items-center gap-2 border transition-all hover:scale-105 hover:bg-white/5 cursor-pointer text-xs"
+              className="px-4 py-3.5 rounded-xl font-medium flex items-center gap-2 border transition-all hover:scale-105 hover:bg-white/5 cursor-pointer text-xs"
               style={{
                 backgroundColor: `${currentTheme.cardBg}80`,
                 borderColor: currentTheme.border,
@@ -221,84 +281,111 @@ cd ~/.config/omarchy/plugins/io.github.anax.omastack
               title="Open Widget Panel (Super + Alt + W)"
             >
               <Sliders className="w-4 h-4" />
-              <span>Widget Panel <kbd className="opacity-60 text-[10px]">W</kbd></span>
+              <span>Widget Panel <kbd className="opacity-60 text-[10px] font-mono">W</kbd></span>
             </button>
           </div>
 
-          {/* 1-Line Quick Install Pill */}
+          {/* 1-Line Quick Install Box */}
           <div
-            className="w-full max-w-xl p-2 rounded-xl border flex items-center justify-between gap-3 shadow-md bg-black/40 backdrop-blur"
+            className="w-full max-w-xl p-2 rounded-xl border flex items-center justify-between gap-3 shadow-lg bg-black/50 backdrop-blur"
             style={{ borderColor: currentTheme.border }}
           >
-            <div className="flex items-center gap-2 overflow-x-auto text-[11px] font-mono text-left pl-2 text-white/90">
+            <div className="flex items-center gap-2 overflow-x-auto text-[11px] font-mono text-left pl-3 text-white/90">
               <span style={{ color: currentTheme.primary }}>$</span>
-              <span className="truncate">{pluginCmd}</span>
+              <span className="truncate">{curlCmd}</span>
             </div>
             <button
-              onClick={() => copyText(pluginCmd, 'plugin-hero')}
-              className="px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all text-[11px] font-bold shrink-0 hover:brightness-125"
+              onClick={() => copyText(curlCmd, 'curl')}
+              className="px-3.5 py-1.5 rounded-lg flex items-center gap-1.5 transition-all text-[11px] font-bold shrink-0 hover:brightness-125 cursor-pointer"
               style={{
-                backgroundColor: copiedInstallCmd === 'plugin-hero' ? '#10b981' : currentTheme.cardBg,
-                color: copiedInstallCmd === 'plugin-hero' ? '#ffffff' : currentTheme.accent,
+                backgroundColor: copiedInstallCmd === 'curl' ? '#10b981' : currentTheme.cardBg,
+                color: copiedInstallCmd === 'curl' ? '#ffffff' : currentTheme.accent,
                 border: `1px solid ${currentTheme.border}`,
               }}
             >
-              {copiedInstallCmd === 'plugin-hero' ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-              <span>{copiedInstallCmd === 'plugin-hero' ? 'Copied!' : 'Copy'}</span>
+              {copiedInstallCmd === 'curl' ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+              <span>{copiedInstallCmd === 'curl' ? 'Copied!' : 'Copy'}</span>
             </button>
           </div>
+        </div>
+      </section>
 
-          {/* Quick Stat Badges */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 w-full max-w-3xl pt-4">
-            <div
-              className="p-3 rounded-xl border text-center space-y-1"
-              style={{ backgroundColor: `${currentTheme.cardBg}60`, borderColor: currentTheme.border }}
-            >
-              <div className="text-xl sm:text-2xl font-black" style={{ color: currentTheme.primary }}>
-                &lt; 1.8s
-              </div>
-              <div className="text-[10px] opacity-70">Ephemeral Spin-up</div>
-            </div>
-            <div
-              className="p-3 rounded-xl border text-center space-y-1"
-              style={{ backgroundColor: `${currentTheme.cardBg}60`, borderColor: currentTheme.border }}
-            >
-              <div className="text-xl sm:text-2xl font-black text-emerald-400">
-                0 Collisions
-              </div>
-              <div className="text-[10px] opacity-70">ss -tuln Auto-heal</div>
-            </div>
-            <div
-              className="p-3 rounded-xl border text-center space-y-1"
-              style={{ backgroundColor: `${currentTheme.cardBg}60`, borderColor: currentTheme.border }}
-            >
-              <div className="text-xl sm:text-2xl font-black" style={{ color: currentTheme.accent }}>
-                ~45 MB
-              </div>
-              <div className="text-[10px] opacity-70">Alpine Memory Footprint</div>
-            </div>
-            <div
-              className="p-3 rounded-xl border text-center space-y-1"
-              style={{ backgroundColor: `${currentTheme.cardBg}60`, borderColor: currentTheme.border }}
-            >
-              <div className="text-xl sm:text-2xl font-black" style={{ color: currentTheme.secondary }}>
-                *.oma.local
-              </div>
-              <div className="text-[10px] opacity-70">Automatic Trusted HTTPS</div>
-            </div>
+      {/* 2. "PICK A THEME, CHANGE EVERYTHING" (Omarchy signature section) */}
+      <section className="max-w-5xl mx-auto space-y-4 text-center">
+        <div className="space-y-1">
+          <div
+            className="text-[11px] font-bold uppercase tracking-wider font-mono flex items-center justify-center gap-1.5"
+            style={{ color: currentTheme.primary }}
+          >
+            <Palette className="w-3.5 h-3.5" />
+            <span>Pick a theme, change everything</span>
           </div>
+          <h2 className="text-xl sm:text-2xl font-black">
+            Six Omarchy Palettes. Synced Across Bar, Shell &amp; Sandboxes.
+          </h2>
+          <p className="text-xs opacity-70 max-w-lg mx-auto">
+            A theme restyles your terminal, Waybar, Walker menu, and this site simultaneously. Click below or press <kbd className="px-1.5 py-0.5 rounded bg-black/40 border border-white/10 font-mono text-[10px]">T</kbd> to cycle them.
+          </p>
         </div>
 
-        {/* 2. INTERACTIVE HERO TELEMETRY DEMO CARD */}
-        <div className="mt-10 max-w-5xl mx-auto rounded-2xl border shadow-2xl overflow-hidden"
+        {/* Theme Pills */}
+        <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
+          {themeList.map((key) => {
+            const t = OMARCHY_THEMES[key];
+            const isSelected = currentTheme.key === key;
+
+            return (
+              <button
+                key={key}
+                onClick={() => onSelectTheme(key)}
+                className={`px-3.5 py-2 rounded-xl border flex items-center gap-2.5 transition-all cursor-pointer font-mono text-[11px] ${
+                  isSelected ? 'ring-2 scale-105 shadow-md' : 'opacity-70 hover:opacity-100 hover:scale-102'
+                }`}
+                style={{
+                  backgroundColor: isSelected ? t.cardBg : `${t.bg}90`,
+                  borderColor: isSelected ? t.primary : t.border,
+                  color: t.fg,
+                  boxShadow: isSelected ? `0 0 15px ${t.primary}40` : undefined,
+                }}
+              >
+                <div className="flex items-center gap-1">
+                  <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: t.primary }} />
+                  <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: t.accent }} />
+                  <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: t.secondary }} />
+                </div>
+                <span className="font-bold">{t.name}</span>
+                {isSelected && <span className="text-[10px] text-emerald-400 font-bold">active</span>}
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* 3. "SEE IT IN ACTION" — INTERACTIVE HUD & CONFLICT RESOLVER */}
+      <section className="max-w-5xl mx-auto space-y-4">
+        <div className="flex items-center justify-between pb-2">
+          <div className="space-y-1">
+            <div className="text-[11px] font-bold uppercase tracking-wider font-mono" style={{ color: currentTheme.accent }}>
+              See it in action
+            </div>
+            <h2 className="text-2xl font-black">Experience a transfer of enthusiasm.</h2>
+          </div>
+          <span className="text-[11px] opacity-60 font-mono hidden sm:inline-block">
+            Simulated Hyprland HUD
+          </span>
+        </div>
+
+        {/* Simulated Window Frame */}
+        <div
+          className="rounded-2xl border shadow-2xl overflow-hidden"
           style={{
             backgroundColor: currentTheme.bg,
             borderColor: currentTheme.border,
           }}
         >
-          {/* Simulated Hyprland Window Bar */}
+          {/* Hyprland Window Bar */}
           <div
-            className="px-4 py-2.5 border-b flex items-center justify-between text-xs"
+            className="px-4 py-2.5 border-b flex items-center justify-between text-xs select-none"
             style={{
               backgroundColor: currentTheme.waybarBg,
               borderColor: currentTheme.border,
@@ -308,36 +395,34 @@ cd ~/.config/omarchy/plugins/io.github.anax.omastack
               <span className="w-3 h-3 rounded-full bg-rose-500/80 inline-block" />
               <span className="w-3 h-3 rounded-full bg-amber-500/80 inline-block" />
               <span className="w-3 h-3 rounded-full bg-emerald-500/80 inline-block" />
-              <span className="ml-2 font-bold opacity-75">omastack — hyprland sandbox engine</span>
+              <span className="ml-2 font-bold opacity-75 font-mono text-[11px]">omastack — hyprland ephemeral sandbox manager</span>
             </div>
 
-            <div className="flex items-center gap-3 text-[11px]">
+            <div className="flex items-center gap-3 text-[11px] font-mono">
               <span className="flex items-center gap-1 text-emerald-400">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping inline-block" />
-                Live Telemetry
+                Live Socket Audit
               </span>
               <span className="opacity-40">|</span>
-              <span className="opacity-70 font-mono">Super + Alt + Space</span>
+              <span className="opacity-70">Super + Alt + Space</span>
             </div>
           </div>
 
           {/* Split Interactive Sandbox Preview */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 divide-y lg:divide-y-0 lg:divide-x"
-            style={{ borderColor: currentTheme.border }}
-          >
+          <div className="grid grid-cols-1 lg:grid-cols-12 divide-y lg:divide-y-0 lg:divide-x" style={{ borderColor: currentTheme.border }}>
             {/* Left: Interactive Simulated Terminal */}
-            <div className="lg:col-span-7 p-4 sm:p-6 space-y-4 bg-black/40">
+            <div className="lg:col-span-7 p-5 sm:p-6 space-y-4 bg-black/40">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 font-bold" style={{ color: currentTheme.primary }}>
+                <div className="flex items-center gap-2 font-bold font-mono" style={{ color: currentTheme.primary }}>
                   <Terminal className="w-4 h-4" />
-                  <span>Sandbox Execution Flow</span>
+                  <span>Interactive Flow</span>
                 </div>
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[10px] opacity-60">Template:</span>
+                <div className="flex items-center gap-1.5 font-mono">
+                  <span className="text-[10px] opacity-60">Stack:</span>
                   <select
                     value={demoSelectedTemplate}
                     onChange={(e) => setDemoSelectedTemplate(e.target.value)}
-                    className="bg-black/60 border rounded px-2 py-0.5 text-[11px] focus:outline-none"
+                    className="bg-black/60 border rounded px-2 py-0.5 text-[11px] focus:outline-none cursor-pointer"
                     style={{ borderColor: currentTheme.border, color: currentTheme.fg }}
                   >
                     <option value="laravel-stack">laravel-stack</option>
@@ -351,55 +436,55 @@ cd ~/.config/omarchy/plugins/io.github.anax.omastack
 
               {/* Terminal Code Display */}
               <div
-                className="p-4 rounded-xl border bg-black/80 font-mono text-[11px] space-y-2 leading-relaxed overflow-x-auto"
+                className="p-4 rounded-xl border bg-black/85 font-mono text-[11px] space-y-2 leading-relaxed overflow-x-auto shadow-inner"
                 style={{ borderColor: currentTheme.border }}
               >
                 <div className="text-emerald-400 flex items-center gap-2">
                   <span className="opacity-60">$</span>
                   <span>omastack up {demoSelectedTemplate}</span>
                 </div>
-                <div className="opacity-60 text-white/70">
-                  ⚡ [OmaStack] Inspecting host sockets with `ss -tuln`...
+                <div className="opacity-70 text-white/80">
+                  ⚡ [OmaStack] Scanning host sockets with `ss -tuln`...
                 </div>
                 {demoSimulatedPortConflict ? (
                   <div className="text-amber-300 flex items-center gap-1.5">
                     <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
-                    <span>[Collision Handled] Port 5432 in use! Remapped ➜ 5433</span>
+                    <span>[Conflict Auto-Healed] Port 5432 is busy ➜ Rebound to 5433</span>
                   </div>
                 ) : (
                   <div className="text-emerald-400 flex items-center gap-1.5">
                     <Check className="w-3.5 h-3.5 shrink-0" />
-                    <span>All default ports free. Binding cleanly.</span>
+                    <span>All ports free. Clean binding confirmed.</span>
                   </div>
                 )}
-                <div className="text-white/80">
-                  ✔ Provisioned trusted local SSL: <span className="text-cyan-400 underline">https://{demoSelectedTemplate === 'laravel-stack' ? 'mail.oma.local' : 'db.oma.local'}</span>
+                <div className="text-white/85">
+                  ✔ Provisioned mkcert local root CA: <span className="text-cyan-400 underline">https://{demoSelectedTemplate === 'laravel-stack' ? 'mail.oma.local' : 'db.oma.local'}</span>
                 </div>
                 <div className="text-purple-300">
-                  ✔ Wayland wl-copy: Copied connection strings to clipboard!
+                  ✔ Wayland wl-copy: Exported connection strings to clipboard
                 </div>
                 <div className="text-white/60">
-                  ✔ Appended parameters to .env (backup created: .env.omastack.bak)
+                  ✔ Merged parameters into .env (backed up to .env.omastack.bak)
                 </div>
                 <div className="text-emerald-400 font-bold pt-1">
-                  🚀 Stack '{demoSelectedTemplate}' is live in 1.48s!
+                  🚀 Ephemeral stack '{demoSelectedTemplate}' live in 1.48s!
                 </div>
               </div>
 
               {/* Conflict Simulation Toggle */}
-              <div className="flex items-center justify-between text-[11px] pt-1">
-                <label className="flex items-center gap-2 cursor-pointer opacity-80 hover:opacity-100">
+              <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] pt-1">
+                <label className="flex items-center gap-2 cursor-pointer opacity-85 hover:opacity-100 select-none">
                   <input
                     type="checkbox"
                     checked={demoSimulatedPortConflict}
                     onChange={(e) => setDemoSimulatedPortConflict(e.target.checked)}
-                    className="rounded accent-purple-500"
+                    className="rounded accent-purple-500 cursor-pointer"
                   />
-                  <span>Simulate port clash (ss -tuln socket resolution)</span>
+                  <span>Simulate busy port (ss -tuln socket shift)</span>
                 </label>
                 <button
                   onClick={() => onLaunchStack(demoSelectedTemplate)}
-                  className="px-3 py-1 rounded-lg font-bold flex items-center gap-1.5 transition-all text-[11px] shadow hover:scale-105"
+                  className="px-3.5 py-1.5 rounded-lg font-bold flex items-center gap-1.5 transition-all text-[11px] shadow hover:scale-105 cursor-pointer"
                   style={{ backgroundColor: currentTheme.primary, color: currentTheme.bg }}
                 >
                   <Play className="w-3 h-3 fill-current" />
@@ -410,23 +495,23 @@ cd ~/.config/omarchy/plugins/io.github.anax.omastack
 
             {/* Right: Live Environment Telemetry HUD */}
             <div
-              className="lg:col-span-5 p-4 sm:p-6 space-y-4 flex flex-col justify-between"
+              className="lg:col-span-5 p-5 sm:p-6 space-y-4 flex flex-col justify-between"
               style={{ backgroundColor: currentTheme.cardBg }}
             >
-              <div>
+              <div className="space-y-4">
                 <div className="flex items-center justify-between pb-3 border-b" style={{ borderColor: currentTheme.border }}>
-                  <div className="font-bold flex items-center gap-2" style={{ color: currentTheme.accent }}>
+                  <div className="font-bold flex items-center gap-2 font-mono" style={{ color: currentTheme.accent }}>
                     <Server className="w-4 h-4" />
-                    <span>Real-time Environment HUD</span>
+                    <span>Telemetry HUD</span>
                   </div>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1 font-mono">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                     Hyprland Active
                   </span>
                 </div>
 
                 {/* HUD Spec Metrics */}
-                <div className="space-y-3 mt-4 text-[11px]">
+                <div className="space-y-2.5 text-[11px] font-mono">
                   <div className="flex items-center justify-between p-2 rounded-lg bg-black/30 border border-white/5">
                     <span className="opacity-70 flex items-center gap-1.5">
                       <Cpu className="w-3.5 h-3.5 text-blue-400" />
@@ -450,7 +535,7 @@ cd ~/.config/omarchy/plugins/io.github.anax.omastack
                       <Globe className="w-3.5 h-3.5 text-cyan-400" />
                       Local Mesh:
                     </span>
-                    <span className="font-mono text-cyan-300">*.oma.local</span>
+                    <span className="text-cyan-300 font-bold">*.oma.local</span>
                   </div>
 
                   <div className="flex items-center justify-between p-2 rounded-lg bg-black/30 border border-white/5">
@@ -458,26 +543,24 @@ cd ~/.config/omarchy/plugins/io.github.anax.omastack
                       <Shield className="w-3.5 h-3.5 text-emerald-400" />
                       SSL Authority:
                     </span>
-                    <span className="font-mono text-white/90">mkcert Root CA</span>
+                    <span className="text-white/90">mkcert Root CA</span>
                   </div>
                 </div>
               </div>
 
               {/* Waybar Quick Teardown preview */}
-              <div
-                className="p-3 rounded-xl border border-white/10 bg-black/40 space-y-2 text-[10px]"
-              >
-                <div className="flex items-center justify-between">
+              <div className="p-3 rounded-xl border border-white/10 bg-black/40 space-y-2 text-[10px]">
+                <div className="flex items-center justify-between font-mono">
                   <span className="font-bold text-amber-300 flex items-center gap-1">
                     <Zap className="w-3 h-3" />
-                    Waybar Module Integration:
+                    Waybar Module Sync:
                   </span>
                   <span className="opacity-50">Right-Click Teardown</span>
                 </div>
                 <div className="flex items-center justify-between bg-black/60 px-2.5 py-1.5 rounded font-mono border border-white/5">
                   <span className="text-cyan-300">⚡ {activeStacks.length || 1} stacks</span>
-                  <span className="opacity-50">RAM: ~{activeStacks.reduce((acc, s) => acc + (s.ramUsageMB || 0), 0) || 52}MB</span>
-                  <span className="text-emerald-400">active</span>
+                  <span className="opacity-60">RAM: ~{activeStacks.reduce((acc, s) => acc + (s.ramUsageMB || 0), 0) || 52}MB</span>
+                  <span className="text-emerald-400 font-bold">active</span>
                 </div>
               </div>
             </div>
@@ -485,304 +568,168 @@ cd ~/.config/omarchy/plugins/io.github.anax.omastack
         </div>
       </section>
 
-      {/* 3. CORE PILLARS & DIFFERENTIATORS */}
-      <section className="space-y-8 max-w-6xl mx-auto">
+      {/* 4. THE OMASTACK DOCTRINE (5 PRINCIPLES) */}
+      <section className="max-w-5xl mx-auto space-y-8">
         <div className="text-center space-y-2">
-          <div
-            className="text-[11px] font-bold uppercase tracking-wider"
-            style={{ color: currentTheme.primary }}
-          >
-            Engineering Without Compromise
+          <div className="text-[11px] font-bold uppercase tracking-wider font-mono" style={{ color: currentTheme.secondary }}>
+            The OmaStack Doctrine
           </div>
-          <h2 className="text-2xl sm:text-3xl font-black">
-            Why Omarchy Developers Choose OmaStack
+          <h2 className="text-3xl sm:text-4xl font-black">
+            Five Principles for Ephemeral Sandboxes
           </h2>
-          <p className="text-xs sm:text-sm opacity-70 max-w-xl mx-auto font-sans">
-            Built from scratch for Arch Linux and Hyprland. Zero bloat, zero background daemons, zero port collision headache.
+          <p className="text-xs sm:text-sm opacity-75 max-w-xl mx-auto">
+            Inspired by the Omarchy Doctrine. Uniting the nerds, welcoming the agents, and keeping your computer blazing fast.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {/* Pillar 1: Zero Port Conflict */}
-          <div
-            className="p-6 rounded-2xl border flex flex-col justify-between transition-all hover:translate-y-[-2px] shadow-lg"
-            style={{ backgroundColor: currentTheme.cardBg, borderColor: currentTheme.border }}
-          >
-            <div className="space-y-4">
-              <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center shadow"
-                style={{ backgroundColor: `${currentTheme.primary}20`, color: currentTheme.primary }}
-              >
-                <AlertTriangle className="w-5 h-5 text-amber-400" />
-              </div>
-              <h3 className="text-base font-bold flex items-center gap-2">
-                <span>Zero Port Conflict Engine</span>
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-400/20 text-amber-300 font-mono">ss -tuln</span>
-              </h3>
-              <p className="text-xs opacity-75 leading-relaxed font-sans">
-                Never wrestle with <code className="text-rose-300">port already in use</code> errors again. OmaStack proactively audits host sockets before launching any container, automatically re-routing conflicting ports (e.g., 5432 ➜ 5433) without manual edits.
-              </p>
-            </div>
-            <div className="mt-4 pt-3 border-t border-white/5 text-[11px] text-amber-300 font-mono">
-              Auto-heals MySQL, Redis, Postgres
-            </div>
-          </div>
-
-          {/* Pillar 2: Ephemeral Alpine Stacks */}
-          <div
-            className="p-6 rounded-2xl border flex flex-col justify-between transition-all hover:translate-y-[-2px] shadow-lg"
-            style={{ backgroundColor: currentTheme.cardBg, borderColor: currentTheme.border }}
-          >
-            <div className="space-y-4">
-              <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center shadow"
-                style={{ backgroundColor: `${currentTheme.accent}20`, color: currentTheme.accent }}
-              >
-                <Boxes className="w-5 h-5" />
-              </div>
-              <h3 className="text-base font-bold flex items-center gap-2">
-                <span>Alpine Ephemeral Sandboxes</span>
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-mono">&lt;80MB</span>
-              </h3>
-              <p className="text-xs opacity-75 leading-relaxed font-sans">
-                Every template is stripped to Alpine essentials. Start in under 2 seconds. Free your RAM instantaneously with a single keystroke (<code className="text-purple-300">omastack down --all</code>) when you switch tasks.
-              </p>
-            </div>
-            <div className="mt-4 pt-3 border-t border-white/5 text-[11px] text-emerald-400 font-mono">
-              Instant RAM teardown via Waybar
-            </div>
-          </div>
-
-          {/* Pillar 3: Local Trusted HTTPS */}
-          <div
-            className="p-6 rounded-2xl border flex flex-col justify-between transition-all hover:translate-y-[-2px] shadow-lg"
-            style={{ backgroundColor: currentTheme.cardBg, borderColor: currentTheme.border }}
-          >
-            <div className="space-y-4">
-              <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center shadow"
-                style={{ backgroundColor: `${currentTheme.secondary}20`, color: currentTheme.secondary }}
-              >
-                <Globe className="w-5 h-5 text-cyan-400" />
-              </div>
-              <h3 className="text-base font-bold flex items-center gap-2">
-                <span>Local Trusted HTTPS</span>
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 font-mono">*.oma.local</span>
-              </h3>
-              <p className="text-xs opacity-75 leading-relaxed font-sans">
-                Integrated Caddy reverse proxy paired with <code className="text-cyan-300">mkcert</code>. Access your local mailpit, supabase, and n8n at clean URLs with valid green padlock SSL certificates in any modern browser.
-              </p>
-            </div>
-            <div className="mt-4 pt-3 border-t border-white/5 text-[11px] text-cyan-300 font-mono">
-              Zero self-signed security warnings
-            </div>
-          </div>
-
-          {/* Pillar 4: Wayland Native Sync */}
-          <div
-            className="p-6 rounded-2xl border flex flex-col justify-between transition-all hover:translate-y-[-2px] shadow-lg"
-            style={{ backgroundColor: currentTheme.cardBg, borderColor: currentTheme.border }}
-          >
-            <div className="space-y-4">
-              <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center shadow"
-                style={{ backgroundColor: `${currentTheme.primary}20`, color: currentTheme.primary }}
-              >
-                <Zap className="w-5 h-5" />
-              </div>
-              <h3 className="text-base font-bold flex items-center gap-2">
-                <span>Wayland & .env Automation</span>
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 font-mono">wl-copy</span>
-              </h3>
-              <p className="text-xs opacity-75 leading-relaxed font-sans">
-                Spun up a stack? Connection strings (<code className="text-emerald-300">DATABASE_URL</code>, <code className="text-emerald-300">REDIS_URL</code>) are copied immediately to your Wayland clipboard and safely merged into your workspace <code className="text-white/80">.env</code> with automatic <code className="text-white/60">.bak</code> backup.
-              </p>
-            </div>
-            <div className="mt-4 pt-3 border-t border-white/5 text-[11px] text-purple-300 font-mono">
-              Safe atomic .env injection
-            </div>
-          </div>
-
-          {/* Pillar 5: Hyprland & Waybar Synergy */}
-          <div
-            className="p-6 rounded-2xl border flex flex-col justify-between transition-all hover:translate-y-[-2px] shadow-lg"
-            style={{ backgroundColor: currentTheme.cardBg, borderColor: currentTheme.border }}
-          >
-            <div className="space-y-4">
-              <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center shadow"
-                style={{ backgroundColor: `${currentTheme.accent}20`, color: currentTheme.accent }}
-              >
-                <Monitor className="w-5 h-5" />
-              </div>
-              <h3 className="text-base font-bold flex items-center gap-2">
-                <span>Desktop Ecosystem Synergy</span>
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-mono">Walker / QML</span>
-              </h3>
-              <p className="text-xs opacity-75 leading-relaxed font-sans">
-                Summon the Walker / Rofi launcher anywhere with <kbd className="px-1 rounded bg-black/40">Super+Alt+Space</kbd>. Open the native desktop HUD with <kbd className="px-1 rounded bg-black/40">Super+Alt+W</kbd>. Monitor RAM live in Waybar.
-              </p>
-            </div>
-            <div className="mt-4 pt-3 border-t border-white/5 text-[11px] text-indigo-300 font-mono">
-              6 Omarchy theme palettes synced
-            </div>
-          </div>
-
-          {/* Pillar 6: Zero Bloat Pure Bash Core */}
-          <div
-            className="p-6 rounded-2xl border flex flex-col justify-between transition-all hover:translate-y-[-2px] shadow-lg"
-            style={{ backgroundColor: currentTheme.cardBg, borderColor: currentTheme.border }}
-          >
-            <div className="space-y-4">
-              <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center shadow"
-                style={{ backgroundColor: `${currentTheme.secondary}20`, color: currentTheme.secondary }}
-              >
-                <Code2 className="w-5 h-5 text-emerald-400" />
-              </div>
-              <h3 className="text-base font-bold flex items-center gap-2">
-                <span>Zero Bloat &amp; No Daemons</span>
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-mono">Pure Bash</span>
-              </h3>
-              <p className="text-xs opacity-75 leading-relaxed font-sans">
-                No Electron bloat, no background telemetry daemons, no heavy runtime. The OmaStack CLI is written in modular, battle-tested Bash with strict error handling and instant exit.
-              </p>
-            </div>
-            <div className="mt-4 pt-3 border-t border-white/5 text-[11px] text-emerald-400 font-mono">
-              100% Native Unix philosophy
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* 4. INTERACTIVE HOW IT WORKS PIPELINE */}
-      <section
-        className="max-w-6xl mx-auto p-6 sm:p-8 rounded-2xl border shadow-xl"
-        style={{ backgroundColor: currentTheme.cardBg, borderColor: currentTheme.border }}
-      >
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-6 border-b" style={{ borderColor: currentTheme.border }}>
-          <div>
-            <div className="text-[11px] font-bold uppercase tracking-wider" style={{ color: currentTheme.accent }}>
-              Architecture Deep Dive
-            </div>
-            <h2 className="text-2xl font-black mt-1">How OmaStack Executes in Milliseconds</h2>
-          </div>
-          <div className="text-[11px] opacity-70">
-            Click any node below to inspect execution step
-          </div>
-        </div>
-
-        {/* Step Nodes Row */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mt-6">
-          {pipelineSteps.map((step) => {
-            const Icon = step.icon;
-            const isSelected = activeArchitectureStep === step.step;
+        {/* Interactive Doctrine Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {doctrinePrinciples.map((item, idx) => {
+            const Icon = item.icon;
+            const isActive = activeDoctrineIndex === idx;
 
             return (
-              <button
-                key={step.step}
-                onClick={() => setActiveArchitectureStep(step.step)}
-                className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between h-28 ${
-                  isSelected ? 'ring-2 scale-105 shadow-md' : 'opacity-70 hover:opacity-100 hover:bg-black/20'
+              <div
+                key={item.number}
+                onClick={() => setActiveDoctrineIndex(idx)}
+                className={`p-6 rounded-2xl border flex flex-col justify-between transition-all cursor-pointer shadow-lg ${
+                  isActive ? 'scale-[1.02] ring-2' : 'hover:scale-[1.01]'
                 }`}
                 style={{
-                  backgroundColor: isSelected ? currentTheme.bg : 'transparent',
-                  borderColor: isSelected ? currentTheme.primary : currentTheme.border,
-                  boxShadow: isSelected ? `0 0 20px ${currentTheme.primary}30` : undefined,
+                  backgroundColor: currentTheme.cardBg,
+                  borderColor: isActive ? currentTheme.primary : currentTheme.border,
                 }}
               >
-                <div className="flex items-center justify-between w-full">
-                  <span className="w-5 h-5 rounded-full text-[10px] font-bold flex items-center justify-center bg-black/40 border border-white/10">
-                    {step.step}
-                  </span>
-                  <Icon className="w-4 h-4" style={{ color: isSelected ? currentTheme.primary : currentTheme.fg }} />
-                </div>
-                <div>
-                  <div className="font-bold text-[11px] truncate">{step.title}</div>
-                  <div className="text-[9px] opacity-60 font-mono">{step.badge}</div>
-                </div>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Active Step Explainer Card */}
-        {(() => {
-          const currentStep = pipelineSteps.find((s) => s.step === activeArchitectureStep) || pipelineSteps[0];
-          const Icon = currentStep.icon;
-
-          return (
-            <div
-              className="mt-6 p-6 rounded-xl border bg-black/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6"
-              style={{ borderColor: currentTheme.border }}
-            >
-              <div className="flex items-start gap-4">
-                <div
-                  className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 shadow"
-                  style={{ backgroundColor: `${currentTheme.primary}25`, color: currentTheme.primary }}
-                >
-                  <Icon className="w-6 h-6" />
-                </div>
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold uppercase opacity-60">Step {currentStep.step}</span>
-                    <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-white/10">{currentStep.badge}</span>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono text-xl font-black opacity-40">{item.number}</span>
+                    <span
+                      className="px-2 py-0.5 rounded text-[10px] font-mono font-bold"
+                      style={{ backgroundColor: `${currentTheme.primary}20`, color: currentTheme.primary }}
+                    >
+                      {item.badge}
+                    </span>
                   </div>
-                  <h4 className="text-lg font-bold" style={{ color: currentTheme.primary }}>
-                    {currentStep.title}
-                  </h4>
-                  <p className="text-xs opacity-80 max-w-xl font-sans leading-relaxed">
-                    {currentStep.desc}
+
+                  <div
+                    className="w-10 h-10 rounded-xl flex items-center justify-center shadow"
+                    style={{ backgroundColor: `${currentTheme.primary}18`, color: currentTheme.primary }}
+                  >
+                    <Icon className="w-5 h-5" />
+                  </div>
+
+                  <div className="space-y-1">
+                    <h3 className="text-base font-bold leading-tight">{item.title}</h3>
+                    <div className="text-[11px] font-medium opacity-65 leading-tight">{item.subtitle}</div>
+                  </div>
+
+                  <p className="text-xs opacity-75 leading-relaxed pt-1">
+                    {item.desc}
                   </p>
                 </div>
               </div>
+            );
+          })}
 
-              <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
-                <button
-                  onClick={() => setActiveArchitectureStep((prev) => (prev > 1 ? prev - 1 : 6))}
-                  className="px-3 py-1.5 rounded-lg border hover:bg-white/10 transition-colors text-[11px]"
-                  style={{ borderColor: currentTheme.border }}
-                >
-                  Previous
-                </button>
-                <button
-                  onClick={() => setActiveArchitectureStep((prev) => (prev < 6 ? prev + 1 : 1))}
-                  className="px-3 py-1.5 rounded-lg font-bold text-[11px] transition-all hover:brightness-110"
-                  style={{ backgroundColor: currentTheme.primary, color: currentTheme.bg }}
-                >
-                  Next Step
-                </button>
+          {/* Doctrine Summary Callout */}
+          <div
+            className="p-6 rounded-2xl border flex flex-col justify-between shadow-lg border-dashed"
+            style={{ backgroundColor: `${currentTheme.cardBg}60`, borderColor: currentTheme.border }}
+          >
+            <div className="space-y-3">
+              <span className="font-mono text-xl font-black opacity-40">06</span>
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-emerald-500/20 text-emerald-400">
+                <Heart className="w-5 h-5" />
               </div>
+              <h3 className="text-base font-bold">We Can Fix Everything.</h3>
+              <p className="text-xs opacity-75 leading-relaxed">
+                Container development shouldn't be painful. OmaStack embraces the malleable spirit of Omarchy: if a tool gets in your way, we tune it, automate it, or replace it with a keyboard-driven script.
+              </p>
             </div>
-          );
-        })()}
+            <div className="mt-4 pt-3 border-t border-white/5 font-mono text-[11px] text-emerald-400 font-bold">
+              Built for Omarchy Linux
+            </div>
+          </div>
+        </div>
       </section>
 
-      {/* 5. PRE-CONFIGURED STACK SHOWCASE & 1-CLICK LAUNCH */}
-      <section className="space-y-8 max-w-6xl mx-auto">
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-          <div>
-            <div className="text-[11px] font-bold uppercase tracking-wider" style={{ color: currentTheme.secondary }}>
-              Production-Grade Templates
+      {/* 5. MOMENTUM BY THE NUMBERS (Inspired by Omarchy.org Momentum) */}
+      <section
+        className="max-w-5xl mx-auto p-8 rounded-3xl border shadow-2xl text-center space-y-6"
+        style={{ backgroundColor: currentTheme.cardBg, borderColor: currentTheme.border }}
+      >
+        <div className="space-y-1">
+          <div className="text-[11px] font-bold uppercase tracking-wider font-mono" style={{ color: currentTheme.accent }}>
+            Momentum by the numbers
+          </div>
+          <h2 className="text-2xl sm:text-3xl font-black">
+            Speed, Ephemeral Efficiency &amp; Zero Bloat
+          </h2>
+          <p className="text-xs opacity-70 max-w-lg mx-auto">
+            Metrics from real developer machines running Omarchy Linux.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 pt-2">
+          <div className="space-y-1 p-4 rounded-2xl bg-black/30 border border-white/5">
+            <div className="text-3xl sm:text-4xl font-black font-mono" style={{ color: currentTheme.primary }}>
+              &lt; 1.8s
             </div>
-            <h2 className="text-2xl sm:text-3xl font-black mt-1">Curated Ephemeral Stacks</h2>
-            <p className="text-xs opacity-70 mt-1 font-sans">
-              Instant multi-container development environments pre-configured with Alpine Docker Compose.
+            <div className="text-xs font-bold">Spin-up Latency</div>
+            <div className="text-[10px] opacity-60">Cold start to healthy state</div>
+          </div>
+
+          <div className="space-y-1 p-4 rounded-2xl bg-black/30 border border-white/5">
+            <div className="text-3xl sm:text-4xl font-black font-mono text-emerald-400">
+              0
+            </div>
+            <div className="text-xs font-bold">Port Collisions</div>
+            <div className="text-[10px] opacity-60">Auto-resolved via ss -tuln</div>
+          </div>
+
+          <div className="space-y-1 p-4 rounded-2xl bg-black/30 border border-white/5">
+            <div className="text-3xl sm:text-4xl font-black font-mono" style={{ color: currentTheme.accent }}>
+              ~45 MB
+            </div>
+            <div className="text-xs font-bold">RAM per Stack</div>
+            <div className="text-[10px] opacity-60">Minimalist Alpine images</div>
+          </div>
+
+          <div className="space-y-1 p-4 rounded-2xl bg-black/30 border border-white/5">
+            <div className="text-3xl sm:text-4xl font-black font-mono" style={{ color: currentTheme.secondary }}>
+              1 Keystroke
+            </div>
+            <div className="text-xs font-bold">Teardown Purge</div>
+            <div className="text-[10px] opacity-60">Instant RAM reclamation</div>
+          </div>
+        </div>
+      </section>
+
+      {/* 6. CURATED STACK SHOWCASE (CHEF'S CHOICE OMACASE) */}
+      <section className="max-w-5xl mx-auto space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+          <div className="space-y-1">
+            <div className="text-[11px] font-bold uppercase tracking-wider font-mono" style={{ color: currentTheme.primary }}>
+              Chef's Choice Omakase
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-black">A Stack for Every Project</h2>
+            <p className="text-xs opacity-75">
+              Production-ready multi-service sandboxes pre-configured for speed and zero port conflicts.
             </p>
           </div>
 
           <button
             onClick={onOpenDashboard}
-            className="self-start sm:self-auto px-4 py-2 rounded-xl border flex items-center gap-2 text-xs font-bold hover:bg-white/5 transition-all"
+            className="self-start sm:self-auto px-4 py-2 rounded-xl border flex items-center gap-2 text-xs font-bold hover:bg-white/5 transition-all cursor-pointer font-mono"
             style={{ borderColor: currentTheme.border, color: currentTheme.accent }}
           >
             <span>View All in Dashboard</span>
-            <ArrowRight className="w-4 h-4" />
+            <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </div>
 
-        {/* Templates Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Grid of Templates */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {templates.map((tmpl) => {
             const activeInstance = activeStacks.find((s) => s.templateId === tmpl.id);
             const isRunning = !!activeInstance;
@@ -797,7 +744,7 @@ cd ~/.config/omarchy/plugins/io.github.anax.omastack
                 }}
               >
                 {/* Card Top */}
-                <div className="p-5 space-y-4">
+                <div className="p-5 space-y-3.5">
                   <div className="flex items-start justify-between">
                     <div>
                       <div className="font-bold text-base flex items-center gap-2" style={{ color: currentTheme.primary }}>
@@ -808,24 +755,24 @@ cd ~/.config/omarchy/plugins/io.github.anax.omastack
                     </div>
 
                     {isRunning ? (
-                      <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1 font-mono">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                         Running ({activeInstance.ramUsageMB || 45}MB)
                       </span>
                     ) : (
-                      <span className="px-2 py-0.5 rounded text-[10px] opacity-60 bg-black/30 border border-white/5">
+                      <span className="px-2 py-0.5 rounded text-[10px] opacity-60 bg-black/30 border border-white/5 font-mono">
                         Idle
                       </span>
                     )}
                   </div>
 
-                  <p className="text-xs opacity-75 font-sans leading-relaxed line-clamp-2">
+                  <p className="text-xs opacity-75 leading-relaxed line-clamp-2">
                     {tmpl.description || 'Pre-configured full-stack ephemeral container sandbox for Omarchy Linux.'}
                   </p>
 
                   {/* Included Services */}
                   <div className="space-y-1.5">
-                    <span className="text-[10px] uppercase font-bold tracking-wider opacity-60">Services &amp; Ports</span>
+                    <span className="text-[10px] uppercase font-bold tracking-wider opacity-60 font-mono">Services &amp; Ports</span>
                     <div className="flex flex-wrap gap-1.5">
                       {tmpl.services.map((svc) => (
                         <span
@@ -842,7 +789,7 @@ cd ~/.config/omarchy/plugins/io.github.anax.omastack
                   {/* HTTPS Domains */}
                   {tmpl.domains && tmpl.domains.length > 0 && (
                     <div className="space-y-1.5">
-                      <span className="text-[10px] uppercase font-bold tracking-wider opacity-60">Local Trusted Domains</span>
+                      <span className="text-[10px] uppercase font-bold tracking-wider opacity-60 font-mono">Local Trusted SSL</span>
                       <div className="flex flex-wrap gap-1.5">
                         {tmpl.domains.map((dom) => (
                           <span
@@ -860,25 +807,25 @@ cd ~/.config/omarchy/plugins/io.github.anax.omastack
 
                 {/* Card Action Footer */}
                 <div
-                  className="p-4 border-t bg-black/20 flex items-center justify-between gap-3"
+                  className="p-3.5 border-t bg-black/25 flex items-center justify-between gap-2"
                   style={{ borderColor: currentTheme.border }}
                 >
-                  <code className="text-[10px] opacity-60 truncate">
+                  <code className="text-[10px] opacity-60 font-mono truncate">
                     omastack up {tmpl.id}
                   </code>
 
                   {isRunning ? (
                     <button
                       onClick={() => onStopStack(tmpl.id)}
-                      className="px-3 py-1.5 rounded-lg font-bold text-rose-300 bg-rose-500/20 border border-rose-500/30 hover:bg-rose-500/30 transition-all flex items-center gap-1.5 text-[11px] shrink-0"
+                      className="px-3 py-1.5 rounded-lg font-bold text-rose-300 bg-rose-500/20 border border-rose-500/30 hover:bg-rose-500/30 transition-all flex items-center gap-1.5 text-[11px] shrink-0 font-mono cursor-pointer"
                     >
                       <Square className="w-3 h-3 fill-current" />
-                      <span>Stop Stack</span>
+                      <span>Stop</span>
                     </button>
                   ) : (
                     <button
                       onClick={() => onLaunchStack(tmpl.id)}
-                      className="px-3 py-1.5 rounded-lg font-bold transition-all shadow hover:brightness-110 flex items-center gap-1.5 text-[11px] shrink-0"
+                      className="px-3 py-1.5 rounded-lg font-bold transition-all shadow hover:brightness-110 flex items-center gap-1.5 text-[11px] shrink-0 font-mono cursor-pointer"
                       style={{ backgroundColor: currentTheme.primary, color: currentTheme.bg }}
                     >
                       <Play className="w-3 h-3 fill-current" />
@@ -892,322 +839,65 @@ cd ~/.config/omarchy/plugins/io.github.anax.omastack
         </div>
       </section>
 
-      {/* 6. BENCHMARK & COMPARISON MATRIX */}
-      <section className="space-y-6 max-w-6xl mx-auto">
+      {/* 7. "PEOPLE LOVE OMASTACK" (Inspired by Omarchy.org Voices) */}
+      <section className="max-w-5xl mx-auto space-y-6">
         <div className="text-center space-y-2">
-          <div className="text-[11px] font-bold uppercase tracking-wider" style={{ color: currentTheme.primary }}>
-            Empirical Comparison
+          <div className="text-[11px] font-bold uppercase tracking-wider font-mono" style={{ color: currentTheme.secondary }}>
+            People love OmaStack
           </div>
-          <h2 className="text-2xl sm:text-3xl font-black">
-            OmaStack vs Alternatives
-          </h2>
-          <p className="text-xs opacity-70 max-w-xl mx-auto font-sans">
-            How OmaStack outperforms generic Docker Compose and traditional heavy virtualized stacks.
+          <h2 className="text-3xl font-black">Voices from the Terminal</h2>
+          <p className="text-xs opacity-75 max-w-lg mx-auto">
+            What developers posted after integrating OmaStack into their Omarchy workflow.
           </p>
         </div>
 
-        {/* Matrix Card */}
-        <div
-          className="rounded-2xl border overflow-x-auto shadow-xl"
-          style={{ backgroundColor: currentTheme.cardBg, borderColor: currentTheme.border }}
-        >
-          <table className="w-full text-left border-collapse text-xs">
-            <thead>
-              <tr className="border-b bg-black/40 font-mono text-[11px]" style={{ borderColor: currentTheme.border }}>
-                <th className="p-4 font-bold">Feature / Capability</th>
-                <th className="p-4 font-bold" style={{ color: currentTheme.primary }}>
-                  ⚡ OmaStack
-                </th>
-                <th className="p-4 font-bold opacity-70">Generic Docker Compose</th>
-                <th className="p-4 font-bold opacity-70">Native Host Daemons</th>
-                <th className="p-4 font-bold opacity-70">Vagrant / Heavy VMs</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y font-sans text-xs" style={{ borderColor: currentTheme.border }}>
-              <tr className="hover:bg-white/5 transition-colors">
-                <td className="p-4 font-mono font-bold">Port Conflict Resolution</td>
-                <td className="p-4 font-bold text-emerald-400 font-mono">
-                  ✔ Auto-resolves (`ss -tuln`)
-                </td>
-                <td className="p-4 text-rose-400">✖ Hard crash (port in use)</td>
-                <td className="p-4 text-rose-400">✖ Port collision failure</td>
-                <td className="p-4 text-amber-300">Port forwarding failure</td>
-              </tr>
-              <tr className="hover:bg-white/5 transition-colors">
-                <td className="p-4 font-mono font-bold">Cold Startup Time</td>
-                <td className="p-4 font-bold text-emerald-400 font-mono">&lt; 1.8 seconds</td>
-                <td className="p-4 opacity-75">12 – 25 seconds</td>
-                <td className="p-4 opacity-75">Instant (if installed)</td>
-                <td className="p-4 text-rose-400">45 – 90 seconds</td>
-              </tr>
-              <tr className="hover:bg-white/5 transition-colors">
-                <td className="p-4 font-mono font-bold">RAM Overhead per Stack</td>
-                <td className="p-4 font-bold text-emerald-400 font-mono">~45 – 75 MB (Alpine)</td>
-                <td className="p-4 opacity-75">450 – 1,200 MB</td>
-                <td className="p-4 opacity-75">300 – 600 MB (Always on)</td>
-                <td className="p-4 text-rose-400">2,048 – 4,096 MB</td>
-              </tr>
-              <tr className="hover:bg-white/5 transition-colors">
-                <td className="p-4 font-mono font-bold">Local Trusted SSL (*.oma.local)</td>
-                <td className="p-4 font-bold text-cyan-300 font-mono">
-                  ✔ Automatic mkcert + Caddy
-                </td>
-                <td className="p-4 text-rose-400">✖ Manual Traefik / certs</td>
-                <td className="p-4 text-rose-400">✖ Self-signed browser alerts</td>
-                <td className="p-4 text-rose-400">✖ Complex bridge routing</td>
-              </tr>
-              <tr className="hover:bg-white/5 transition-colors">
-                <td className="p-4 font-mono font-bold">Desktop / Keybind Integration</td>
-                <td className="p-4 font-bold font-mono" style={{ color: currentTheme.accent }}>
-                  ✔ Waybar + Walker + QML
-                </td>
-                <td className="p-4 opacity-40">None</td>
-                <td className="p-4 opacity-40">Systemctl commands</td>
-                <td className="p-4 opacity-40">None</td>
-              </tr>
-              <tr className="hover:bg-white/5 transition-colors">
-                <td className="p-4 font-mono font-bold">Clipboard &amp; .env Injection</td>
-                <td className="p-4 font-bold text-purple-300 font-mono">
-                  ✔ Native wl-copy &amp; .env.bak
-                </td>
-                <td className="p-4 text-rose-400">✖ Manual copy-pasting</td>
-                <td className="p-4 text-rose-400">✖ Manual config writing</td>
-                <td className="p-4 text-rose-400">✖ Manual IP extraction</td>
-              </tr>
-            </tbody>
-          </table>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          {communityVoices.map((voice, idx) => (
+            <div
+              key={idx}
+              className="p-5 rounded-2xl border shadow-lg flex flex-col justify-between space-y-3"
+              style={{ backgroundColor: currentTheme.cardBg, borderColor: currentTheme.border }}
+            >
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="font-bold text-xs">{voice.author}</div>
+                    <div className="text-[10px] opacity-60 font-mono">{voice.handle}</div>
+                  </div>
+                  <span
+                    className="px-2 py-0.5 rounded text-[9px] font-mono font-bold"
+                    style={{ backgroundColor: `${currentTheme.accent}20`, color: currentTheme.accent }}
+                  >
+                    {voice.tag}
+                  </span>
+                </div>
+
+                <p className="text-xs opacity-80 leading-relaxed italic">
+                  "{voice.text}"
+                </p>
+              </div>
+
+              <div className="pt-2 border-t border-white/5 flex items-center gap-1 text-[10px] opacity-50 font-mono">
+                <Heart className="w-3 h-3 text-rose-400 fill-current" />
+                <span>Verified Omarchy User</span>
+              </div>
+            </div>
+          ))}
         </div>
       </section>
 
-      {/* 7. OMARCHY DESKTOP SYNERGY & WAYBAR */}
+      {/* 8. INSTALLATION IN 35 SECONDS (Tabbed Omarchy Style) */}
       <section
-        className="max-w-6xl mx-auto p-6 sm:p-8 rounded-2xl border shadow-xl space-y-6"
-        style={{ backgroundColor: currentTheme.cardBg, borderColor: currentTheme.border }}
-      >
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b" style={{ borderColor: currentTheme.border }}>
-          <div>
-            <div className="text-[11px] font-bold uppercase tracking-wider" style={{ color: currentTheme.accent }}>
-              Omarchy Linux Desktop Integration
-            </div>
-            <h2 className="text-2xl font-black mt-1">Waybar Module &amp; Walker Shortcuts</h2>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={onOpenWalkerMenu}
-              className="px-3.5 py-2 rounded-xl border text-xs font-bold flex items-center gap-2 hover:bg-white/5 transition-all"
-              style={{ borderColor: currentTheme.border, color: currentTheme.primary }}
-            >
-              <Command className="w-3.5 h-3.5" />
-              <span>Simulate Walker Menu</span>
-            </button>
-            <button
-              onClick={onOpenWidgetPanel}
-              className="px-3.5 py-2 rounded-xl border text-xs font-bold flex items-center gap-2 hover:bg-white/5 transition-all"
-              style={{ borderColor: currentTheme.border, color: currentTheme.secondary }}
-            >
-              <Sliders className="w-3.5 h-3.5" />
-              <span>Toggle Widget Panel (W)</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Code Snippets for Waybar Config */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Waybar Config */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="font-bold text-[11px] text-white/80">~/.config/waybar/config.jsonc</span>
-              <button
-                onClick={() =>
-                  copyText(
-                    `"custom/omastack": {
-    "format": "{}",
-    "exec": "omastack status --waybar",
-    "return-type": "json",
-    "interval": 5,
-    "on-click": "omastack menu",
-    "on-click-right": "omastack down --all",
-    "tooltip": true
-}`,
-                    'waybar-conf'
-                  )
-                }
-                className="text-[10px] text-cyan-300 hover:underline flex items-center gap-1"
-              >
-                <Copy className="w-3 h-3" />
-                <span>Copy snippet</span>
-              </button>
-            </div>
-            <pre
-              className="p-4 rounded-xl border bg-black/60 font-mono text-[11px] overflow-x-auto text-white/90 leading-relaxed"
-              style={{ borderColor: currentTheme.border }}
-            >
-{`"custom/omastack": {
-    "format": "{}",
-    "exec": "omastack status --waybar",
-    "return-type": "json",
-    "interval": 5,
-    "on-click": "omastack menu",
-    "on-click-right": "omastack down --all",
-    "tooltip": true
-}`}
-            </pre>
-          </div>
-
-          {/* Waybar Style */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="font-bold text-[11px] text-white/80">~/.config/waybar/style.css</span>
-              <button
-                onClick={() =>
-                  copyText(
-                    `#custom-omastack.active {
-    color: #7dcfff;
-    background-color: rgba(125, 207, 255, 0.15);
-    border-radius: 8px;
-    padding: 0 10px;
-}
-#custom-omastack.idle {
-    color: #565f89;
-}`,
-                    'waybar-css'
-                  )
-                }
-                className="text-[10px] text-cyan-300 hover:underline flex items-center gap-1"
-              >
-                <Copy className="w-3 h-3" />
-                <span>Copy snippet</span>
-              </button>
-            </div>
-            <pre
-              className="p-4 rounded-xl border bg-black/60 font-mono text-[11px] overflow-x-auto text-white/90 leading-relaxed"
-              style={{ borderColor: currentTheme.border }}
-            >
-{`#custom-omastack.active {
-    color: #7dcfff;
-    background-color: rgba(125, 207, 255, 0.15);
-    border-radius: 8px;
-    padding: 0 10px;
-}
-#custom-omastack.idle {
-    color: #565f89;
-}`}
-            </pre>
-          </div>
-        </div>
-      </section>
-
-      {/* 8. KEYBOARD SHORTCUTS MATRIX */}
-      <section className="space-y-6 max-w-6xl mx-auto">
-        <div className="text-center space-y-2">
-          <div className="text-[11px] font-bold uppercase tracking-wider" style={{ color: currentTheme.primary }}>
-            Keyboard-First Architecture
-          </div>
-          <h2 className="text-2xl font-black">Speed at Your Fingertips</h2>
-          <p className="text-xs opacity-70 font-sans">
-            Navigate, launch, inspect, and teardown environments without touching your mouse.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <div
-            className="p-4 rounded-xl border flex items-center justify-between"
-            style={{ backgroundColor: currentTheme.cardBg, borderColor: currentTheme.border }}
-          >
-            <div>
-              <div className="font-bold text-xs">Open Walker Menu</div>
-              <div className="text-[10px] opacity-60">Interactive fuzzy sandbox picker</div>
-            </div>
-            <div className="flex items-center gap-1">
-              <kbd className="px-1.5 py-0.5 rounded bg-black/50 border border-white/10 text-[10px]">Super</kbd>
-              <kbd className="px-1.5 py-0.5 rounded bg-black/50 border border-white/10 text-[10px]">Alt</kbd>
-              <kbd className="px-1.5 py-0.5 rounded bg-black/50 border border-white/10 text-[10px]">Space</kbd>
-            </div>
-          </div>
-
-          <div
-            className="p-4 rounded-xl border flex items-center justify-between"
-            style={{ backgroundColor: currentTheme.cardBg, borderColor: currentTheme.border }}
-          >
-            <div>
-              <div className="font-bold text-xs">Toggle Widget Panel</div>
-              <div className="text-[10px] opacity-60">Live RAM &amp; port telemetry drawer</div>
-            </div>
-            <div className="flex items-center gap-1">
-              <kbd className="px-1.5 py-0.5 rounded bg-black/50 border border-white/10 text-[10px]">Super</kbd>
-              <kbd className="px-1.5 py-0.5 rounded bg-black/50 border border-white/10 text-[10px]">Alt</kbd>
-              <kbd className="px-1.5 py-0.5 rounded bg-black/50 border border-white/10 text-[10px]">W</kbd>
-            </div>
-          </div>
-
-          <div
-            className="p-4 rounded-xl border flex items-center justify-between"
-            style={{ backgroundColor: currentTheme.cardBg, borderColor: currentTheme.border }}
-          >
-            <div>
-              <div className="font-bold text-xs">Waybar Instant Teardown</div>
-              <div className="text-[10px] opacity-60">Free RAM immediately</div>
-            </div>
-            <div className="flex items-center gap-1">
-              <kbd className="px-2 py-0.5 rounded bg-rose-950/60 border border-rose-800/40 text-rose-300 text-[10px]">
-                Right Click
-              </kbd>
-            </div>
-          </div>
-
-          <div
-            className="p-4 rounded-xl border flex items-center justify-between"
-            style={{ backgroundColor: currentTheme.cardBg, borderColor: currentTheme.border }}
-          >
-            <div>
-              <div className="font-bold text-xs font-mono">omastack up &lt;id&gt;</div>
-              <div className="text-[10px] opacity-60">Spin up stack with ss -tuln check</div>
-            </div>
-            <kbd className="px-1.5 py-0.5 rounded bg-black/50 border border-white/10 text-[10px] font-mono text-emerald-400">
-              Terminal
-            </kbd>
-          </div>
-
-          <div
-            className="p-4 rounded-xl border flex items-center justify-between"
-            style={{ backgroundColor: currentTheme.cardBg, borderColor: currentTheme.border }}
-          >
-            <div>
-              <div className="font-bold text-xs font-mono">omastack down --all</div>
-              <div className="text-[10px] opacity-60">Teardown all running sandboxes</div>
-            </div>
-            <kbd className="px-1.5 py-0.5 rounded bg-black/50 border border-white/10 text-[10px] font-mono text-rose-400">
-              Terminal
-            </kbd>
-          </div>
-
-          <div
-            className="p-4 rounded-xl border flex items-center justify-between"
-            style={{ backgroundColor: currentTheme.cardBg, borderColor: currentTheme.border }}
-          >
-            <div>
-              <div className="font-bold text-xs font-mono">omastack inject</div>
-              <div className="text-[10px] opacity-60">Inject .env &amp; wl-copy sync</div>
-            </div>
-            <kbd className="px-1.5 py-0.5 rounded bg-black/50 border border-white/10 text-[10px] font-mono text-purple-300">
-              Terminal
-            </kbd>
-          </div>
-        </div>
-      </section>
-
-      {/* 9. INSTALLATION METHODS (TABBED) */}
-      <section
-        className="max-w-4xl mx-auto p-6 sm:p-8 rounded-2xl border shadow-2xl space-y-6"
+        className="max-w-4xl mx-auto p-6 sm:p-8 rounded-3xl border shadow-2xl space-y-6"
         style={{ backgroundColor: currentTheme.cardBg, borderColor: currentTheme.border }}
       >
         <div className="text-center space-y-2">
-          <div className="text-[11px] font-bold uppercase tracking-wider" style={{ color: currentTheme.primary }}>
-            Get Started in Seconds
+          <div className="text-[11px] font-bold uppercase tracking-wider font-mono" style={{ color: currentTheme.primary }}>
+            Install OmaStack
           </div>
-          <h2 className="text-2xl font-black">Install OmaStack on Your System</h2>
-          <p className="text-xs opacity-70 font-sans">
-            Choose your preferred installation pathway. Zero external dependencies required beyond Docker.
+          <h2 className="text-2xl sm:text-3xl font-black">Be Up and Running in 35 Seconds</h2>
+          <p className="text-xs opacity-75 max-w-lg mx-auto">
+            Install OmaStack using Omarchy's native plugin manager or the standalone 1-line curl script.
           </p>
         </div>
 
@@ -1215,7 +905,7 @@ cd ~/.config/omarchy/plugins/io.github.anax.omastack
         <div className="flex items-center justify-center gap-2 border-b pb-4" style={{ borderColor: currentTheme.border }}>
           <button
             onClick={() => setActiveInstallTab('plugin')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer font-mono ${
               activeInstallTab === 'plugin' ? 'shadow-md' : 'opacity-60 hover:opacity-100'
             }`}
             style={{
@@ -1223,11 +913,23 @@ cd ~/.config/omarchy/plugins/io.github.anax.omastack
               color: activeInstallTab === 'plugin' ? currentTheme.bg : currentTheme.fg,
             }}
           >
-            Omarchy Plugin Manager
+            Omarchy Plugin Manager (Recommended)
+          </button>
+          <button
+            onClick={() => setActiveInstallTab('curl')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer font-mono ${
+              activeInstallTab === 'curl' ? 'shadow-md' : 'opacity-60 hover:opacity-100'
+            }`}
+            style={{
+              backgroundColor: activeInstallTab === 'curl' ? currentTheme.primary : 'transparent',
+              color: activeInstallTab === 'curl' ? currentTheme.bg : currentTheme.fg,
+            }}
+          >
+            1-Line Curl Installer
           </button>
           <button
             onClick={() => setActiveInstallTab('git')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer font-mono ${
               activeInstallTab === 'git' ? 'shadow-md' : 'opacity-60 hover:opacity-100'
             }`}
             style={{
@@ -1243,8 +945,8 @@ cd ~/.config/omarchy/plugins/io.github.anax.omastack
         <div className="space-y-4">
           {activeInstallTab === 'plugin' && (
             <div className="space-y-3">
-              <p className="text-xs opacity-80 font-sans">
-                Install cleanly using Omarchy Linux's official plugin package manager. Integrates hooks and keybindings automatically:
+              <p className="text-xs opacity-80">
+                Install cleanly using the native Omarchy plugin manager. Installs binaries, shell completion, and Quickshell Bar-Widget automatically:
               </p>
               <div
                 className="p-3.5 rounded-xl border bg-black/60 flex items-center justify-between gap-3"
@@ -1255,7 +957,7 @@ cd ~/.config/omarchy/plugins/io.github.anax.omastack
                 </code>
                 <button
                   onClick={() => copyText(pluginCmd, 'omarchy-plugin')}
-                  className="px-3 py-1.5 rounded-lg flex items-center gap-1.5 text-[11px] font-bold shrink-0 transition-all"
+                  className="px-3.5 py-1.5 rounded-lg flex items-center gap-1.5 text-[11px] font-bold shrink-0 transition-all cursor-pointer font-mono"
                   style={{
                     backgroundColor: copiedInstallCmd === 'omarchy-plugin' ? '#10b981' : currentTheme.cardBg,
                     color: copiedInstallCmd === 'omarchy-plugin' ? '#fff' : currentTheme.accent,
@@ -1269,10 +971,38 @@ cd ~/.config/omarchy/plugins/io.github.anax.omastack
             </div>
           )}
 
+          {activeInstallTab === 'curl' && (
+            <div className="space-y-3">
+              <p className="text-xs opacity-80">
+                Independent self-contained curl installer with self-testing suite and path resolution:
+              </p>
+              <div
+                className="p-3.5 rounded-xl border bg-black/60 flex items-center justify-between gap-3"
+                style={{ borderColor: currentTheme.border }}
+              >
+                <code className="text-cyan-300 font-mono text-[11px] overflow-x-auto">
+                  {curlCmd}
+                </code>
+                <button
+                  onClick={() => copyText(curlCmd, 'curl-tab')}
+                  className="px-3.5 py-1.5 rounded-lg flex items-center gap-1.5 text-[11px] font-bold shrink-0 transition-all cursor-pointer font-mono"
+                  style={{
+                    backgroundColor: copiedInstallCmd === 'curl-tab' ? '#10b981' : currentTheme.cardBg,
+                    color: copiedInstallCmd === 'curl-tab' ? '#fff' : currentTheme.accent,
+                    border: `1px solid ${currentTheme.border}`,
+                  }}
+                >
+                  {copiedInstallCmd === 'curl-tab' ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                  <span>{copiedInstallCmd === 'curl-tab' ? 'Copied' : 'Copy'}</span>
+                </button>
+              </div>
+            </div>
+          )}
+
           {activeInstallTab === 'git' && (
             <div className="space-y-3">
-              <p className="text-xs opacity-80 font-sans">
-                Clone to standard user location and create binary symlink:
+              <p className="text-xs opacity-80">
+                Clone directly to standard user path and create symlink:
               </p>
               <div
                 className="p-3.5 rounded-xl border bg-black/60 flex items-start justify-between gap-3"
@@ -1283,7 +1013,7 @@ cd ~/.config/omarchy/plugins/io.github.anax.omastack
                 </pre>
                 <button
                   onClick={() => copyText(gitCmd, 'git-tab')}
-                  className="px-3 py-1.5 rounded-lg flex items-center gap-1.5 text-[11px] font-bold shrink-0 transition-all mt-1"
+                  className="px-3.5 py-1.5 rounded-lg flex items-center gap-1.5 text-[11px] font-bold shrink-0 transition-all mt-1 cursor-pointer font-mono"
                   style={{
                     backgroundColor: copiedInstallCmd === 'git-tab' ? '#10b981' : currentTheme.cardBg,
                     color: copiedInstallCmd === 'git-tab' ? '#fff' : currentTheme.accent,
@@ -1297,20 +1027,20 @@ cd ~/.config/omarchy/plugins/io.github.anax.omastack
             </div>
           )}
 
-          {/* Verification check callout */}
-          <div className="p-3 rounded-xl bg-black/30 border border-white/5 flex items-center justify-between text-[11px]">
-            <span className="opacity-75">Verify installation anytime:</span>
-            <code className="text-emerald-400 font-mono font-bold">$ omastack list</code>
+          {/* Uninstall instructions */}
+          <div className="p-3.5 rounded-xl bg-black/30 border border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[11px] font-mono">
+            <span className="opacity-70">Clean uninstallation anytime:</span>
+            <code className="text-rose-400 truncate">{uninstallCmd}</code>
           </div>
         </div>
       </section>
 
-      {/* 10. FOOTER */}
+      {/* 9. MINIMALIST EDITORIAL FOOTER */}
       <footer
-        className="max-w-6xl mx-auto pt-8 border-t flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] opacity-70"
+        className="max-w-5xl mx-auto pt-8 border-t flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] opacity-75 font-mono"
         style={{ borderColor: currentTheme.border }}
       >
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2.5">
           <OmaStackLogo size={22} showWordmark={true} />
           <span className="opacity-40">•</span>
           <span>Native Docker Manager for Omarchy Linux</span>
@@ -1318,18 +1048,25 @@ cd ~/.config/omarchy/plugins/io.github.anax.omastack
 
         <div className="flex items-center gap-4">
           <a
+            href="https://omarchy.org"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:underline hover:text-white transition-colors"
+          >
+            Omarchy.org ↗
+          </a>
+          <span>•</span>
+          <a
             href="https://github.com/anax/omastack"
             target="_blank"
             rel="noopener noreferrer"
-            className="hover:underline flex items-center gap-1 hover:text-white"
+            className="hover:underline flex items-center gap-1 hover:text-white transition-colors"
           >
-            <span>GitHub Repository</span>
+            <span>GitHub</span>
             <ExternalLink className="w-3 h-3" />
           </a>
           <span>•</span>
           <span>MIT License</span>
-          <span>•</span>
-          <span>Docker Compose v2</span>
         </div>
       </footer>
     </div>

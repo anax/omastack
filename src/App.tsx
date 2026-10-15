@@ -111,6 +111,15 @@ export default function App() {
       // Super+Alt+W or press W outside inputs to toggle Widget Panel
       if (!isInput && (e.key === 'w' || e.key === 'W')) {
         setIsWidgetPanelOpen((prev) => !prev);
+      } else if (!isInput && (e.key === 't' || e.key === 'T')) {
+        // Omarchy signature: Press T to flip through themes
+        const themeKeys: OmarchyThemeKey[] = ['tokyo-night', 'catppuccin-mocha', 'gruvbox-dark', 'rose-pine', 'nordic', 'cyberpunk'];
+        setThemeKey((prev) => {
+          const idx = themeKeys.indexOf(prev);
+          const next = themeKeys[(idx + 1) % themeKeys.length];
+          addNotification('Theme Changed', `Switched to ${OMARCHY_THEMES[next].name}`);
+          return next;
+        });
       } else if (e.key === 'Escape') {
         setIsWidgetPanelOpen(false);
         setIsWalkerOpen(false);
@@ -277,6 +286,7 @@ export default function App() {
         {activeTab === 'landing' && (
           <LandingPage
             currentTheme={currentTheme}
+            onSelectTheme={(key) => setThemeKey(key)}
             templates={templates}
             activeStacks={activeStacks}
             onLaunchStack={handleLaunchStack}
