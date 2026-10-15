@@ -117,3 +117,113 @@ launch_stack_down_picker() {
         omastack down "${selected}"
     fi
 }
+
+# Output structured JSON payload for external widget panels (Eww, AGS, Waybar, or Web UI)
+output_widget_json() {
+    local active_stacks
+    active_stacks=$(get_active_stacks)
+
+    local count=0
+    local total_ram=0
+    local stacks_json="[]"
+
+    if [ -n "${active_stacks}" ]; then
+        local items=()
+        for stack in ${active_stacks}; do
+            count=$((count + 1))
+            local ram
+            ram=$(get_stack_ram_usage "${stack}")
+            local ram_num=$(echo "${ram}" | tr -dc '0-9')
+            if [ -n "${ram_num}" ]; then
+                total_ram=$((total_ram + ram_num))
+            fi
+            items+=("{\"id\":\"${stack}\",\"name\":\"${stack}\",\"status\":\"running\",\"ram\":\"${ram}\"}")
+        done
+        stacks_json="[$(IFS=,; echo "${items[*]}")]"
+    fi
+
+    local class_name="idle"
+    if [ "${count}" -gt 0 ]; then
+        class_name="active"
+    fi
+
+    cat << EOF
+{
+  "active_count": ${count},
+  "total_ram": "${total_ram}MB",
+  "status_class": "${class_name}",
+  "active_stacks": ${stacks_json},
+  "templates": ["automation-hub", "laravel-stack", "nextjs-postgres", "supabase-lite", "web3-node"],
+  "shortcuts": {
+    "menu": "SUPER + ALT + SPACE",
+    "widget_panel": "SUPER + ALT + W"
+  }
+}
+EOF
+}
+
+# Render visual widget panel card box
+render_widget_panel_box() {
+    local active_stacks
+    active_stacks=$(get_active_stacks)
+    local count=0
+    if [ -n "${active_stacks}" ]; then
+        for s in ${active_stacks}; do count=$((count + 1)); done
+    fi
+
+    echo -e "${COLOR_CYAN}${COLOR_BOLD}╭─────────────────────────────────────────────────────────────╮${COLOR_RESET}"
+    echo -e "${COLOR_CYAN}${COLOR_BOLD}│ ⚡ OmaStack Ephemeral Sandbox Widget Panel                  │${COLOR_RESET}"
+    echo -e "${COLOR_CYAN}${COLOR_BOLD}├─────────────────────────────────────────────────────────────┤${COLOR_RESET}"
+    if [ "${count}" -gt 0 ]; then
+        echo -e "${COLOR_CYAN}│${COLOR_RESET}  Status: ${COLOR_GREEN}${COLOR_BOLD}Active (${count} running)${COLOR_RESET}                     Proxy: ${COLOR_CYAN}*.oma.local${COLOR_RESET}   ${COLOR_CYAN}│${COLOR_RESET}"
+        for s in ${active_stacks}; do
+            local ram
+            ram=$(get_stack_ram_usage "${s}")
+            printf "${COLOR_CYAN}│${COLOR_RESET}  ● %-20s [RAM: %-7s] [Status: UP]     ${COLOR_CYAN}│${COLOR_RESET}\n" "${s}" "${ram}"
+        done
+    else
+        echo -e "${COLOR_CYAN}│${COLOR_RESET}  Status: ${COLOR_YELLOW}Idle (0 active sandboxes)${COLOR_RESET}             Proxy: ${COLOR_CYAN}*.oma.local${COLOR_RESET}   ${COLOR_CYAN}│${COLOR_RESET}"
+    fi
+    echo -e "${COLOR_CYAN}${COLOR_BOLD}├─────────────────────────────────────────────────────────────┤${COLOR_RESET}"
+    echo -e "${COLOR_CYAN}│${COLOR_RESET}  Available Stack Templates:                                 ${COLOR_CYAN}│${COLOR_RESET}"
+    echo -e "${COLOR_CYAN}│${COLOR_RESET}   1. laravel-stack    (MySQL 8.0, Redis, Mailpit, Meili)     ${COLOR_CYAN}│${COLOR_RESET}"
+    echo -e "${COLOR_CYAN}│${COLOR_RESET}   2. supabase-lite    (PostgreSQL 16, PostgREST, PgAdmin)    ${COLOR_CYAN}│${COLOR_RESET}"
+    echo -e "${COLOR_CYAN}│${COLOR_RESET}   3. nextjs-postgres  (PostgreSQL 16, Redis, Adminer)        ${COLOR_CYAN}│${COLOR_RESET}"
+    echo -e "${COLOR_CYAN}│${COLOR_RESET}   4. automation-hub   (n8n, PostgreSQL 16, Redis)            ${COLOR_CYAN}│${COLOR_RESET}"
+    echo -e "${COLOR_CYAN}│${COLOR_RESET}   5. web3-node        (Anvil RPC, PostgreSQL 16, Redis)      ${COLOR_CYAN}│${COLOR_RESET}"
+    echo -e "${COLOR_CYAN}${COLOR_BOLD}├─────────────────────────────────────────────────────────────┤${COLOR_RESET}"
+    echo -e "${COLOR_CYAN}│${COLOR_RESET}  Keybindings: ${COLOR_BOLD}Super+Alt+W${COLOR_RESET} (Widget Panel) | ${COLOR_BOLD}Super+Alt+Space${COLOR_RESET} (Menu) ${COLOR_CYAN}│${COLOR_RESET}"
+    echo -e "${COLOR_CYAN}${COLOR_BOLD}╰─────────────────────────────────────────────────────────────╯${COLOR_RESET}"
+}
+
+# Main Widget Panel Dispatcher
+launch_widget_panel() {
+    local mode="${1:-}"
+
+    if [ "${mode}" = "--json" ] || [ "${mode}" = "json" ]; then
+        output_widget_json
+        return 0
+    fi
+
+    if [ "${mode}" = "--dry-run" ] || [ "${mode}" = "--print" ]; then
+        render_widget_panel_box
+        return 0
+    fi
+
+    render_widget_panel_box
+
+    # Interactive action prompt if interactive terminal with gum
+    if [ -t 0 ] && command -v gum >/dev/null 2>&1; then
+        local action
+        action=$(gum choose --header="Widget Panel Actions:" "Launch Stack Template" "Teardown Running Stack" "Inject .env into CWD" "Sync Caddy Proxy (*.oma.local)" "Teardown All Stacks" "Exit Widget Panel")
+        case "${action}" in
+            *"Launch Stack"*) launch_template_picker ;;
+            *"Teardown Running"*) launch_stack_down_picker ;;
+            *"Inject"*) omastack inject ;;
+            *"Sync Caddy"*) omastack proxy ;;
+            *"Teardown All"*) omastack down --all ;;
+            *) return 0 ;;
+        esac
+    fi
+}
+

@@ -56,6 +56,39 @@ async function startServer() {
     }
   });
 
+  // Serve Omarchy Quattro manifest.json
+  app.get('/manifest.json', (req, res) => {
+    const p = path.join(process.cwd(), 'omastack', 'manifest.json');
+    if (fs.existsSync(p)) {
+      res.setHeader('Content-Type', 'application/json');
+      res.send(fs.readFileSync(p, 'utf-8'));
+    } else {
+      res.status(404).json({ error: 'manifest.json not found' });
+    }
+  });
+
+  // Serve Omarchy Quattro BarWidget.qml
+  app.get('/BarWidget.qml', (req, res) => {
+    const p = path.join(process.cwd(), 'omastack', 'BarWidget.qml');
+    if (fs.existsSync(p)) {
+      res.setHeader('Content-Type', 'text/plain');
+      res.send(fs.readFileSync(p, 'utf-8'));
+    } else {
+      res.status(404).send('// BarWidget.qml not found');
+    }
+  });
+
+  // Serve Omarchy Quattro Panel.qml
+  app.get('/Panel.qml', (req, res) => {
+    const p = path.join(process.cwd(), 'omastack', 'Panel.qml');
+    if (fs.existsSync(p)) {
+      res.setHeader('Content-Type', 'text/plain');
+      res.send(fs.readFileSync(p, 'utf-8'));
+    } else {
+      res.status(404).send('// Panel.qml not found');
+    }
+  });
+
   // API: Get real templates dynamically parsed from omastack/templates
   app.get('/api/templates', (req, res) => {
     if (!fs.existsSync(TEMPLATES_DIR)) {
@@ -198,6 +231,27 @@ async function startServer() {
         text: '⚡ 0',
         tooltip: '⚡ OmaStack: No active sandboxes',
         class: 'idle',
+      });
+    }
+  });
+
+  // API: OmaStack Widget Panel JSON execution
+  app.get('/api/widget', async (req, res) => {
+    const { stdout } = await runShell(`bash "${OMASTACK_BIN}" widget --json`);
+    try {
+      const parsed = JSON.parse(stdout.trim());
+      res.json(parsed);
+    } catch {
+      res.json({
+        active_count: 0,
+        total_ram: '0MB',
+        status_class: 'idle',
+        active_stacks: [],
+        templates: ['automation-hub', 'laravel-stack', 'nextjs-postgres', 'supabase-lite', 'web3-node'],
+        shortcuts: {
+          menu: 'SUPER + ALT + SPACE',
+          widget_panel: 'SUPER + ALT + W',
+        },
       });
     }
   });

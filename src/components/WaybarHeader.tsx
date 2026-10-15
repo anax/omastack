@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Terminal, HardDrive, Palette, Power, RefreshCw, Cpu, Activity } from 'lucide-react';
+import { Terminal, HardDrive, Palette, Power, RefreshCw, Cpu, Activity, Layers } from 'lucide-react';
 import { OmarchyTheme, OmarchyThemeKey, ActiveStack, WaybarPayload, SystemStats } from '../types';
 import { OMARCHY_THEMES } from '../themes';
 
@@ -10,6 +10,7 @@ interface WaybarHeaderProps {
   waybarStatus: WaybarPayload | null;
   systemStats: SystemStats | null;
   onOpenWalkerMenu: () => void;
+  onOpenWidgetPanel: () => void;
   onStopAllStacks: () => void;
   activeTab: 'dashboard' | 'terminal' | 'templates' | 'codebase' | 'system';
   setActiveTab: (tab: 'dashboard' | 'terminal' | 'templates' | 'codebase' | 'system') => void;
@@ -22,6 +23,7 @@ export const WaybarHeader: React.FC<WaybarHeaderProps> = ({
   waybarStatus,
   systemStats,
   onOpenWalkerMenu,
+  onOpenWidgetPanel,
   onStopAllStacks,
   activeTab,
   setActiveTab,
@@ -140,19 +142,20 @@ export const WaybarHeader: React.FC<WaybarHeaderProps> = ({
         </div>
       </div>
 
-      {/* Center: Live Waybar OmaStack JSON Status Pill directly from `omastack status --waybar` */}
-      <div className="flex items-center gap-3">
+      {/* Center: Live Waybar OmaStack JSON Status Pill & Widget Panel Toggle */}
+      <div className="flex items-center gap-2">
         <div
-          className="group relative flex items-center gap-2 px-3.5 py-1 rounded-full border shadow-sm transition-all cursor-pointer"
+          className="group relative flex items-center gap-2 px-3.5 py-1 rounded-full border shadow-sm transition-all cursor-pointer hover:border-primary/80"
           style={{
             backgroundColor: currentTheme.cardBg,
             borderColor: activeStacks.length > 0 ? currentTheme.accent : currentTheme.border,
           }}
-          onClick={onOpenWalkerMenu}
+          onClick={onOpenWidgetPanel}
           onContextMenu={(e) => {
             e.preventDefault();
             onStopAllStacks();
           }}
+          title="Click to open OmaStack Widget Panel (Super + Alt + W) | Right-click to stop all"
         >
           <span className="relative flex h-2 w-2">
             <span
@@ -193,6 +196,22 @@ export const WaybarHeader: React.FC<WaybarHeaderProps> = ({
             </pre>
           </div>
         </div>
+
+        {/* Quick Widget Panel Button */}
+        <button
+          onClick={onOpenWidgetPanel}
+          className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] font-bold shadow-sm transition-all hover:brightness-110"
+          style={{
+            backgroundColor: currentTheme.cardBg,
+            borderColor: currentTheme.border,
+            color: currentTheme.accent,
+          }}
+          title="Toggle OmaStack Widget Panel (Super + Alt + W)"
+        >
+          <Layers className="w-3 h-3" />
+          <span>Widget Panel</span>
+          <kbd className="text-[9px] px-1 py-0.2 rounded bg-white/10 opacity-70">W</kbd>
+        </button>
       </div>
 
       {/* Right: Theme Selector, System Stats & Clock */}

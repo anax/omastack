@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { WaybarHeader } from './components/WaybarHeader';
 import { WalkerMenuModal } from './components/WalkerMenuModal';
+import { WidgetPanel } from './components/WidgetPanel';
 import { TerminalSimulator } from './components/TerminalSimulator';
 import { StackCardGrid } from './components/StackCardGrid';
 import { ActiveStackInspector } from './components/ActiveStackInspector';
@@ -14,6 +15,7 @@ import {
   StackTemplate,
   TerminalLog,
   WaybarPayload,
+  WidgetPayload,
   SystemPort,
   SystemStats,
 } from './types';
@@ -24,11 +26,13 @@ export default function App() {
 
   const [activeTab, setActiveTab] = useState<'dashboard' | 'terminal' | 'templates' | 'codebase' | 'system'>('dashboard');
   const [isWalkerOpen, setIsWalkerOpen] = useState(false);
+  const [isWidgetPanelOpen, setIsWidgetPanelOpen] = useState(false);
 
   // Live state from backend
   const [templates, setTemplates] = useState<StackTemplate[]>([]);
   const [activeStacks, setActiveStacks] = useState<ActiveStack[]>([]);
   const [waybarStatus, setWaybarStatus] = useState<WaybarPayload | null>(null);
+  const [widgetData, setWidgetData] = useState<WidgetPayload | null>(null);
   const [systemPorts, setSystemPorts] = useState<SystemPort[]>([]);
   const [systemStats, setSystemStats] = useState<SystemStats | null>(null);
 
@@ -71,10 +75,11 @@ export default function App() {
   // Fetch real data from server
   const fetchLiveState = async () => {
     try {
-      const [tplRes, stksRes, waybarRes, portsRes, statsRes] = await Promise.all([
+      const [tplRes, stksRes, waybarRes, widgetRes, portsRes, statsRes] = await Promise.all([
         fetch('/api/templates').then((r) => r.json()),
         fetch('/api/stacks').then((r) => r.json()),
         fetch('/api/waybar').then((r) => r.json()),
+        fetch('/api/widget').then((r) => r.json()),
         fetch('/api/system/ports').then((r) => r.json()),
         fetch('/api/system/stats').then((r) => r.json()),
       ]);
@@ -82,6 +87,7 @@ export default function App() {
       if (Array.isArray(tplRes)) setTemplates(tplRes);
       if (Array.isArray(stksRes)) setActiveStacks(stksRes);
       if (waybarRes && typeof waybarRes === 'object') setWaybarStatus(waybarRes);
+      if (widgetRes && typeof widgetRes === 'object') setWidgetData(widgetRes);
       if (portsRes?.openPorts) setSystemPorts(portsRes.openPorts);
       if (statsRes) setSystemStats(statsRes);
     } catch (err) {
@@ -93,6 +99,25 @@ export default function App() {
     fetchLiveState();
     const interval = setInterval(fetchLiveState, 3000);
     return () => clearInterval(interval);
+  }, []);
+
+  // Global Omarchy shortcut listener
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      const isInput = target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable);
+
+      // Super+Alt+W or press W outside inputs to toggle Widget Panel
+      if (!isInput && (e.key === 'w' || e.key === 'W')) {
+        setIsWidgetPanelOpen((prev) => !prev);
+      } else if (e.key === 'Escape') {
+        setIsWidgetPanelOpen(false);
+        setIsWalkerOpen(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
   // Launch stack with real CLI execution on backend
@@ -240,6 +265,7 @@ export default function App() {
         waybarStatus={waybarStatus}
         systemStats={systemStats}
         onOpenWalkerMenu={() => setIsWalkerOpen(true)}
+        onOpenWidgetPanel={() => setIsWidgetPanelOpen(true)}
         onStopAllStacks={handleStopAllStacks}
         activeTab={activeTab}
         setActiveTab={setActiveTab}
@@ -327,6 +353,25 @@ export default function App() {
         onStopAllStacks={handleStopAllStacks}
         onInjectEnv={handleInjectEnv}
         onViewLogs={() => setActiveTab('terminal')}
+      />
+
+      {/* Widget Panel */}
+      <WidgetPanel
+        isOpen={isWidgetPanelOpen}
+        onClose={() => setIsWidgetPanelOpen(false)}
+        currentTheme={currentTheme}
+        activeStacks={activeStacks}
+        templates={templates}
+        widgetData={widgetData}
+        waybarStatus={waybarStatus}
+        onLaunchStack={handleLaunchStack}
+        onStopStack={handleStopStack}
+        onStopAllStacks={handleStopAllStacks}
+        onInjectEnv={handleInjectEnv}
+        onCopySnippet={(text) => {
+          navigator.clipboard.writeText(text);
+          addNotification('Copied to Clipboard', 'Connection variables ready.');
+        }}
       />
 
       {/* Toast Notifications */}

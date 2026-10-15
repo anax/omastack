@@ -76,6 +76,18 @@ cmd_plugin_add() {
         log_success "Created Hyprland config with OmaStack keybinding (Super + Alt + Space)"
     fi
 
+    # Install Omarchy Quattro Plugin & Bar-Widget (~/.config/omarchy/plugins/omacom.omastack)
+    local omarchy_plugins_dir="${HOME}/.config/omarchy/plugins/omacom.omastack"
+    mkdir -p "${omarchy_plugins_dir}"
+    for f in manifest.json BarWidget.qml Panel.qml; do
+        if [ -f "${SCRIPT_DIR}/${f}" ]; then
+            cp "${SCRIPT_DIR}/${f}" "${omarchy_plugins_dir}/"
+        elif [ -f "${SCRIPT_DIR}/../${f}" ]; then
+            cp "${SCRIPT_DIR}/../${f}" "${omarchy_plugins_dir}/"
+        fi
+    done
+    log_success "Installed Omarchy Quattro Bar-Widget to ${omarchy_plugins_dir}"
+
     # Register Waybar custom module
     local waybar_dir="${HOME}/.config/waybar"
     mkdir -p "${waybar_dir}"

@@ -36,6 +36,8 @@ Commands:
   list                 List active sandboxes, RAM usage, and active domains
   status --waybar      Output single-line JSON payload for Waybar module
   menu                 Launch interactive Walker/Rofi dmenu or terminal TUI
+  widget [options]     Launch OmaStack Widget Panel (--json, --dry-run, --gui)
+  panel [options]      Alias for widget panel
   inject [env_file]    Inject connection strings into current directory .env
   proxy [list|sync]    Manage Caddy HTTPS local proxy (*.oma.local)
   logs <template>      Tail live Docker container logs
@@ -244,14 +246,23 @@ main() {
             cmd_list
             ;;
         status)
-            if [ "${1:-}" = "--waybar" ]; then
-                output_waybar_json
-            else
-                cmd_list
-            fi
+            case "${1:-}" in
+                --waybar)
+                    output_waybar_json
+                    ;;
+                --widget|--panel|-w)
+                    output_widget_json
+                    ;;
+                *)
+                    cmd_list
+                    ;;
+            esac
             ;;
         menu|ui)
             launch_walker_menu
+            ;;
+        widget|panel)
+            launch_widget_panel "${1:-}"
             ;;
         inject)
             local snippet

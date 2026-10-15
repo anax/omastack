@@ -75,3 +75,20 @@ export interface WaybarPayload {
   tooltip: string;
   class: string;
 }
+
+export interface WidgetPayload {
+  active_count: number;
+  total_ram: string;
+  status_class: string;
+  active_stacks: Array<{
+    id: string;
+    name: string;
+    status: string;
+    ram: string;
+  }>;
+  templates: string[];
+  shortcuts: {
+    menu: string;
+    widget_panel: string;
+  };
+}

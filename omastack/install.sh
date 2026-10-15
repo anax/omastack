@@ -146,6 +146,31 @@ run_test_suite() {
         fail_test "Waybar JSON output invalid: ${waybar_out}"
     fi
 
+    # Test Widget Panel commands
+    local widget_dry_out
+    widget_dry_out=$(bash "${cli_bin}" widget --dry-run 2>&1)
+    if [[ "${widget_dry_out}" =~ "OmaStack Ephemeral Sandbox Widget Panel" ]]; then
+        pass_test "Command 'omastack widget --dry-run' rendered widget panel card"
+    else
+        fail_test "Failed 'omastack widget --dry-run': ${widget_dry_out}"
+    fi
+
+    local widget_json_out
+    widget_json_out=$(bash "${cli_bin}" widget --json 2>&1)
+    if [[ "${widget_json_out}" =~ \"active_count\": && "${widget_json_out}" =~ \"shortcuts\": ]]; then
+        pass_test "Command 'omastack widget --json' generated valid Widget Panel JSON payload"
+    else
+        fail_test "Failed 'omastack widget --json': ${widget_json_out}"
+    fi
+
+    local panel_alias_out
+    panel_alias_out=$(bash "${cli_bin}" panel --dry-run 2>&1)
+    if [[ "${panel_alias_out}" =~ "OmaStack Ephemeral Sandbox Widget Panel" ]]; then
+        pass_test "Alias 'omastack panel' executed successfully"
+    else
+        fail_test "Failed 'omastack panel': ${panel_alias_out}"
+    fi
+
     # 3. Test Templates
     echo -e "\n${BOLD}3. Validating Stack Templates:${RESET}"
     local templates=("automation-hub" "laravel-stack" "nextjs-postgres" "supabase-lite" "web3-node")
@@ -180,6 +205,59 @@ run_test_suite() {
         pass_test "Found valid OmaStore manifest (omastore.toml)"
     else
         fail_test "Missing omastore.toml in ${src_dir}"
+    fi
+
+    # 6. Test Omarchy Quattro Plugin & Bar-Widget Manifest
+    echo -e "\n${BOLD}6. Validating Omarchy Quattro Plugin & Bar-Widget Files:${RESET}"
+    local manifest_path=""
+    if [ -f "${src_dir}/manifest.json" ]; then
+        manifest_path="${src_dir}/manifest.json"
+    elif [ -f "${src_dir}/../manifest.json" ]; then
+        manifest_path="${src_dir}/../manifest.json"
+    fi
+
+    if [ -n "${manifest_path}" ] && [ -f "${manifest_path}" ]; then
+        if grep -q '"kinds":.*"bar-widget"' "${manifest_path}" && grep -q '"barWidget":.*"BarWidget.qml"' "${manifest_path}"; then
+            pass_test "Found valid Quattro manifest.json with 'bar-widget' kind and 'BarWidget.qml' entry point"
+        else
+            fail_test "Invalid manifest.json in ${manifest_path}"
+        fi
+    else
+        fail_test "Missing manifest.json in ${src_dir}"
+    fi
+
+    local bar_widget_path=""
+    if [ -f "${src_dir}/BarWidget.qml" ]; then
+        bar_widget_path="${src_dir}/BarWidget.qml"
+    elif [ -f "${src_dir}/../BarWidget.qml" ]; then
+        bar_widget_path="${src_dir}/../BarWidget.qml"
+    fi
+
+    if [ -n "${bar_widget_path}" ] && [ -f "${bar_widget_path}" ]; then
+        if grep -q "BarWidget" "${bar_widget_path}" && grep -q "omacom.omastack" "${bar_widget_path}"; then
+            pass_test "Verified BarWidget.qml with Omarchy Quattro BarWidget contract"
+        else
+            fail_test "BarWidget.qml failed validation in ${bar_widget_path}"
+        fi
+    else
+        fail_test "Missing BarWidget.qml"
+    fi
+
+    local panel_qml_path=""
+    if [ -f "${src_dir}/Panel.qml" ]; then
+        panel_qml_path="${src_dir}/Panel.qml"
+    elif [ -f "${src_dir}/../Panel.qml" ]; then
+        panel_qml_path="${src_dir}/../Panel.qml"
+    fi
+
+    if [ -n "${panel_qml_path}" ] && [ -f "${panel_qml_path}" ]; then
+        if grep -q "Panel" "${panel_qml_path}" && grep -q "omacom.omastack" "${panel_qml_path}"; then
+            pass_test "Verified Panel.qml with Omarchy Quattro Panel contract"
+        else
+            fail_test "Panel.qml failed validation in ${panel_qml_path}"
+        fi
+    else
+        fail_test "Missing Panel.qml"
     fi
 
     echo -e "\n${GREEN}${BOLD}======================================================${RESET}"
@@ -237,9 +315,40 @@ main() {
     if [ -f "${hypr_config}" ]; then
         if ! grep -q "omastack menu" "${hypr_config}"; then
             echo -e "${CYAN}➜ Binding Super + Alt + Space to 'omastack menu' in Hyprland...${RESET}"
-            echo -e "\n# OmaStack Shortcut\nbind = SUPER ALT, SPACE, exec, omastack menu" >> "${hypr_config}"
+            echo -e "\n# OmaStack Menu Shortcut\nbind = SUPER ALT, SPACE, exec, omastack menu" >> "${hypr_config}"
+        fi
+        if ! grep -q "omastack widget" "${hypr_config}"; then
+            echo -e "${CYAN}➜ Binding Super + Alt + W to 'omastack widget' panel in Hyprland...${RESET}"
+            echo -e "# OmaStack Widget Panel Shortcut\nbind = SUPER ALT, W, exec, omastack widget" >> "${hypr_config}"
         fi
     fi
+
+    # Register desktop widget panel configuration
+    local widget_dir="${HOME}/.config/omarchy/widgets"
+    mkdir -p "${widget_dir}" "${config_dir}/widgets"
+    cat << 'EOF' > "${config_dir}/widgets/omastack.json"
+{
+  "name": "OmaStack Widget Panel",
+  "exec": "omastack widget --json",
+  "interval": 2,
+  "on_click": "omastack widget",
+  "class": "omastack-widget"
+}
+EOF
+    cp "${config_dir}/widgets/omastack.json" "${widget_dir}/omastack.json" 2>/dev/null || true
+    echo -e "${CYAN}➜ Configured Omarchy Widget Panel in ~/.config/omarchy/widgets/omastack.json${RESET}"
+
+    # Install Omarchy Quattro Plugin & Bar-Widget (~/.config/omarchy/plugins/omacom.omastack)
+    local omarchy_plugins_dir="${HOME}/.config/omarchy/plugins/omacom.omastack"
+    mkdir -p "${omarchy_plugins_dir}"
+    for f in manifest.json BarWidget.qml Panel.qml; do
+        if [ -f "${source_dir}/${f}" ]; then
+            cp "${source_dir}/${f}" "${omarchy_plugins_dir}/"
+        elif [ -f "${source_dir}/../${f}" ]; then
+            cp "${source_dir}/../${f}" "${omarchy_plugins_dir}/"
+        fi
+    done
+    echo -e "${CYAN}➜ Installed Omarchy Quattro Bar-Widget to ${omarchy_plugins_dir}${RESET}"
 
     # Waybar module registration note
     local waybar_config="${HOME}/.config/omarchy/waybar/config.jsonc"
@@ -248,7 +357,7 @@ main() {
     fi
 
     echo -e "\n${GREEN}${BOLD}✔ OmaStack successfully installed to ${install_dir}!${RESET}"
-    echo -e "Try running: ${CYAN}omastack up laravel-stack${RESET} or press ${CYAN}Super + Alt + Space${RESET}\n"
+    echo -e "Try running: ${CYAN}omastack up laravel-stack${RESET}, press ${CYAN}Super + Alt + W${RESET} for the Widget Panel, or ${CYAN}Super + Alt + Space${RESET} for the launcher menu\n"
 }
 
 main "$@"

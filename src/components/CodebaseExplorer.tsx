@@ -144,6 +144,176 @@ chmod +x ~/.local/bin/omastack
 
 echo "✔ OmaStack successfully installed! Run: omastack up laravel-stack"`,
 
+  'manifest.json': `{
+  "schemaVersion": 1,
+  "id": "omacom.omastack",
+  "name": "OmaStack",
+  "version": "1.0.0",
+  "author": "Anas Mohamed <nxmohamed@gmail.com>",
+  "license": "MIT",
+  "description": "Native, zero-bloat, keyboard-first ephemeral full-stack sandbox launcher and Docker environment manager built specifically for Omarchy Linux.",
+  "kinds": ["bar-widget"],
+  "entryPoints": {
+    "barWidget": "BarWidget.qml"
+  },
+  "barWidget": {
+    "displayName": "OmaStack Sandboxes",
+    "category": "Development",
+    "allowMultiple": false,
+    "defaultSection": "right"
+  },
+  "omarchy": {
+    "clonedFrom": "omarchy.clock"
+  }
+}`,
+
+  'BarWidget.qml': `import QtQuick
+import QtQuick.Layouts
+import Quickshell
+import Quickshell.Io
+import qs.Ui
+
+BarWidget {
+    id: root
+    moduleName: "omacom.omastack"
+
+    readonly property bool opened: panelLoader.item ? panelLoader.item.opened === true : false
+    readonly property bool popoutSwitchClosing: panelLoader.item ? panelLoader.item.popoutSwitchClosing === true : false
+
+    function open() { if (panelLoader.item) panelLoader.item.open() }
+    function close() { if (panelLoader.item) panelLoader.item.close() }
+    function toggle() { if (panelLoader.item) panelLoader.item.toggle() }
+
+    function injectPanel() {
+        if (!panelLoader.item) return
+        panelLoader.item.bar = root.bar
+        panelLoader.item.anchorItem = button
+        panelLoader.item.hostWidget = root
+    }
+
+    implicitWidth: button.implicitWidth
+    implicitHeight: button.implicitHeight
+    onBarChanged: injectPanel()
+
+    property int activeCount: 0
+    property string totalRam: "0MB"
+    property string statusClass: "idle"
+    property var activeStacks: []
+
+    Timer {
+        interval: 3000
+        repeat: true
+        running: true
+        triggeredOnStart: true
+        onTriggered: {
+            if (!statusProcess.running) statusProcess.running = true
+        }
+    }
+
+    Process {
+        id: statusProcess
+        command: ["omastack", "status", "--widget"]
+        running: false
+        stdout: StdioCollector {
+            onStreamFinished: {
+                try {
+                    var data = JSON.parse(this.text.trim())
+                    root.activeCount = data.active_count || 0
+                    root.totalRam = data.total_ram || "0MB"
+                    root.statusClass = data.status_class || "idle"
+                    root.activeStacks = data.active_stacks || []
+                } catch(e) {}
+            }
+        }
+    }
+
+    Process {
+        id: menuProcess
+        command: ["omastack", "menu"]
+        running: false
+    }
+
+    Loader {
+        id: panelLoader
+        active: true
+        source: Qt.resolvedUrl("Panel.qml")
+        visible: false
+        onLoaded: {
+            root.injectPanel()
+            Qt.callLater(root.injectPanel)
+        }
+    }
+
+    BarIconButton {
+        id: button
+        anchors.fill: parent
+        bar: root.bar
+        text: root.activeCount > 0 ? ("⚡ " + root.activeCount + " (" + root.totalRam + ")") : "⚡ 0"
+        tooltipText: root.activeCount > 0
+            ? ("OmaStack: " + root.activeCount + " active sandboxes [" + root.totalRam + " RAM]\\n• Left-click: Toggle details panel\\n• Right-click: Open Walker menu")
+            : "OmaStack: No active sandboxes\\n• Left-click: Launch sandboxes\\n• Right-click: Open Walker menu"
+
+        onPressed: function(buttonCode) {
+            if (buttonCode === Qt.LeftButton) root.toggle()
+            else if (buttonCode === Qt.RightButton) menuProcess.running = true
+        }
+    }
+}`,
+
+  'Panel.qml': `import QtQuick
+import QtQuick.Layouts
+import QtQuick.Controls
+import Quickshell
+import Quickshell.Io
+import qs.Commons
+import qs.Ui
+
+Panel {
+    id: root
+    moduleName: "omacom.omastack"
+    manageIpc: false
+    property var anchorItem: null
+    property var hostWidget: null
+
+    function open() { if (root.controller) root.controller.show() }
+    function close() { if (root.controller) root.controller.hide() }
+    function toggle() {
+        if (root.controller) {
+            if (root.controller.visible) root.controller.hide()
+            else root.controller.show()
+        }
+    }
+
+    implicitWidth: 380
+    implicitHeight: 480
+
+    function executeCli(args) {
+        cliProcess.command = args
+        cliProcess.running = true
+    }
+
+    Process {
+        id: cliProcess
+        command: ["omastack"]
+        running: false
+        onExited: {
+            if (root.hostWidget && root.hostWidget.statusProcess) {
+                root.hostWidget.statusProcess.running = true
+            }
+        }
+    }
+
+    Rectangle {
+        anchors.fill: parent
+        color: "#1a1b26"
+        radius: 12
+        border.color: "#414868"
+        border.width: 1
+
+        // Layout with header, active sandboxes, quick templates, and CLI actions...
+    }
+}`,
+
   'README.md': `# OmaStack (omastack)
 Native, zero-bloat, keyboard-first ephemeral sandbox launcher for Omarchy Linux.
 
@@ -157,8 +327,8 @@ omarchy plugin add https://github.com/anax/omastack
 - Dynamic port allocation & collision scan with ss -tuln
 - Wayland clipboard sync (wl-copy) & safe .env backup
 - Local HTTPS reverse proxy (*.oma.local) via Caddy & mkcert
-- Hyprland keybinding: Super + Alt + Space
-- Native Waybar custom module (omastack status --waybar)`,
+- Omarchy Quattro Bar-Widget (BarWidget.qml & Panel.qml)
+- Hyprland keybinding: Super + Alt + Space & Super + Alt + W`,
 };
 
 export const CodebaseExplorer: React.FC<CodebaseExplorerProps> = ({

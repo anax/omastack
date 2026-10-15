@@ -39,6 +39,7 @@ chmod +x ~/.local/bin/omastack
 * **Wayland Clipboard & `.env` Sync:** Formats connection strings (`DATABASE_URL`, `REDIS_URL`, etc.) and copies them immediately to the Wayland clipboard via `wl-copy`. Safely backs up `.env` to `.env.omastack.bak` before merging.
 * **Local Trusted HTTPS (`*.oma.local`):** Automatically provisions trusted SSL certificates using `mkcert` and routes local hostnames (`https://mail.oma.local`, `https://n8n.oma.local`, `https://db.oma.local`) through an embedded Caddy reverse proxy.
 * **Omarchy Desktop Integration:**
+  * **Widget Panel Shortcut:** Press <kbd>Super</kbd> + <kbd>Alt</kbd> + <kbd>W</kbd> to open the live sandbox Widget Panel (`omastack widget` / `omastack panel`).
   * **Hyprland Shortcut:** Press <kbd>Super</kbd> + <kbd>Alt</kbd> + <kbd>Space</kbd> to open the Walker/Rofi launcher anywhere.
   * **Waybar Module:** Real-time status indicator (`{"text": "⚡ 2", "tooltip": "...", "class": "active"}`). Left-click opens the menu; right-click tears down all active stacks to free RAM instantly.
   * **Theme Synchronization:** Adapts colors dynamically to your current Omarchy palette (Tokyo Night, Catppuccin Mocha, Gruvbox, Rosé Pine, Nordic, Cyberpunk).
@@ -76,6 +77,11 @@ omastack list
 
 # Launch interactive keyboard menu (Walker / Rofi / fzf / gum)
 omastack menu
+
+# Launch live Omarchy Widget Panel
+omastack widget
+omastack widget --json
+omastack panel
 
 # Output Waybar single-line JSON module payload
 omastack status --waybar
