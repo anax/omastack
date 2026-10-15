@@ -45,8 +45,15 @@ async function startServer() {
   const app = express();
   app.use(express.json());
 
-  // Ensure directories exist
+let effectiveStateDir = STATE_DIR;
+try {
   fs.mkdirSync(STATE_DIR, { recursive: true });
+} catch (e) {
+  effectiveStateDir = path.join(process.cwd(), '.omastack', 'state');
+  try {
+    fs.mkdirSync(effectiveStateDir, { recursive: true });
+  } catch (_) {}
+}
 
   // Serve raw install script
   app.get('/install.sh', (req, res) => {
@@ -190,36 +197,41 @@ async function startServer() {
   // API: Get REAL active stacks from state directory
   app.get('/api/stacks', (req, res) => {
     const stacks: any[] = [];
-    if (fs.existsSync(STATE_DIR)) {
-      const files = fs.readdirSync(STATE_DIR);
-      for (const file of files) {
-        if (file.endsWith('.json')) {
-          try {
-            const content = fs.readFileSync(path.join(STATE_DIR, file), 'utf-8');
-            const data = JSON.parse(content);
-            const templateId = file.replace('.json', '');
+    try {
+      const targetDir = fs.existsSync(STATE_DIR) ? STATE_DIR : effectiveStateDir;
+      if (fs.existsSync(targetDir)) {
+        const files = fs.readdirSync(targetDir);
+        for (const file of files) {
+          if (file.endsWith('.json')) {
+            try {
+              const content = fs.readFileSync(path.join(targetDir, file), 'utf-8');
+              const data = JSON.parse(content);
+              const templateId = file.replace('.json', '');
 
-            // Check if compose exists
-            const composeFile = path.join(STATE_DIR, `${templateId}-compose.yml`);
-            const composeContent = fs.existsSync(composeFile)
-              ? fs.readFileSync(composeFile, 'utf-8')
-              : '';
+              // Check if compose exists
+              const composeFile = path.join(targetDir, `${templateId}-compose.yml`);
+              const composeContent = fs.existsSync(composeFile)
+                ? fs.readFileSync(composeFile, 'utf-8')
+                : '';
 
-            stacks.push({
-              id: templateId,
-              templateId,
-              name: data.name || templateId,
-              status: data.status || 'running',
-              startedAt: data.started_at || new Date().toISOString(),
-              ramUsageMB: data.ram_mb || 180,
-              ports: data.ports || {},
-              composeContent,
-            });
-          } catch (e) {
-            // Ignore corrupted json
+              stacks.push({
+                id: templateId,
+                templateId,
+                name: data.name || templateId,
+                status: data.status || 'running',
+                startedAt: data.started_at || new Date().toISOString(),
+                ramUsageMB: data.ram_mb || 180,
+                ports: data.ports || {},
+                composeContent,
+              });
+            } catch (e) {
+              // Ignore corrupted json
+            }
           }
         }
       }
+    } catch (e) {
+      // Ignore directory access errors
     }
     res.json(stacks);
   });
@@ -383,11 +395,14 @@ async function startServer() {
 
   // API: Get real Caddyfile content
   app.get('/api/caddyfile', (req, res) => {
-    if (fs.existsSync(CADDYFILE_PATH)) {
-      res.json({ content: fs.readFileSync(CADDYFILE_PATH, 'utf-8') });
-    } else {
-      res.json({ content: '# Caddyfile has not been generated yet. Launch a stack to initialize.' });
+    try {
+      if (fs.existsSync(CADDYFILE_PATH)) {
+        return res.json({ content: fs.readFileSync(CADDYFILE_PATH, 'utf-8') });
+      }
+    } catch (e) {
+      // Permission or read error
     }
+    res.json({ content: '# Caddyfile has not been generated yet. Launch a stack to initialize.' });
   });
 
   // API: Real .env inspection & injection

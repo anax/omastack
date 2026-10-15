@@ -32,6 +32,7 @@ import {
   Quote,
 } from 'lucide-react';
 import { OmaStackLogo } from './OmaStackLogo';
+import { HeroBackgroundAnimation } from './HeroBackgroundAnimation';
 import { OmarchyTheme, OmarchyThemeKey, StackTemplate, ActiveStack } from '../types';
 import { OMARCHY_THEMES } from '../themes';
 
@@ -166,9 +167,12 @@ chmod +x ~/.local/bin/omastack`;
   return (
     <div className="space-y-24 pb-20 font-sans text-xs">
       {/* 1. TOP EDITORIAL TICKER / ANNOUNCEMENT */}
-      <section className="relative pt-2">
+      <section className="relative pt-2 overflow-hidden rounded-3xl pb-8">
+        {/* Animated Hero Background: Morphing Aurora, Cyber Perspective Grid & Ephemeral Mesh Particles */}
+        <HeroBackgroundAnimation currentTheme={currentTheme} />
+
         <div
-          className="max-w-4xl mx-auto rounded-full px-4 py-2 border flex items-center justify-between gap-3 text-[11px] backdrop-blur-md shadow-sm transition-all"
+          className="relative z-10 max-w-4xl mx-auto rounded-full px-4 py-2 border flex items-center justify-between gap-3 text-[11px] backdrop-blur-md shadow-sm transition-all"
           style={{
             backgroundColor: `${currentTheme.cardBg}cc`,
             borderColor: currentTheme.border,
@@ -202,7 +206,7 @@ chmod +x ~/.local/bin/omastack`;
         </div>
 
         {/* HERO SECTION */}
-        <div className="relative flex flex-col items-center text-center space-y-8 max-w-4xl mx-auto pt-10">
+        <div className="relative z-10 flex flex-col items-center text-center space-y-8 max-w-4xl mx-auto pt-10">
           {/* Ambient Glow */}
           <div
             className="absolute -top-12 left-1/2 -translate-x-1/2 w-4/5 max-w-4xl h-80 rounded-full blur-[110px] opacity-20 pointer-events-none"

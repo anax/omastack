@@ -76,13 +76,24 @@ export default function App() {
   // Fetch real data from server
   const fetchLiveState = async () => {
     try {
+      const fetchJson = async (url: string) => {
+        try {
+          const res = await fetch(url);
+          if (!res.ok) return null;
+          const text = await res.text();
+          return text ? JSON.parse(text) : null;
+        } catch {
+          return null;
+        }
+      };
+
       const [tplRes, stksRes, waybarRes, widgetRes, portsRes, statsRes] = await Promise.all([
-        fetch('/api/templates').then((r) => r.json()),
-        fetch('/api/stacks').then((r) => r.json()),
-        fetch('/api/waybar').then((r) => r.json()),
-        fetch('/api/widget').then((r) => r.json()),
-        fetch('/api/system/ports').then((r) => r.json()),
-        fetch('/api/system/stats').then((r) => r.json()),
+        fetchJson('/api/templates'),
+        fetchJson('/api/stacks'),
+        fetchJson('/api/waybar'),
+        fetchJson('/api/widget'),
+        fetchJson('/api/system/ports'),
+        fetchJson('/api/system/stats'),
       ]);
 
       if (Array.isArray(tplRes)) setTemplates(tplRes);
