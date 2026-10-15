@@ -2,19 +2,33 @@ import express from 'express';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
-import { exec } from 'child_process';
+import { exec, execFile } from 'child_process';
 import JSZip from 'jszip';
 import { createServer as createViteServer } from 'vite';
 
 const isProd = process.env.NODE_ENV === 'production';
 const PORT = Number(process.env.PORT) || 3000;
+const HOST = process.env.HOST || '127.0.0.1';
 const OMASTACK_BIN = path.join(process.cwd(), 'omastack', 'bin', 'omastack');
 const HOME_DIR = process.env.HOME || '/root';
 const STATE_DIR = path.join(HOME_DIR, '.local', 'share', 'omastack', 'state');
 const CADDYFILE_PATH = path.join(HOME_DIR, '.local', 'share', 'omastack', 'Caddyfile');
 const TEMPLATES_DIR = path.join(process.cwd(), 'omastack', 'templates');
 
-// Helper to run bash commands
+// Safe argv-based execution helper
+function runCli(args: string[]): Promise<{ stdout: string; stderr: string; code: number }> {
+  return new Promise((resolve) => {
+    execFile('bash', [OMASTACK_BIN, ...args], { cwd: process.cwd(), env: process.env }, (error, stdout, stderr) => {
+      resolve({
+        stdout: stdout || '',
+        stderr: stderr || '',
+        code: error ? (error.code || 1) : 0,
+      });
+    });
+  });
+}
+
+// Fallback helper for internal fixed scripts
 function runShell(cmd: string): Promise<{ stdout: string; stderr: string; code: number }> {
   return new Promise((resolve) => {
     exec(cmd, { cwd: process.cwd(), env: process.env }, (error, stdout, stderr) => {
@@ -194,11 +208,11 @@ async function startServer() {
   // API: Launch stack with real CLI execution
   app.post('/api/stacks/up', async (req, res) => {
     const { templateId } = req.body;
-    if (!templateId) {
-      return res.status(400).json({ error: 'templateId required' });
+    if (!templateId || typeof templateId !== 'string' || !/^[a-zA-Z0-9_-]+$/.test(templateId)) {
+      return res.status(400).json({ error: 'Valid alphanumeric templateId required' });
     }
 
-    const { stdout, stderr, code } = await runShell(`bash "${OMASTACK_BIN}" up "${templateId}"`);
+    const { stdout, stderr, code } = await runCli(['up', templateId]);
     res.json({
       success: code === 0,
       stdout,
@@ -210,8 +224,12 @@ async function startServer() {
   // API: Teardown stack with real CLI execution
   app.post('/api/stacks/down', async (req, res) => {
     const { templateId } = req.body;
-    const target = templateId ? `"${templateId}"` : '--all';
-    const { stdout, stderr, code } = await runShell(`bash "${OMASTACK_BIN}" down ${target}`);
+    if (templateId && (typeof templateId !== 'string' || !/^[a-zA-Z0-9_-]+$/.test(templateId))) {
+      return res.status(400).json({ error: 'Invalid templateId format' });
+    }
+
+    const args = templateId ? ['down', templateId] : ['down', '--all'];
+    const { stdout, stderr, code } = await runCli(args);
     res.json({
       success: code === 0,
       stdout,
@@ -222,7 +240,7 @@ async function startServer() {
 
   // API: Real Waybar JSON execution
   app.get('/api/waybar', async (req, res) => {
-    const { stdout } = await runShell(`bash "${OMASTACK_BIN}" status --waybar`);
+    const { stdout } = await runCli(['status', '--waybar']);
     try {
       const parsed = JSON.parse(stdout.trim());
       res.json(parsed);
@@ -237,7 +255,7 @@ async function startServer() {
 
   // API: OmaStack Widget Panel JSON execution
   app.get('/api/widget', async (req, res) => {
-    const { stdout } = await runShell(`bash "${OMASTACK_BIN}" widget --json`);
+    const { stdout } = await runCli(['widget', '--json']);
     try {
       const parsed = JSON.parse(stdout.trim());
       res.json(parsed);
@@ -263,21 +281,39 @@ async function startServer() {
       return res.status(400).json({ error: 'Command string required' });
     }
 
-    // Whitelist or direct dispatch to omastack or omarchy
-    let cmdToRun = command.trim();
-    if (cmdToRun.startsWith('omastack')) {
-      cmdToRun = cmdToRun.replace(/^omastack/, `bash "${OMASTACK_BIN}"`);
-    } else if (cmdToRun.startsWith('omarchy')) {
-      const omarchyBin = path.join(process.cwd(), 'omastack', 'bin', 'omarchy');
-      cmdToRun = cmdToRun.replace(/^omarchy/, `bash "${omarchyBin}"`);
+    // Prohibit shell chaining and injection metacharacters
+    if (/[;&|`$><]/.test(command)) {
+      return res.status(400).json({
+        error: 'Shell metacharacters (;, &, |, `, $, >, <) are forbidden.',
+        code: 1,
+      });
     }
 
-    const { stdout, stderr, code } = await runShell(cmdToRun);
-    res.json({
-      stdout,
-      stderr,
-      code,
-    });
+    const tokens = command.trim().split(/\s+/).filter(Boolean);
+    if (!tokens.length) {
+      return res.status(400).json({ error: 'Empty command' });
+    }
+
+    const mainBin = tokens[0];
+    const subArgs = tokens.slice(1);
+
+    if (mainBin === 'omastack') {
+      const { stdout, stderr, code } = await runCli(subArgs);
+      return res.json({ stdout, stderr, code });
+    } else if (mainBin === 'omarchy') {
+      const omarchyBin = path.join(process.cwd(), 'omastack', 'bin', 'omarchy');
+      const { stdout, stderr, code } = await new Promise<{ stdout: string; stderr: string; code: number }>((resolve) => {
+        execFile('bash', [omarchyBin, ...subArgs], { cwd: process.cwd(), env: process.env }, (err, stdout, stderr) => {
+          resolve({ stdout: stdout || '', stderr: stderr || '', code: err ? (err.code || 1) : 0 });
+        });
+      });
+      return res.json({ stdout, stderr, code });
+    } else {
+      return res.status(400).json({
+        error: 'Only omastack and omarchy commands are allowed in CLI simulator.',
+        code: 1,
+      });
+    }
   });
 
   // API: Real system open port scan
@@ -415,8 +451,8 @@ async function startServer() {
     });
   }
 
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`⚡ OmaStack Live Server listening on http://localhost:${PORT}`);
+  app.listen(PORT, HOST, () => {
+    console.log(`⚡ OmaStack Live Server listening on http://${HOST}:${PORT}`);
   });
 }
 
