@@ -14,7 +14,7 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgrespassword
     ports:
-      - "${PORT_POSTGRES:-5432}:5432"
+      - "127.0.0.1:${PORT_POSTGRES:-5432}:5432"
     networks:
       - omastack-net
     healthcheck:
@@ -32,7 +32,7 @@ services:
       PGRST_DB_SCHEMA: "public"
       PGRST_DB_ANON_ROLE: "postgres"
     ports:
-      - "${PORT_POSTGREST:-3000}:3000"
+      - "127.0.0.1:${PORT_POSTGREST:-3000}:3000"
     depends_on:
       postgres:
         condition: service_healthy
@@ -47,6 +47,6 @@ services:
       PGADMIN_DEFAULT_EMAIL: "admin@omastack.local"
       PGADMIN_DEFAULT_PASSWORD: "admin"
     ports:
-      - "${PORT_PGADMIN:-5051}:80"
+      - "127.0.0.1:${PORT_PGADMIN:-5051}:80"
     networks:
       - omastack-net

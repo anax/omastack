@@ -15,7 +15,7 @@ services:
       MYSQL_PASSWORD: '${DB_PASSWORD:-secret}'
       MYSQL_ROOT_PASSWORD: '${DB_PASSWORD:-secret}'
     ports:
-      - "${PORT_MYSQL:-3306}:3306"
+      - "127.0.0.1:${PORT_MYSQL:-3306}:3306"
     networks:
       - omastack-net
     healthcheck:
@@ -29,7 +29,7 @@ services:
     container_name: omastack-laravel-redis
     restart: unless-stopped
     ports:
-      - "${PORT_REDIS:-6379}:6379"
+      - "127.0.0.1:${PORT_REDIS:-6379}:6379"
     networks:
       - omastack-net
     healthcheck:
@@ -43,8 +43,8 @@ services:
     container_name: omastack-laravel-mailpit
     restart: unless-stopped
     ports:
-      - "${PORT_MAILPIT_HTTP:-8025}:8025"
-      - "${PORT_MAILPIT_SMTP:-1025}:1025"
+      - "127.0.0.1:${PORT_MAILPIT_HTTP:-8025}:8025"
+      - "127.0.0.1:${PORT_MAILPIT_SMTP:-1025}:1025"
     networks:
       - omastack-net
 
@@ -56,6 +56,6 @@ services:
       MEILI_MASTER_KEY: '${MEILISEARCH_KEY:-masterKey123}'
       MEILI_ENV: 'development'
     ports:
-      - "${PORT_MEILI:-7700}:7700"
+      - "127.0.0.1:${PORT_MEILI:-7700}:7700"
     networks:
       - omastack-net
