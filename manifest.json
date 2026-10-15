@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "id": "omacom.omastack",
+  "id": "io.github.anax.omastack",
   "name": "OmaStack",
   "version": "1.0.0",
   "author": "Anas Mohamed <nxmohamed@gmail.com>",
@@ -15,8 +15,5 @@
     "category": "Development",
     "allowMultiple": false,
     "defaultSection": "right"
-  },
-  "omarchy": {
-    "clonedFrom": "omarchy.clock"
   }
 }

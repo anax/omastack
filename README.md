@@ -34,6 +34,23 @@ ln -sf ~/.local/share/omastack/bin/omastack ~/.local/bin/omastack
 chmod +x ~/.local/bin/omastack
 ```
 
+### 🗑️ Safe Removal & Uninstallation
+
+To cleanly remove OmaStack and tear down all active sandboxes:
+
+```bash
+# Option 1: Via Omarchy Plugin Manager
+omarchy plugin remove io.github.anax.omastack
+
+# Option 2: 1-Line uninstaller
+curl -fsSL https://raw.githubusercontent.com/anax/omastack/main/install.sh | bash -s -- --uninstall
+
+# Option 3: Manual removal
+omastack down --all
+rm -f ~/.local/bin/omastack
+rm -rf ~/.local/share/omastack ~/.config/omarchy/plugins/io.github.anax.omastack ~/.config/omarchy/widgets/omastack.json
+```
+
 ---
 
 ## 🚀 Key Features

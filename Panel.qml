@@ -8,7 +8,7 @@ import qs.Ui
 
 Panel {
     id: root
-    moduleName: "omacom.omastack"
+    moduleName: "io.github.anax.omastack"
     manageIpc: false
 
     property var anchorItem: null

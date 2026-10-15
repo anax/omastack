@@ -234,7 +234,7 @@ run_test_suite() {
     fi
 
     if [ -n "${bar_widget_path}" ] && [ -f "${bar_widget_path}" ]; then
-        if grep -q "BarWidget" "${bar_widget_path}" && grep -q "omacom.omastack" "${bar_widget_path}"; then
+        if grep -q "BarWidget" "${bar_widget_path}" && grep -E -q "omastack" "${bar_widget_path}"; then
             pass_test "Verified BarWidget.qml with Omarchy Quattro BarWidget contract"
         else
             fail_test "BarWidget.qml failed validation in ${bar_widget_path}"
@@ -251,7 +251,7 @@ run_test_suite() {
     fi
 
     if [ -n "${panel_qml_path}" ] && [ -f "${panel_qml_path}" ]; then
-        if grep -q "Panel" "${panel_qml_path}" && grep -q "omacom.omastack" "${panel_qml_path}"; then
+        if grep -q "Panel" "${panel_qml_path}" && grep -E -q "omastack" "${panel_qml_path}"; then
             pass_test "Verified Panel.qml with Omarchy Quattro Panel contract"
         else
             fail_test "Panel.qml failed validation in ${panel_qml_path}"
@@ -270,6 +270,23 @@ main() {
 
     local source_dir
     source_dir=$(resolve_source_dir)
+
+    # Check if uninstall mode requested
+    if [ $# -gt 0 ] && { [ "$1" = "uninstall" ] || [ "$1" = "--uninstall" ] || [ "$1" = "-u" ]; }; then
+        echo -e "${YELLOW}${BOLD}➜ Uninstalling OmaStack...${RESET}"
+        if command -v omastack >/dev/null 2>&1; then
+            echo -e "${CYAN}➜ Stopping any active sandboxes...${RESET}"
+            omastack down --all 2>/dev/null || true
+        fi
+        echo -e "${CYAN}➜ Removing OmaStack files and Quickshell widgets...${RESET}"
+        rm -f "${HOME}/.local/bin/omastack"
+        rm -rf "${HOME}/.local/share/omastack"
+        rm -rf "${HOME}/.config/omarchy/plugins/io.github.anax.omastack"
+        rm -rf "${HOME}/.config/omarchy/plugins/omacom.omastack"
+        rm -f "${HOME}/.config/omarchy/widgets/omastack.json"
+        echo -e "\n${GREEN}${BOLD}✔ OmaStack has been successfully uninstalled.${RESET}\n"
+        exit 0
+    fi
 
     # Check if test mode requested
     if [ $# -gt 0 ] && { [ "$1" = "test" ] || [ "$1" = "--test" ] || [ "$1" = "-t" ]; }; then

@@ -6,7 +6,7 @@ import qs.Ui
 
 BarWidget {
     id: root
-    moduleName: "omacom.omastack"
+    moduleName: "io.github.anax.omastack"
 
     // Panel lifecycle tracking expected by Omarchy Quattro shell
     readonly property bool opened: panelLoader.item ? panelLoader.item.opened === true : false
