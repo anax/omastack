@@ -262,6 +262,50 @@ async function startServer() {
     }
   });
 
+  // Serve installable packages (.pkg.tar.zst, .run, .tar.gz)
+  app.get('/api/download/pkg', (req, res) => {
+    const pkgPath = path.join(process.cwd(), 'dist', 'omastack-1.0.0-1-any.pkg.tar.zst');
+    if (fs.existsSync(pkgPath)) {
+      res.setHeader('Content-Type', 'application/zstd');
+      res.setHeader('Content-Disposition', 'attachment; filename="omastack-1.0.0-1-any.pkg.tar.zst"');
+      res.sendFile(pkgPath);
+    } else {
+      res.status(404).json({ error: 'Package file not built yet. Run ./package.sh to build it.' });
+    }
+  });
+
+  app.get('/api/download/run', (req, res) => {
+    const runPath = path.join(process.cwd(), 'dist', 'omastack-installer.run');
+    if (fs.existsSync(runPath)) {
+      res.setHeader('Content-Type', 'application/x-executable');
+      res.setHeader('Content-Disposition', 'attachment; filename="omastack-installer.run"');
+      res.sendFile(runPath);
+    } else {
+      res.status(404).json({ error: 'Installer file not found' });
+    }
+  });
+
+  app.get('/api/download/tarball', (req, res) => {
+    const tarPath = path.join(process.cwd(), 'dist', 'omastack-1.0.0-linux.tar.gz');
+    if (fs.existsSync(tarPath)) {
+      res.setHeader('Content-Type', 'application/gzip');
+      res.setHeader('Content-Disposition', 'attachment; filename="omastack-1.0.0-linux.tar.gz"');
+      res.sendFile(tarPath);
+    } else {
+      res.status(404).json({ error: 'Tarball file not found' });
+    }
+  });
+
+  app.get('/dist/:filename', (req, res) => {
+    const safeName = path.basename(req.params.filename);
+    const filePath = path.join(process.cwd(), 'dist', safeName);
+    if (fs.existsSync(filePath)) {
+      res.download(filePath);
+    } else {
+      res.status(404).send('File not found in dist/');
+    }
+  });
+
   // API: Get real templates dynamically parsed from omastack/templates
   app.get('/api/templates', (req, res) => {
     if (!fs.existsSync(TEMPLATES_DIR)) {

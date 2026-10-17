@@ -227,16 +227,17 @@ chmod +x ~/.local/bin/omastack`;
             className="flex flex-wrap items-center justify-center gap-3 pt-2 font-mono text-xs sm:text-sm"
           >
             <a
-              href="/install.sh?download=1"
-              download="install.sh"
+              href="/api/download/pkg"
+              download="omastack-1.0.0-1-any.pkg.tar.zst"
               className="px-6 py-3 rounded-xl font-bold flex items-center gap-2 shadow-lg transition-all hover:scale-105 hover:brightness-110 cursor-pointer"
               style={{
                 backgroundColor: currentTheme.primary,
                 color: currentTheme.bg,
               }}
+              title="Download Native Arch/Omarchy Package (.pkg.tar.zst)"
             >
               <Download className="w-4 h-4 fill-current" />
-              <span>Download install.sh</span>
+              <span>Download Package (.pkg.tar.zst)</span>
             </a>
 
             <button
@@ -281,21 +282,32 @@ chmod +x ~/.local/bin/omastack`;
               </button>
             </div>
 
-            <div className="flex items-center gap-3 text-[11px] font-mono opacity-70">
+            <div className="flex items-center gap-3 text-[11px] font-mono opacity-80 flex-wrap justify-center">
               <a
-                href="/api/export-zip"
-                download="omastack-omarchy.zip"
+                href="/api/download/run"
+                download="omastack-installer.run"
                 className="hover:opacity-100 hover:text-white transition-opacity underline decoration-dotted underline-offset-2 flex items-center gap-1"
+                title="Download self-extracting offline installer (.run)"
               >
-                <Archive className="w-3 h-3" />
-                <span>Offline .zip bundle</span>
+                <Terminal className="w-3 h-3 text-emerald-400" />
+                <span>omastack-installer.run</span>
+              </a>
+              <span>•</span>
+              <a
+                href="/api/download/tarball"
+                download="omastack-1.0.0-linux.tar.gz"
+                className="hover:opacity-100 hover:text-white transition-opacity underline decoration-dotted underline-offset-2 flex items-center gap-1"
+                title="Download offline distribution tarball (.tar.gz)"
+              >
+                <Archive className="w-3 h-3 text-cyan-400" />
+                <span>omastack-1.0.0-linux.tar.gz</span>
               </a>
               <span>•</span>
               <button
                 onClick={onOpenTerminal}
                 className="hover:opacity-100 hover:text-white transition-opacity underline decoration-dotted underline-offset-2 flex items-center gap-1 cursor-pointer"
               >
-                <Terminal className="w-3 h-3 text-emerald-400" />
+                <Monitor className="w-3 h-3 text-purple-400" />
                 <span>CLI Simulator</span>
               </button>
             </div>
@@ -912,31 +924,31 @@ chmod +x ~/.local/bin/omastack`;
                 Download standalone installable files for manual execution or airgapped / offline environments:
               </p>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* 1. install.sh */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* 1. Native Arch Linux Package (.pkg.tar.zst) */}
                 <div
                   className="p-4 rounded-2xl border bg-black/40 space-y-3 flex flex-col justify-between"
-                  style={{ borderColor: currentTheme.border }}
+                  style={{ borderColor: currentTheme.primary }}
                 >
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
-                      <span className="font-mono font-bold text-sm text-emerald-400 flex items-center gap-1.5">
-                        <Download className="w-4 h-4" />
-                        install.sh
+                      <span className="font-mono font-bold text-sm text-cyan-400 flex items-center gap-1.5 truncate">
+                        <Download className="w-4 h-4 shrink-0" />
+                        <span>omastack.pkg.tar.zst</span>
                       </span>
-                      <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-mono">
-                        15.6 KB
+                      <span className="text-[10px] px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 font-mono shrink-0">
+                        pacman Native (1.3M)
                       </span>
                     </div>
                     <p className="text-xs text-white/70">
-                      Universal standalone installer script. Automatically validates bash syntax, tests socket discovery, and symlinks OmaStack binaries.
+                      Official native Arch Linux package for Omarchy Linux. Installs binaries to /usr/bin, libraries to /usr/share/omastack, and registers Quattro plugin.
                     </p>
                   </div>
 
                   <div className="space-y-2 pt-2">
                     <a
-                      href="/install.sh?download=1"
-                      download="install.sh"
+                      href="/api/download/pkg"
+                      download="omastack-1.0.0-1-any.pkg.tar.zst"
                       className="w-full py-2.5 rounded-xl font-bold flex items-center justify-center gap-2 text-xs font-mono transition-all hover:scale-[1.02] shadow cursor-pointer"
                       style={{
                         backgroundColor: currentTheme.primary,
@@ -944,45 +956,45 @@ chmod +x ~/.local/bin/omastack`;
                       }}
                     >
                       <Download className="w-3.5 h-3.5" />
-                      <span>Download install.sh</span>
+                      <span>Download .pkg.tar.zst</span>
                     </a>
                     <div className="flex items-center justify-between p-2 rounded-lg bg-black/60 border border-white/10 text-[10px] font-mono">
-                      <code className="text-white/85 truncate">chmod +x install.sh &amp;&amp; ./install.sh</code>
+                      <code className="text-white/85 truncate">sudo pacman -U omastack-1.0.0-1-any.pkg.tar.zst</code>
                       <button
-                        onClick={() => copyText('chmod +x install.sh && ./install.sh', 'sh-run')}
+                        onClick={() => copyText('sudo pacman -U omastack-1.0.0-1-any.pkg.tar.zst', 'pkg-run')}
                         className="p-1 hover:text-white shrink-0 ml-1 text-white/60 hover:text-white cursor-pointer"
                         title="Copy command"
                       >
-                        {copiedInstallCmd === 'sh-run' ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                        {copiedInstallCmd === 'pkg-run' ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
                       </button>
                     </div>
                   </div>
                 </div>
 
-                {/* 2. omastack-omarchy.zip */}
+                {/* 2. Self-Extracting Installer (.run) */}
                 <div
                   className="p-4 rounded-2xl border bg-black/40 space-y-3 flex flex-col justify-between"
                   style={{ borderColor: currentTheme.border }}
                 >
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
-                      <span className="font-mono font-bold text-sm text-cyan-400 flex items-center gap-1.5">
-                        <Archive className="w-4 h-4" />
-                        omastack-omarchy.zip
+                      <span className="font-mono font-bold text-sm text-emerald-400 flex items-center gap-1.5 truncate">
+                        <Terminal className="w-4 h-4 shrink-0" />
+                        <span>omastack-installer.run</span>
                       </span>
-                      <span className="text-[10px] px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 font-mono">
-                        Complete Bundle
+                      <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-mono shrink-0">
+                        Executable (1.3M)
                       </span>
                     </div>
                     <p className="text-xs text-white/70">
-                      Full offline distribution containing all 14 curated Docker Compose stacks, Caddy configurations, and Quickshell Bar-Widget files.
+                      Single standalone self-extracting offline installer executable. Bundles all 15 stack templates, CLI, and Quickshell widgets with zero network dependency.
                     </p>
                   </div>
 
                   <div className="space-y-2 pt-2">
                     <a
-                      href="/api/export-zip"
-                      download="omastack-omarchy.zip"
+                      href="/api/download/run"
+                      download="omastack-installer.run"
                       className="w-full py-2.5 rounded-xl font-bold flex items-center justify-center gap-2 text-xs font-mono transition-all hover:scale-[1.02] shadow cursor-pointer border"
                       style={{
                         backgroundColor: `${currentTheme.cardBg}cc`,
@@ -990,17 +1002,64 @@ chmod +x ~/.local/bin/omastack`;
                         color: currentTheme.fg,
                       }}
                     >
-                      <Archive className="w-3.5 h-3.5 text-cyan-400" />
-                      <span>Download Offline .zip</span>
+                      <Terminal className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>Download .run Installer</span>
                     </a>
                     <div className="flex items-center justify-between p-2 rounded-lg bg-black/60 border border-white/10 text-[10px] font-mono">
-                      <code className="text-white/85 truncate">unzip omastack-omarchy.zip</code>
+                      <code className="text-white/85 truncate">chmod +x omastack-installer.run &amp;&amp; ./omastack-installer.run</code>
                       <button
-                        onClick={() => copyText('unzip omastack-omarchy.zip -d ~/.local/share/omastack && ~/.local/share/omastack/install.sh', 'zip-run')}
+                        onClick={() => copyText('chmod +x omastack-installer.run && ./omastack-installer.run', 'run-cmd')}
                         className="p-1 hover:text-white shrink-0 ml-1 text-white/60 hover:text-white cursor-pointer"
                         title="Copy command"
                       >
-                        {copiedInstallCmd === 'zip-run' ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                        {copiedInstallCmd === 'run-cmd' ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3. Standalone Tarball (.tar.gz) */}
+                <div
+                  className="p-4 rounded-2xl border bg-black/40 space-y-3 flex flex-col justify-between"
+                  style={{ borderColor: currentTheme.border }}
+                >
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="font-mono font-bold text-sm text-amber-400 flex items-center gap-1.5 truncate">
+                        <Archive className="w-4 h-4 shrink-0" />
+                        <span>omastack-1.0.0-linux.tar.gz</span>
+                      </span>
+                      <span className="text-[10px] px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-mono shrink-0">
+                        Tarball (1.3M)
+                      </span>
+                    </div>
+                    <p className="text-xs text-white/70">
+                      Standard offline release tarball containing the complete directory tree with universal offline installer and all 15 stack templates.
+                    </p>
+                  </div>
+
+                  <div className="space-y-2 pt-2">
+                    <a
+                      href="/api/download/tarball"
+                      download="omastack-1.0.0-linux.tar.gz"
+                      className="w-full py-2.5 rounded-xl font-bold flex items-center justify-center gap-2 text-xs font-mono transition-all hover:scale-[1.02] shadow cursor-pointer border"
+                      style={{
+                        backgroundColor: `${currentTheme.cardBg}cc`,
+                        borderColor: currentTheme.border,
+                        color: currentTheme.fg,
+                      }}
+                    >
+                      <Archive className="w-3.5 h-3.5 text-amber-400" />
+                      <span>Download .tar.gz</span>
+                    </a>
+                    <div className="flex items-center justify-between p-2 rounded-lg bg-black/60 border border-white/10 text-[10px] font-mono">
+                      <code className="text-white/85 truncate">tar -xzf omastack-1.0.0-linux.tar.gz &amp;&amp; ./omastack-1.0.0/install.sh</code>
+                      <button
+                        onClick={() => copyText('tar -xzf omastack-1.0.0-linux.tar.gz && ./omastack-1.0.0/install.sh', 'tar-run')}
+                        className="p-1 hover:text-white shrink-0 ml-1 text-white/60 hover:text-white cursor-pointer"
+                        title="Copy command"
+                      >
+                        {copiedInstallCmd === 'tar-run' ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
                       </button>
                     </div>
                   </div>
