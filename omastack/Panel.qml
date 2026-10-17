@@ -11,6 +11,9 @@ Panel {
     property var anchorItem: null
     property var hostWidget: null
 
+    property bool opened: false
+    property bool popoutSwitchClosing: false
+
     readonly property string pluginDir: {
         var u = Qt.resolvedUrl("Panel.qml").toString()
         if (u.indexOf("file://") === 0) u = u.substring(7)
@@ -53,18 +56,33 @@ Panel {
     }
 
     function open() {
-        root.controller.show()
+        root.opened = true
+        if (root.controller && typeof root.controller.show === "function") {
+            try { root.controller.show() } catch(e) {}
+        }
     }
 
     function close() {
-        root.controller.hide()
+        root.opened = false
+        if (root.controller && typeof root.controller.hide === "function") {
+            try { root.controller.hide() } catch(e) {}
+        }
     }
 
     function toggle() {
-        if (root.opened)
+        if (root.opened) {
             root.close()
-        else
+        } else {
             root.open()
+        }
+    }
+
+    function closeForPopoutSwitch() {
+        root.popoutSwitchClosing = true
+        root.close()
+        Qt.callLater(function() {
+            root.popoutSwitchClosing = false
+        })
     }
 
     function switchPanel(direction) {
@@ -210,6 +228,10 @@ Panel {
         focusTarget: keyCatcher
         contentWidth: panel.fittedContentWidth(Style.space(380))
         contentHeight: panel.fittedContentHeight(content.implicitHeight)
+
+        onOpenChanged: {
+            root.opened = panel.open
+        }
 
         PanelKeyCatcher {
             id: keyCatcher

@@ -165,6 +165,11 @@ BarWidget {
             root.injectPanel()
             Qt.callLater(root.injectPanel)
         }
+        onStatusChanged: {
+            if (status === Loader.Ready) {
+                root.injectPanel()
+            }
+        }
     }
 
     // Official OmaStack 3-Tier Isometric Logo Component for BarIconButton
@@ -261,23 +266,11 @@ BarWidget {
 
         onPressed: function(buttonCode) {
             if (buttonCode === Qt.LeftButton || buttonCode === Qt.RightButton) {
+                root.injectPanel()
                 root.toggle()
             } else if (buttonCode === Qt.MiddleButton) {
-                try {
-                    if (typeof Util !== "undefined" && typeof Util.execDetached === "function") {
-                        Util.execDetached("omastack menu")
-                    } else if (root.bar && typeof root.bar.run === "function") {
-                        root.bar.run("omastack menu")
-                    } else if (typeof Quickshell !== "undefined" && typeof Quickshell.execDetached === "function") {
-                        Quickshell.execDetached(menuProcess.command)
-                    } else {
-                        menuProcess.running = false
-                        menuProcess.running = true
-                    }
-                } catch(e) {
-                    menuProcess.running = false
-                    menuProcess.running = true
-                }
+                menuProcess.running = false
+                menuProcess.running = true
             }
         }
     }
