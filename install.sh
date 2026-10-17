@@ -419,10 +419,19 @@ EOF
 
     # Ensure ~/.local/bin is in PATH if doing standard user install
     if [ -z "${destdir}" ] && [ "${prefix}" = "${HOME}/.local" ]; then
+        # Try to link to /usr/local/bin if writable
+        if [ -w "/usr/local/bin" ] && [ ! -f "/usr/local/bin/omastack" ]; then
+            ln -sf "${bin_dir}/omastack" "/usr/local/bin/omastack" 2>/dev/null || true
+            if [ -f "${bin_dir}/omarchy" ]; then
+                ln -sf "${bin_dir}/omarchy" "/usr/local/bin/omarchy" 2>/dev/null || true
+            fi
+        fi
+
         if [[ ":$PATH:" != *":$bin_dir:"* ]]; then
             echo -e "${CYAN}➜ Adding ~/.local/bin to PATH in ~/.bashrc and ~/.zshrc...${RESET}"
             echo 'export PATH="${HOME}/.local/bin:${PATH}"' >> "${HOME}/.bashrc" 2>/dev/null || true
             echo 'export PATH="${HOME}/.local/bin:${PATH}"' >> "${HOME}/.zshrc" 2>/dev/null || true
+            echo -e "${YELLOW}➜ NOTE: Run ${BOLD}source ~/.bashrc${RESET}${YELLOW} (or open a new terminal) to use 'omastack' in your current shell.${RESET}"
         fi
 
         # Integrate with Omarchy Hyprland if present

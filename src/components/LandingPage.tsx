@@ -254,6 +254,14 @@ chmod +x ~/.local/bin/omastack`;
             </button>
           </div>
 
+          {/* Quick install guidance badge */}
+          <div data-hero-quiet="true" className="flex items-center gap-1.5 text-[11px] font-mono text-white/65">
+            <span>After download run:</span>
+            <code className="text-emerald-300 font-bold bg-black/50 px-2 py-0.5 rounded border border-white/15">
+              sudo pacman -U omastack-*.pkg.tar.zst
+            </code>
+          </div>
+
           {/* 1-Line Quick Install Command Bar */}
           <div data-hero-quiet="true" className="pt-1 flex flex-col items-center gap-2 w-full max-w-lg">
             <div
