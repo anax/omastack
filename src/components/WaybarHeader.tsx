@@ -138,7 +138,7 @@ export const WaybarHeader: React.FC<WaybarHeaderProps> = ({
 
       {/* 3. RIGHT: Unified Sandbox Status, RAM Gauge, Theme Switcher & Clock */}
       <div className="flex items-center gap-2 sm:gap-2.5 shrink-0 relative z-30">
-        {/* Unified Sandbox Status & Widget Panel Toggle */}
+        {/* Unified Sandbox Status & Widget Panel Toggle (Official OmaStack Logo) */}
         <div
           className="group relative flex items-center gap-2 px-2.5 py-1 rounded-full border shadow-sm transition-all cursor-pointer hover:border-white/30 shrink-0 z-20"
           style={{
@@ -150,24 +150,15 @@ export const WaybarHeader: React.FC<WaybarHeaderProps> = ({
             e.preventDefault();
             onOpenWidgetPanel();
           }}
-          title="Click or right-click to display OmaStack Panel (Super + Alt + W)"
+          title="Click to open OmaStack Panel Menu (Super + Alt + W)"
         >
-          <span className="relative flex h-2 w-2">
-            <span
-              className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
-                activeStacks.length > 0 ? 'bg-emerald-400' : 'bg-gray-400'
-              }`}
-            />
-            <span
-              className={`relative inline-flex rounded-full h-2 w-2 ${
-                activeStacks.length > 0 ? 'bg-emerald-500' : 'bg-gray-500'
-              }`}
-            />
-          </span>
+          <OmaStackLogo size={16} />
 
-          <span className="font-bold text-xs" style={{ color: currentTheme.accent }}>
-            {activeStacks.length}
-          </span>
+          {activeStacks.length > 0 && (
+            <span className="font-bold text-xs" style={{ color: currentTheme.accent }}>
+              {activeStacks.length}
+            </span>
+          )}
 
           {activeStacks.length > 0 && totalRamUsed > 0 && (
             <span className="hidden sm:inline opacity-70 text-[10px]">
@@ -176,7 +167,6 @@ export const WaybarHeader: React.FC<WaybarHeaderProps> = ({
           )}
 
           <div className="flex items-center gap-1 border-l border-white/10 pl-2">
-            <Layers className="w-3 h-3 opacity-70" />
             <span className="hidden sm:inline text-[11px] font-medium opacity-80">Panel</span>
             <kbd className="hidden md:inline text-[9px] px-1 py-0.2 rounded bg-white/10 opacity-60">W</kbd>
           </div>

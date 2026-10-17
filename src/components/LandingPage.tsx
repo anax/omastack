@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   Terminal,
   Shield,
@@ -32,7 +32,7 @@ import {
   Quote,
 } from 'lucide-react';
 import { OmaStackLogo } from './OmaStackLogo';
-import { HeroBackgroundAnimation } from './HeroBackgroundAnimation';
+import { HeroBackgroundAnimation, deriveFieldPalette } from './HeroBackgroundAnimation';
 import { OmarchyTheme, OmarchyThemeKey, StackTemplate, ActiveStack } from '../types';
 import { OMARCHY_THEMES } from '../themes';
 
@@ -68,6 +68,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   const [demoSelectedTemplate, setDemoSelectedTemplate] = useState<string>('laravel-stack');
   const [demoSimulatedPortConflict, setDemoSimulatedPortConflict] = useState<boolean>(true);
   const [activeDoctrineIndex, setActiveDoctrineIndex] = useState<number>(0);
+  const [logoPulseCount, setLogoPulseCount] = useState<number>(0);
+  const heroLogoRef = useRef<HTMLDivElement | null>(null);
+  const fieldPalette = deriveFieldPalette(currentTheme);
 
   const copyText = (text: string, label: string) => {
     onCopySnippet(text);
@@ -166,12 +169,24 @@ chmod +x ~/.local/bin/omastack`;
 
   return (
     <div className="space-y-24 pb-20 font-sans text-xs">
-      {/* 1. TOP EDITORIAL TICKER / ANNOUNCEMENT */}
-      <section className="relative pt-2 overflow-hidden rounded-3xl pb-8">
-        {/* Animated Hero Background: Morphing Aurora, Cyber Perspective Grid & Ephemeral Mesh Particles */}
-        <HeroBackgroundAnimation currentTheme={currentTheme} />
+      {/* 1. HERO SECTION WITH PIXELATED ISOMETRIC CONTAINER FIELD & OMASTACK LOGO */}
+      <section
+        className="relative pt-4 pb-12 px-4 sm:px-6 overflow-hidden rounded-3xl border select-none"
+        style={{
+          backgroundColor: fieldPalette.bg,
+          borderColor: currentTheme.border,
+        }}
+      >
+        {/* Pixelated Bayer-Dithered Field + Isometric Container Rings & Micro-Containers */}
+        <HeroBackgroundAnimation
+          currentTheme={currentTheme}
+          logoRef={heroLogoRef}
+          pulseTriggerCount={logoPulseCount}
+        />
 
+        {/* Top Editorial Ticker */}
         <div
+          data-hero-quiet="true"
           className="relative z-10 max-w-4xl mx-auto rounded-full px-4 py-2 border flex items-center justify-between gap-3 text-[11px] backdrop-blur-md shadow-sm transition-all"
           style={{
             backgroundColor: `${currentTheme.cardBg}cc`,
@@ -205,31 +220,43 @@ chmod +x ~/.local/bin/omastack`;
           </div>
         </div>
 
-        {/* HERO SECTION */}
-        <div className="relative z-10 flex flex-col items-center text-center space-y-8 max-w-4xl mx-auto pt-10">
-          {/* Ambient Glow */}
+        {/* HERO CONTENT */}
+        <div className="relative z-10 flex flex-col items-center text-center space-y-7 max-w-4xl mx-auto pt-10">
+          {/* Ambient Glow behind OmaStackLogo */}
           <div
-            className="absolute -top-12 left-1/2 -translate-x-1/2 w-4/5 max-w-4xl h-80 rounded-full blur-[110px] opacity-20 pointer-events-none"
+            className="absolute -top-8 left-1/2 -translate-x-1/2 w-72 h-72 rounded-full blur-[95px] opacity-25 pointer-events-none"
             style={{ backgroundColor: currentTheme.primary }}
           />
 
-          {/* 3D Isometric Logo */}
-          <div className="relative group cursor-pointer transition-transform duration-300 hover:scale-105">
+          {/* 3D Isometric OmaStack Logo (Interactive: Click to emit Pixelated Container Shockwave) */}
+          <div
+            ref={heroLogoRef}
+            data-omastack-hero-logo="true"
+            onClick={() => setLogoPulseCount((c) => c + 1)}
+            title="Click OmaStack Logo to emit isometric pixel shockwave"
+            className="relative group cursor-pointer transition-transform duration-300 hover:scale-105 active:scale-95"
+          >
             <div
-              className="absolute -inset-4 rounded-full blur-xl opacity-40 group-hover:opacity-75 transition-opacity"
-              style={{ backgroundColor: currentTheme.accent }}
+              className="absolute -inset-4 rounded-full blur-xl opacity-40 group-hover:opacity-80 transition-opacity"
+              style={{ backgroundColor: '#00f0ff' }}
             />
-            <OmaStackLogo size={92} />
+            <OmaStackLogo size={108} animated={true} />
+            <div className="mt-1 flex items-center justify-center gap-1.5 font-mono text-[10px] tracking-widest uppercase opacity-75 group-hover:opacity-100 transition-opacity">
+              <span className="inline-block w-1.5 h-1.5 bg-[#00f0ff]" />
+              <span className="text-white font-bold">OMA</span>
+              <span className="text-[#9ece6a] font-bold">STACK</span>
+              <span className="inline-block w-1.5 h-1.5 bg-[#9ece6a]" />
+            </div>
           </div>
 
           {/* Main Headline */}
-          <div className="space-y-4">
+          <div data-hero-quiet="true" className="space-y-4">
             <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black tracking-tight leading-[1.08] select-text">
               The OmaStack Sandboxes for{' '}
               <span
                 className="bg-clip-text text-transparent bg-gradient-to-r"
                 style={{
-                  backgroundImage: `linear-gradient(135deg, ${currentTheme.primary}, ${currentTheme.accent}, ${currentTheme.secondary})`,
+                  backgroundImage: `linear-gradient(135deg, ${currentTheme.primary}, #9ece6a, #00f0ff)`,
                 }}
               >
                 Omarchy Linux.
@@ -240,15 +267,33 @@ chmod +x ~/.local/bin/omastack`;
             </p>
           </div>
 
-          {/* Editorial Philosophy Paragraph (Omarchy style) */}
-          <p className="text-xs sm:text-sm max-w-2xl opacity-75 leading-relaxed text-balance">
-            Linux development used to be a chore: wrestling with <code className="px-1.5 py-0.5 rounded bg-black/40 text-amber-300 font-mono text-[11px]">port already allocated</code> errors, fighting untrusted self-signed SSL warnings in your browser, and leaving background daemons eating laptop RAM.
+          {/* Editorial Philosophy Paragraph */}
+          <p
+            data-hero-quiet="true"
+            className="text-xs sm:text-sm max-w-2xl opacity-80 leading-relaxed text-balance"
+          >
+            Linux development used to be a chore: wrestling with{' '}
+            <code className="px-1.5 py-0.5 rounded bg-black/40 text-amber-300 font-mono text-[11px]">
+              port already allocated
+            </code>{' '}
+            errors, fighting untrusted self-signed SSL warnings in your browser, and leaving background daemons eating laptop RAM.
             <br className="hidden sm:inline" />
-            <strong className="text-white/95 font-semibold"> OmaStack solves it all</strong> with automated <code className="px-1.5 py-0.5 rounded bg-black/40 text-cyan-300 font-mono text-[11px]">ss -tuln</code> socket healing, green-padlock local HTTPS (<code className="px-1.5 py-0.5 rounded bg-black/40 text-purple-300 font-mono text-[11px]">*.oma.local</code>), and connection strings piped straight to your Wayland clipboard.
+            <strong className="text-white/95 font-semibold"> OmaStack solves it all</strong> with automated{' '}
+            <code className="px-1.5 py-0.5 rounded bg-black/40 text-cyan-300 font-mono text-[11px]">
+              ss -tuln
+            </code>{' '}
+            socket healing, green-padlock local HTTPS (
+            <code className="px-1.5 py-0.5 rounded bg-black/40 text-purple-300 font-mono text-[11px]">
+              *.oma.local
+            </code>
+            ), and connection strings piped straight to your Wayland clipboard.
           </p>
 
           {/* Action CTAs */}
-          <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+          <div
+            data-hero-quiet="true"
+            className="flex flex-wrap items-center justify-center gap-3 pt-2"
+          >
             <button
               onClick={onOpenDashboard}
               className="px-6 py-3.5 rounded-xl font-bold flex items-center gap-2.5 shadow-xl transition-all hover:scale-105 hover:brightness-110 cursor-pointer text-xs"
@@ -285,13 +330,16 @@ chmod +x ~/.local/bin/omastack`;
               title="Open Widget Panel (Super + Alt + W)"
             >
               <Sliders className="w-4 h-4" />
-              <span>Widget Panel <kbd className="opacity-60 text-[10px] font-mono">W</kbd></span>
+              <span>
+                Widget Panel <kbd className="opacity-60 text-[10px] font-mono">W</kbd>
+              </span>
             </button>
           </div>
 
           {/* 1-Line Quick Install Box */}
           <div
-            className="w-full max-w-xl p-2 rounded-xl border flex items-center justify-between gap-3 shadow-lg bg-black/50 backdrop-blur"
+            data-hero-quiet="true"
+            className="w-full max-w-xl p-2 rounded-xl border flex items-center justify-between gap-3 shadow-lg bg-black/60 backdrop-blur"
             style={{ borderColor: currentTheme.border }}
           >
             <div className="flex items-center gap-2 overflow-x-auto text-[11px] font-mono text-left pl-3 text-white/90">
@@ -307,7 +355,11 @@ chmod +x ~/.local/bin/omastack`;
                 border: `1px solid ${currentTheme.border}`,
               }}
             >
-              {copiedInstallCmd === 'plugin' ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+              {copiedInstallCmd === 'plugin' ? (
+                <Check className="w-3.5 h-3.5" />
+              ) : (
+                <Copy className="w-3.5 h-3.5" />
+              )}
               <span>{copiedInstallCmd === 'plugin' ? 'Copied!' : 'Copy'}</span>
             </button>
           </div>

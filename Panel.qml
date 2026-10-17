@@ -1,6 +1,4 @@
 import QtQuick
-import QtQuick.Layouts
-import QtQuick.Controls
 import Quickshell
 import Quickshell.Io
 import qs.Commons
@@ -10,28 +8,29 @@ Panel {
     id: root
     moduleName: "io.github.anax.omastack"
     manageIpc: false
-    z: 9999
-
     property var anchorItem: null
     property var hostWidget: null
 
     function open() {
-        if (root.controller) root.controller.show()
+        root.controller.show()
     }
 
     function close() {
-        if (root.controller) root.controller.hide()
+        root.controller.hide()
     }
 
     function toggle() {
-        if (root.controller) {
-            if (root.controller.visible) root.controller.hide()
-            else root.controller.show()
-        }
+        if (root.opened)
+            root.close()
+        else
+            root.open()
     }
 
-    implicitWidth: 380
-    implicitHeight: 520
+    function switchPanel(direction) {
+        if (root.bar && typeof root.bar.switchPanelFrom === "function")
+            return root.bar.switchPanelFrom(root.hostWidget || root, direction)
+        return false
+    }
 
     // Process executor helper
     function executeCli(args) {
@@ -44,307 +43,403 @@ Panel {
         command: ["omastack"]
         running: false
         onExited: {
-            // Re-trigger hostWidget status poll after command finishes
             if (root.hostWidget && root.hostWidget.statusProcess) {
                 root.hostWidget.statusProcess.running = true
             }
         }
     }
 
-    Rectangle {
-        anchors.fill: parent
-        color: "#1a1b26"
-        radius: 12
-        border.color: "#414868"
-        border.width: 1
+    property var templatesList: [
+        { id: "laravel-stack", label: "🚀 laravel-stack" },
+        { id: "supabase-lite", label: "⚡ supabase-lite" },
+        { id: "nextjs-postgres", label: "🐘 nextjs-postgres" },
+        { id: "rails-kamal", label: "💎 rails-kamal" },
+        { id: "django-celery", label: "🐍 django-celery" },
+        { id: "ai-rag-stack", label: "🧠 ai-rag-stack" },
+        { id: "mern-mongo", label: "🍃 mern-mongo" },
+        { id: "golang-microservices", label: "🐹 golang-micro" },
+        { id: "observability-lgtm", label: "📈 observability" },
+        { id: "clickhouse-analytics", label: "⚡ clickhouse" },
+        { id: "keycloak-iam", label: "🔐 keycloak-iam" },
+        { id: "directus-cms", label: "🐰 directus-cms" },
+        { id: "wordpress-mariadb", label: "📝 wordpress-db" },
+        { id: "automation-hub", label: "🤖 automation-hub" },
+        { id: "web3-node", label: "⛓ web3-node" }
+    ]
 
-        ColumnLayout {
+    KeyboardPanel {
+        id: panel
+        anchorItem: root.anchorItem
+        owner: root.hostWidget || root
+        bar: root.bar
+        open: root.opened
+        focusTarget: keyCatcher
+        contentWidth: panel.fittedContentWidth(Style.space(380))
+        contentHeight: panel.fittedContentHeight(content.implicitHeight)
+
+        PanelKeyCatcher {
+            id: keyCatcher
             anchors.fill: parent
-            anchors.margins: 14
-            spacing: 12
+            onCloseRequested: root.close()
+            onTabRequested: function(direction) {
+                root.switchPanel(direction)
+            }
 
-            // Header Row
-            RowLayout {
-                Layout.fillWidth: true
-                spacing: 8
+            Column {
+                id: content
+                width: parent.width
+                spacing: Style.space(10)
 
-                Text {
-                    text: "⚡ OmaStack Ephemeral Sandboxes"
-                    color: "#7dcfff"
-                    font.bold: true
-                    font.pixelSize: 14
-                }
+                // 1. Header Row with Official OmaStack Logo
+                Item {
+                    width: parent.width
+                    height: 28
 
-                Item { Layout.fillWidth: true }
+                    Row {
+                        anchors.left: parent.left
+                        anchors.verticalCenter: parent.verticalCenter
+                        spacing: 8
 
-                Rectangle {
-                    radius: 6
-                    color: (root.hostWidget && root.hostWidget.activeCount > 0) ? "#9ece6a22" : "#565f8922"
-                    border.color: (root.hostWidget && root.hostWidget.activeCount > 0) ? "#9ece6a" : "#565f89"
-                    border.width: 1
-                    implicitWidth: statusText.implicitWidth + 12
-                    implicitHeight: 22
+                        Image {
+                            width: 20
+                            height: 20
+                            anchors.verticalCenter: parent.verticalCenter
+                            source: Qt.resolvedUrl("omastack-icon.svg")
+                            fillMode: Image.PreserveAspectFit
+                            sourceSize.width: 40
+                            sourceSize.height: 40
+                        }
 
-                    Text {
-                        id: statusText
-                        anchors.centerIn: parent
-                        text: (root.hostWidget && root.hostWidget.activeCount > 0)
-                            ? (root.hostWidget.activeCount + " Active (" + root.hostWidget.totalRam + ")")
-                            : "Idle"
-                        color: (root.hostWidget && root.hostWidget.activeCount > 0) ? "#9ece6a" : "#7a88cf"
-                        font.pixelSize: 11
-                        font.bold: true
-                    }
-                }
-
-                Button {
-                    text: "↻"
-                    implicitWidth: 24
-                    implicitHeight: 24
-                    onClicked: {
-                        if (root.hostWidget && root.hostWidget.statusProcess) {
-                            root.hostWidget.statusProcess.running = true
+                        Text {
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: "OmaStack Sandboxes"
+                            color: "#7dcfff"
+                            font.bold: true
+                            font.pixelSize: 13
                         }
                     }
-                }
 
-                Button {
-                    text: "✕"
-                    implicitWidth: 24
-                    implicitHeight: 24
-                    onClicked: root.close()
-                }
-            }
+                    Row {
+                        anchors.right: parent.right
+                        anchors.verticalCenter: parent.verticalCenter
+                        spacing: 6
 
-            // Divider
-            Rectangle {
-                Layout.fillWidth: true
-                height: 1
-                color: "#24283b"
-            }
-
-            // Active Sandboxes Section
-            Text {
-                text: "RUNNING SANDBOXES"
-                color: "#565f89"
-                font.bold: true
-                font.pixelSize: 10
-            }
-
-            Rectangle {
-                Layout.fillWidth: true
-                Layout.preferredHeight: 110
-                color: "#16161e"
-                radius: 8
-                border.color: "#24283b"
-                border.width: 1
-
-                ListView {
-                    id: activeListView
-                    anchors.fill: parent
-                    anchors.margins: 6
-                    clip: true
-                    model: (root.hostWidget && root.hostWidget.activeStacks) ? root.hostWidget.activeStacks : []
-                    spacing: 6
-
-                    delegate: Rectangle {
-                        width: activeListView.width
-                        height: 32
-                        color: "#1f2335"
-                        radius: 6
-
-                        RowLayout {
-                            anchors.fill: parent
-                            anchors.margins: 6
-                            spacing: 8
-
-                            Rectangle {
-                                width: 8
-                                height: 8
-                                radius: 4
-                                color: "#9ece6a"
-                            }
+                        Rectangle {
+                            radius: 6
+                            color: (root.hostWidget && root.hostWidget.activeCount > 0) ? "#9ece6a22" : "#565f8922"
+                            border.color: (root.hostWidget && root.hostWidget.activeCount > 0) ? "#9ece6a" : "#565f89"
+                            border.width: 1
+                            width: statusText.implicitWidth + 12
+                            height: 22
 
                             Text {
-                                text: modelData.name || modelData.id
-                                color: "#c0caf5"
+                                id: statusText
+                                anchors.centerIn: parent
+                                text: (root.hostWidget && root.hostWidget.activeCount > 0)
+                                    ? (root.hostWidget.activeCount + " Active (" + root.hostWidget.totalRam + ")")
+                                    : "Idle"
+                                color: (root.hostWidget && root.hostWidget.activeCount > 0) ? "#9ece6a" : "#7a88cf"
+                                font.pixelSize: 10
                                 font.bold: true
+                            }
+                        }
+
+                        // Refresh Button
+                        Rectangle {
+                            width: 22
+                            height: 22
+                            radius: 5
+                            color: refreshMouse.containsMouse ? "#292e42" : "#1f2335"
+                            border.color: "#414868"
+                            border.width: 1
+
+                            Text {
+                                anchors.centerIn: parent
+                                text: "↻"
+                                color: "#c0caf5"
                                 font.pixelSize: 12
                             }
 
+                            MouseArea {
+                                id: refreshMouse
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: {
+                                    if (root.hostWidget && root.hostWidget.statusProcess) {
+                                        root.hostWidget.statusProcess.running = true
+                                    }
+                                }
+                            }
+                        }
+
+                        // Close Button
+                        Rectangle {
+                            width: 22
+                            height: 22
+                            radius: 5
+                            color: closeMouse.containsMouse ? "#f7768e33" : "#1f2335"
+                            border.color: closeMouse.containsMouse ? "#f7768e" : "#414868"
+                            border.width: 1
+
                             Text {
-                                text: modelData.ram || "RAM: OK"
-                                color: "#7aa2f7"
+                                anchors.centerIn: parent
+                                text: "✕"
+                                color: closeMouse.containsMouse ? "#f7768e" : "#c0caf5"
                                 font.pixelSize: 11
                             }
 
-                            Item { Layout.fillWidth: true }
-
-                            Button {
-                                text: "↺"
-                                implicitHeight: 22
-                                implicitWidth: 32
-                                onClicked: root.executeCli(["omastack", "restart", modelData.id])
-                            }
-
-                            Button {
-                                text: "Stop"
-                                implicitHeight: 22
-                                implicitWidth: 48
-                                onClicked: root.executeCli(["omastack", "down", modelData.id])
+                            MouseArea {
+                                id: closeMouse
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: root.close()
                             }
                         }
                     }
+                }
 
-                    // Empty state indicator
-                    Text {
-                        anchors.centerIn: parent
-                        visible: !root.hostWidget || root.hostWidget.activeCount === 0
-                        text: "No sandboxes running. Select a template below:"
-                        color: "#565f89"
-                        font.pixelSize: 11
+                // Divider
+                Rectangle {
+                    width: parent.width
+                    height: 1
+                    color: "#24283b"
+                }
+
+                // 2. Running Sandboxes Section
+                Text {
+                    text: "RUNNING SANDBOXES"
+                    color: "#565f89"
+                    font.bold: true
+                    font.pixelSize: 10
+                }
+
+                Rectangle {
+                    width: parent.width
+                    height: 92
+                    color: "#16161e"
+                    radius: 8
+                    border.color: "#24283b"
+                    border.width: 1
+
+                    ListView {
+                        id: activeListView
+                        anchors.fill: parent
+                        anchors.margins: 6
+                        clip: true
+                        model: (root.hostWidget && root.hostWidget.activeStacks) ? root.hostWidget.activeStacks : []
+                        spacing: 5
+
+                        delegate: Rectangle {
+                            width: activeListView.width
+                            height: 28
+                            color: "#1f2335"
+                            radius: 6
+
+                            Item {
+                                anchors.fill: parent
+                                anchors.leftMargin: 8
+                                anchors.rightMargin: 8
+
+                                Row {
+                                    anchors.left: parent.left
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    spacing: 8
+
+                                    Rectangle {
+                                        width: 7
+                                        height: 7
+                                        radius: 3.5
+                                        color: "#9ece6a"
+                                        anchors.verticalCenter: parent.verticalCenter
+                                    }
+
+                                    Text {
+                                        text: modelData.name || modelData.id
+                                        color: "#c0caf5"
+                                        font.bold: true
+                                        font.pixelSize: 11
+                                        anchors.verticalCenter: parent.verticalCenter
+                                    }
+
+                                    Text {
+                                        text: modelData.ram || "RAM: OK"
+                                        color: "#7aa2f7"
+                                        font.pixelSize: 10
+                                        anchors.verticalCenter: parent.verticalCenter
+                                    }
+                                }
+
+                                Row {
+                                    anchors.right: parent.right
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    spacing: 4
+
+                                    Rectangle {
+                                        width: 24
+                                        height: 20
+                                        radius: 4
+                                        color: restartItemMouse.containsMouse ? "#292e42" : "#16161e"
+                                        border.color: "#414868"
+                                        border.width: 1
+
+                                        Text {
+                                            anchors.centerIn: parent
+                                            text: "↺"
+                                            color: "#7dcfff"
+                                            font.pixelSize: 11
+                                        }
+
+                                        MouseArea {
+                                            id: restartItemMouse
+                                            anchors.fill: parent
+                                            hoverEnabled: true
+                                            cursorShape: Qt.PointingHandCursor
+                                            onClicked: root.executeCli(["omastack", "restart", modelData.id])
+                                        }
+                                    }
+
+                                    Rectangle {
+                                        width: 42
+                                        height: 20
+                                        radius: 4
+                                        color: stopItemMouse.containsMouse ? "#f7768e33" : "#16161e"
+                                        border.color: "#f7768e66"
+                                        border.width: 1
+
+                                        Text {
+                                            anchors.centerIn: parent
+                                            text: "Stop"
+                                            color: "#f7768e"
+                                            font.pixelSize: 10
+                                            font.bold: true
+                                        }
+
+                                        MouseArea {
+                                            id: stopItemMouse
+                                            anchors.fill: parent
+                                            hoverEnabled: true
+                                            cursorShape: Qt.PointingHandCursor
+                                            onClicked: root.executeCli(["omastack", "down", modelData.id])
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        Text {
+                            anchors.centerIn: parent
+                            visible: !root.hostWidget || root.hostWidget.activeCount === 0
+                            text: "No sandboxes running. Click a template below:"
+                            color: "#565f89"
+                            font.pixelSize: 11
+                        }
                     }
                 }
-            }
 
-            // Stack Templates Quick Launch Section
-            Text {
-                text: "QUICK LAUNCH TEMPLATES"
-                color: "#565f89"
-                font.bold: true
-                font.pixelSize: 10
-            }
-
-            GridLayout {
-                Layout.fillWidth: true
-                columns: 2
-                rowSpacing: 6
-                columnSpacing: 6
-
-                Button {
-                    Layout.fillWidth: true
-                    text: "🚀 laravel-stack"
-                    onClicked: root.executeCli(["omastack", "up", "laravel-stack"])
-                }
-                Button {
-                    Layout.fillWidth: true
-                    text: "⚡ supabase-lite"
-                    onClicked: root.executeCli(["omastack", "up", "supabase-lite"])
-                }
-                Button {
-                    Layout.fillWidth: true
-                    text: "🐘 nextjs-postgres"
-                    onClicked: root.executeCli(["omastack", "up", "nextjs-postgres"])
-                }
-                Button {
-                    Layout.fillWidth: true
-                    text: "💎 rails-kamal"
-                    onClicked: root.executeCli(["omastack", "up", "rails-kamal"])
-                }
-                Button {
-                    Layout.fillWidth: true
-                    text: "🐍 django-celery"
-                    onClicked: root.executeCli(["omastack", "up", "django-celery"])
-                }
-                Button {
-                    Layout.fillWidth: true
-                    text: "🧠 ai-rag-stack"
-                    onClicked: root.executeCli(["omastack", "up", "ai-rag-stack"])
-                }
-                Button {
-                    Layout.fillWidth: true
-                    text: "🍃 mern-mongo"
-                    onClicked: root.executeCli(["omastack", "up", "mern-mongo"])
-                }
-                Button {
-                    Layout.fillWidth: true
-                    text: "🐹 golang-microservices"
-                    onClicked: root.executeCli(["omastack", "up", "golang-microservices"])
-                }
-                Button {
-                    Layout.fillWidth: true
-                    text: "📈 observability-lgtm"
-                    onClicked: root.executeCli(["omastack", "up", "observability-lgtm"])
-                }
-                Button {
-                    Layout.fillWidth: true
-                    text: "⚡ clickhouse-analytics"
-                    onClicked: root.executeCli(["omastack", "up", "clickhouse-analytics"])
-                }
-                Button {
-                    Layout.fillWidth: true
-                    text: "🔐 keycloak-iam"
-                    onClicked: root.executeCli(["omastack", "up", "keycloak-iam"])
-                }
-                Button {
-                    Layout.fillWidth: true
-                    text: "🐰 directus-cms"
-                    onClicked: root.executeCli(["omastack", "up", "directus-cms"])
-                }
-                Button {
-                    Layout.fillWidth: true
-                    text: "📝 wordpress-mariadb"
-                    onClicked: root.executeCli(["omastack", "up", "wordpress-mariadb"])
-                }
-                Button {
-                    Layout.fillWidth: true
-                    text: "🤖 automation-hub"
-                    onClicked: root.executeCli(["omastack", "up", "automation-hub"])
-                }
-                Button {
-                    Layout.fillWidth: true
-                    Layout.columnSpan: 2
-                    text: "⛓ web3-node (Anvil RPC + Redis)"
-                    onClicked: root.executeCli(["omastack", "up", "web3-node"])
-                }
-            }
-
-            // Divider
-            Rectangle {
-                Layout.fillWidth: true
-                height: 1
-                color: "#24283b"
-            }
-
-            // Quick Actions Row
-            RowLayout {
-                Layout.fillWidth: true
-                spacing: 6
-
-                Button {
-                    Layout.fillWidth: true
-                    text: "Init Conf"
-                    onClicked: root.executeCli(["omastack", "init"])
+                // 3. Quick Launch Templates Section (15 Curated Sandboxes)
+                Text {
+                    text: "QUICK LAUNCH TEMPLATES (15)"
+                    color: "#565f89"
+                    font.bold: true
+                    font.pixelSize: 10
                 }
 
-                Button {
-                    Layout.fillWidth: true
-                    text: "Inject .env"
-                    onClicked: root.executeCli(["omastack", "inject"])
-                }
+                Grid {
+                    id: templatesGrid
+                    width: parent.width
+                    columns: 2
+                    rowSpacing: 5
+                    columnSpacing: 6
 
-                Button {
-                    Layout.fillWidth: true
-                    text: "Walker"
-                    onClicked: {
-                        root.close()
-                        root.executeCli(["omastack", "menu"])
+                    Repeater {
+                        model: root.templatesList
+                        delegate: Rectangle {
+                            width: (templatesGrid.width - 6) / 2
+                            height: 26
+                            radius: 6
+                            color: tmplMouse.containsMouse ? "#292e42" : "#1f2335"
+                            border.color: tmplMouse.containsMouse ? "#7dcfff" : "#2f3549"
+                            border.width: 1
+
+                            Text {
+                                anchors.left: parent.left
+                                anchors.leftMargin: 8
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: modelData.label
+                                color: tmplMouse.containsMouse ? "#7dcfff" : "#c0caf5"
+                                font.pixelSize: 11
+                                font.bold: tmplMouse.containsMouse
+                                elide: Text.ElideRight
+                                width: parent.width - 14
+                            }
+
+                            MouseArea {
+                                id: tmplMouse
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: root.executeCli(["omastack", "up", modelData.id])
+                            }
+                        }
                     }
                 }
 
-                Button {
-                    Layout.fillWidth: true
-                    text: "Stop All"
-                    onClicked: root.executeCli(["omastack", "down", "--all"])
+                // Divider
+                Rectangle {
+                    width: parent.width
+                    height: 1
+                    color: "#24283b"
                 }
-            }
 
-            // Footer info
-            Text {
-                Layout.alignment: Qt.AlignHCenter
-                text: "Super+Alt+W (Widget Panel) • Super+Alt+Space (Walker Menu)"
-                color: "#565f89"
-                font.pixelSize: 9
+                // 4. Quick Actions Row
+                Row {
+                    id: actionsRow
+                    width: parent.width
+                    spacing: 6
+
+                    Repeater {
+                        model: [
+                            { label: "Init Conf", cmd: ["omastack", "init"], closeFirst: false, danger: false },
+                            { label: "Inject .env", cmd: ["omastack", "inject"], closeFirst: false, danger: false },
+                            { label: "Walker", cmd: ["omastack", "menu"], closeFirst: true, danger: false },
+                            { label: "Stop All", cmd: ["omastack", "down", "--all"], closeFirst: false, danger: true }
+                        ]
+
+                        delegate: Rectangle {
+                            width: (actionsRow.width - 18) / 4
+                            height: 26
+                            radius: 6
+                            color: actMouse.containsMouse
+                                ? (modelData.danger ? "#f7768e33" : "#292e42")
+                                : "#1f2335"
+                            border.color: modelData.danger ? "#f7768e66" : "#414868"
+                            border.width: 1
+
+                            Text {
+                                anchors.centerIn: parent
+                                text: modelData.label
+                                color: modelData.danger ? "#f7768e" : "#c0caf5"
+                                font.pixelSize: 10
+                                font.bold: true
+                            }
+
+                            MouseArea {
+                                id: actMouse
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: {
+                                    if (modelData.closeFirst) {
+                                        root.close()
+                                    }
+                                    root.executeCli(modelData.cmd)
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
     }

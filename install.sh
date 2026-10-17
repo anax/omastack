@@ -367,7 +367,7 @@ EOF
     # Install Omarchy Quattro Plugin & Bar-Widget (~/.config/omarchy/plugins/io.github.anax.omastack)
     local omarchy_plugins_dir="${HOME}/.config/omarchy/plugins/io.github.anax.omastack"
     mkdir -p "${omarchy_plugins_dir}"
-    for f in manifest.json BarWidget.qml Panel.qml LICENSE; do
+    for f in manifest.json BarWidget.qml Panel.qml omastack-icon.svg LICENSE; do
         if [ -f "${source_dir}/${f}" ]; then
             cp "${source_dir}/${f}" "${omarchy_plugins_dir}/"
         elif [ -f "${source_dir}/../${f}" ]; then

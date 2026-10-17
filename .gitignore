@@ -8,3 +8,6 @@ coverage/
 !.env.example
 .omastack/
 .omastack.conf
+omastack/state/
+*.secrets.env
+

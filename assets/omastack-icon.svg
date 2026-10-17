@@ -1,67 +1,33 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
-  <defs>
-    <!-- Omarchy Signature Stepped Color Bands -->
-    <linearGradient id="omarchy-stepped" x1="0" y1="0" x2="0" y2="100%">
-      <stop offset="0%" stop-color="#daecc6" />
-      <stop offset="25%" stop-color="#daecc6" />
-      <stop offset="25%" stop-color="#bbdd97" />
-      <stop offset="50%" stop-color="#bbdd97" />
-      <stop offset="50%" stop-color="#9ece6a" />
-      <stop offset="75%" stop-color="#9ece6a" />
-      <stop offset="75%" stop-color="#678549" />
-      <stop offset="100%" stop-color="#39482e" />
-    </linearGradient>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="180 90 440 530" width="64" height="64">
+  <!-- Tier 3: Bottom Foundation Slab -->
+  <path d="M 220 440 L 400 544 L 400 600 L 220 496 Z" fill="#465a38" />
+  <path d="M 400 544 L 580 440 L 580 496 L 400 600 Z" fill="#2d3a24" />
+  <path d="M 220 440 L 400 544 L 580 440 L 400 336 Z" fill="#678549" fill-opacity="0.45" />
 
-    <!-- Tokyo Night / Omarchy Cyan Neon Glow -->
-    <filter id="icon-glow" x="-20%" y="-20%" width="140%" height="140%">
-      <feGaussianBlur stdDeviation="6" result="blur" />
-      <feComposite in="SourceGraphic" in2="blur" operator="over" />
-    </filter>
+  <!-- Cyan Inter-Tier Lightning Core -->
+  <path d="M 230 422 L 400 520 L 570 422 L 400 324 Z" fill="#00f0ff" fill-opacity="0.92" />
+  <path d="M 230 422 L 400 520 L 400 526 L 230 428 Z" fill="#7dcfff" />
+  <path d="M 400 520 L 570 422 L 570 428 L 400 526 Z" fill="#00c8db" />
 
-    <radialGradient id="icon-ambient" cx="50%" cy="50%" r="50%">
-      <stop offset="0%" stop-color="#7dcfff" stop-opacity="0.22" />
-      <stop offset="60%" stop-color="#9ece6a" stop-opacity="0.1" />
-      <stop offset="100%" stop-color="#16161e" stop-opacity="0" />
-    </radialGradient>
-  </defs>
+  <!-- Tier 2: Middle Runtime Slab -->
+  <path fill-rule="evenodd" d="M 400 246 L 580 350 L 400 454 L 220 350 Z M 400 298 L 310 350 L 400 402 L 490 350 Z" fill="#bbdd97" />
+  <path d="M 220 350 L 400 454 L 400 498 L 220 394 Z" fill="#8cb363" />
+  <path d="M 400 454 L 580 350 L 580 394 L 400 498 Z" fill="#678549" />
+  <path d="M 400 402 L 490 350 L 490 380 L 400 432 Z" fill="#4d6438" />
+  <path d="M 310 350 L 400 402 L 400 432 L 310 380 Z" fill="#5c7542" />
 
-  <!-- Background squircle (Wayland/Omarchy App Icon Standard) -->
-  <rect width="512" height="512" rx="110" fill="#16161e" stroke="#24283b" stroke-width="4" />
-  <circle cx="256" cy="256" r="180" fill="url(#icon-ambient)" />
+  <!-- Neon Light Slit between Tier 2 and Tier 1 -->
+  <path d="M 224 336 L 400 438 L 576 336 L 400 234 Z" fill="#00f0ff" fill-opacity="0.65" />
 
-  <g transform="translate(256, 256) scale(0.72) translate(-400, -370)">
-    <!-- ==================== TIER 3 (BOTTOM FOUNDATION SLAB) ==================== -->
-    <path d="M 220 440 L 400 544 L 400 600 L 220 496 Z" fill="#465a38" />
-    <path d="M 400 544 L 580 440 L 580 496 L 400 600 Z" fill="#2d3a24" />
-    <path d="M 220 440 L 400 544 L 580 440 L 400 336 Z" fill="#678549" opacity="0.4" />
+  <!-- Tier 1: Top "O" Aperture Slab -->
+  <path d="M 220 260 L 400 364 L 400 314 L 220 210 Z" fill="#bbdd97" />
+  <path d="M 400 364 L 580 260 L 580 210 L 400 314 Z" fill="#9ece6a" />
+  <path fill-rule="evenodd" d="M 400 106 L 580 210 L 400 314 L 220 210 Z M 400 158 L 310 210 L 400 262 L 490 210 Z" fill="#daecc6" />
 
-    <!-- ==================== CYAN INTER-TIER LIGHTNING CORE ==================== -->
-    <path d="M 230 422 L 400 520 L 570 422 L 400 324 Z" fill="#00f0ff" opacity="0.9" filter="url(#icon-glow)" />
-    <path d="M 230 422 L 400 520 L 400 526 L 230 428 Z" fill="#7dcfff" />
-    <path d="M 400 520 L 570 422 L 570 428 L 400 526 Z" fill="#00c8db" />
+  <!-- Inner Well of Tier 1 -->
+  <path d="M 400 262 L 490 210 L 490 252 L 400 304 Z" fill="#7da153" />
+  <path d="M 310 210 L 400 262 L 400 304 L 310 252 Z" fill="#90b861" />
 
-    <!-- ==================== TIER 2 (MIDDLE RUNTIME SLAB) ==================== -->
-    <path fill-rule="evenodd" d="M 400 246 L 580 350 L 400 454 L 220 350 Z M 400 298 L 310 350 L 400 402 L 490 350 Z" fill="#bbdd97" />
-    <path d="M 220 350 L 400 454 L 400 498 L 220 394 Z" fill="#8cb363" />
-    <path d="M 400 454 L 580 350 L 580 394 L 400 498 Z" fill="#678549" />
-    <path d="M 400 402 L 490 350 L 490 380 L 400 432 Z" fill="#4d6438" />
-    <path d="M 310 350 L 400 402 L 400 432 L 310 380 Z" fill="#5c7542" />
-
-    <!-- Neon Light Slit between Tier 2 and Tier 1 -->
-    <path d="M 224 336 L 400 438 L 576 336 L 400 234 Z" fill="#00f0ff" opacity="0.6" filter="url(#icon-glow)" />
-
-    <!-- ==================== TIER 1 (TOP "O" SLAB) ==================== -->
-    <path d="M 220 260 L 400 364 L 400 314 L 220 210 Z" fill="#bbdd97" />
-    <path d="M 400 364 L 580 260 L 580 210 L 400 314 Z" fill="#9ece6a" />
-    
-    <!-- Top Face of Tier 1 (The Iconic "O" Aperture) -->
-    <path fill-rule="evenodd" d="M 400 106 L 580 210 L 400 314 L 220 210 Z M 400 158 L 310 210 L 400 262 L 490 210 Z" fill="#daecc6" />
-
-    <!-- Inner Well of Tier 1 -->
-    <path d="M 400 262 L 490 210 L 490 252 L 400 304 Z" fill="#7da153" />
-    <path d="M 310 210 L 400 262 L 400 304 L 310 252 Z" fill="#90b861" />
-
-    <!-- Inner Core Bottom Portal -->
-    <path d="M 400 240 L 470 280 L 400 320 L 330 280 Z" fill="#00f0ff" opacity="0.85" filter="url(#icon-glow)" />
-  </g>
+  <!-- Inner Core Bottom Portal (Glowing Cyan Kernel) -->
+  <path d="M 400 240 L 470 280 L 400 320 L 330 280 Z" fill="#00f0ff" fill-opacity="0.9" />
 </svg>
