@@ -121,6 +121,7 @@ cp "${SCRIPT_DIR}/manifest.json" "${PAYLOAD_DIR}/"
 cp "${SCRIPT_DIR}/BarWidget.qml" "${PAYLOAD_DIR}/"
 cp "${SCRIPT_DIR}/Panel.qml" "${PAYLOAD_DIR}/"
 cp "${SCRIPT_DIR}/omastack-icon.svg" "${PAYLOAD_DIR}/"
+cp "${SCRIPT_DIR}/runner.sh" "${PAYLOAD_DIR}/"
 cp "${SCRIPT_DIR}/metadata.json" "${PAYLOAD_DIR}/" 2>/dev/null || true
 
 # Copy omastack application directory
@@ -137,6 +138,7 @@ cp "${SCRIPT_DIR}/manifest.json" "${PAYLOAD_DIR}/omastack/"
 cp "${SCRIPT_DIR}/BarWidget.qml" "${PAYLOAD_DIR}/omastack/"
 cp "${SCRIPT_DIR}/Panel.qml" "${PAYLOAD_DIR}/omastack/"
 cp "${SCRIPT_DIR}/omastack-icon.svg" "${PAYLOAD_DIR}/omastack/"
+cp "${SCRIPT_DIR}/runner.sh" "${PAYLOAD_DIR}/omastack/"
 cp "${SCRIPT_DIR}/LICENSE" "${PAYLOAD_DIR}/omastack/"
 
 # Create compressed tarball payload

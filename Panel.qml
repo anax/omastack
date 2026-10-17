@@ -11,6 +11,46 @@ Panel {
     property var anchorItem: null
     property var hostWidget: null
 
+    readonly property string pluginDir: {
+        var u = Qt.resolvedUrl(".").toString()
+        if (u.indexOf("file://") === 0) u = u.substring(7)
+        while (u.length > 0 && u.charAt(u.length - 1) === '/') {
+            u = u.substring(0, u.length - 1)
+        }
+        return u
+    }
+
+    property string statusNotice: ""
+
+    Timer {
+        id: statusNoticeTimer
+        interval: 4000
+        repeat: false
+        onTriggered: root.statusNotice = ""
+    }
+
+    Timer {
+        id: refreshDelayTimer
+        interval: 1500
+        repeat: false
+        onTriggered: {
+            if (root.hostWidget && typeof root.hostWidget.refreshStatus === "function") {
+                root.hostWidget.refreshStatus()
+            }
+        }
+    }
+
+    Timer {
+        id: refreshSecondTimer
+        interval: 3500
+        repeat: false
+        onTriggered: {
+            if (root.hostWidget && typeof root.hostWidget.refreshStatus === "function") {
+                root.hostWidget.refreshStatus()
+            }
+        }
+    }
+
     function open() {
         root.controller.show()
     }
@@ -32,19 +72,100 @@ Panel {
         return false
     }
 
+    function buildShellCommand(subArgs) {
+        var pdir = root.pluginDir
+        var argsEscaped = subArgs.map(function(a) {
+            return "'" + String(a).replace(/'/g, "'\\''") + "'"
+        }).join(" ")
+
+        return 'export PATH="$HOME/.local/bin:/usr/local/bin:/usr/bin:/bin:$PATH"; '
+            + 'PDIR="' + pdir + '"; '
+            + 'BIN=""; '
+            + 'if command -v omastack >/dev/null 2>&1; then BIN="$(command -v omastack)"; '
+            + 'elif [ -x "$HOME/.local/bin/omastack" ]; then BIN="$HOME/.local/bin/omastack"; '
+            + 'elif [ -x "$PDIR/runner.sh" ]; then BIN="$PDIR/runner.sh"; '
+            + 'elif [ -x "$PDIR/omastack/runner.sh" ]; then BIN="$PDIR/omastack/runner.sh"; '
+            + 'elif [ -x "$PDIR/omastack/bin/omastack" ]; then BIN="$PDIR/omastack/bin/omastack"; '
+            + 'elif [ -x "$PDIR/bin/omastack" ]; then BIN="$PDIR/bin/omastack"; '
+            + 'elif [ -x "/usr/share/omastack/bin/omastack" ]; then BIN="/usr/share/omastack/bin/omastack"; '
+            + 'elif [ -x "/usr/local/share/omastack/bin/omastack" ]; then BIN="/usr/local/share/omastack/bin/omastack"; '
+            + 'fi; '
+            + 'if [ -n "$BIN" ]; then exec "$BIN" ' + argsEscaped + '; '
+            + 'else if command -v notify-send >/dev/null 2>&1; then notify-send -u critical -a "OmaStack" "Binary Not Found" "Cannot find omastack executable."; fi; exit 127; fi'
+    }
+
+    function showNotification(title, msg) {
+        try {
+            if (typeof Quickshell !== "undefined" && typeof Quickshell.execDetached === "function") {
+                Quickshell.execDetached(["notify-send", "-a", "OmaStack", "-u", "normal", title, msg])
+            }
+        } catch(e) {}
+    }
+
     // Process executor helper
     function executeCli(args) {
-        cliProcess.command = args
-        cliProcess.running = true
+        var subArgs = (typeof args === "string") ? [args] : args.slice()
+        if (subArgs.length > 0 && subArgs[0] === "omastack") {
+            subArgs.shift()
+        }
+
+        var subCmd = subArgs[0] || ""
+        var target = subArgs[1] || ""
+
+        if (subCmd === "up") {
+            root.statusNotice = "Starting " + target + "..."
+            root.showNotification("OmaStack", "Starting " + target + " sandbox...")
+        } else if (subCmd === "down" && target === "--all") {
+            root.statusNotice = "Stopping all..."
+            root.showNotification("OmaStack", "Stopping all sandboxes...")
+        } else if (subCmd === "down") {
+            root.statusNotice = "Stopping " + target + "..."
+            root.showNotification("OmaStack", "Stopping " + target + " sandbox...")
+        } else if (subCmd === "restart") {
+            root.statusNotice = "Restarting " + target + "..."
+            root.showNotification("OmaStack", "Restarting " + target + " sandbox...")
+        } else if (subCmd === "init") {
+            root.statusNotice = "Initializing..."
+            root.showNotification("OmaStack", "Inspecting project and creating config...")
+        } else if (subCmd === "inject") {
+            root.statusNotice = "Injecting .env..."
+            root.showNotification("OmaStack", "Injecting connection strings into .env...")
+        } else if (subCmd === "menu") {
+            root.statusNotice = "Opening Walker..."
+        }
+
+        statusNoticeTimer.restart()
+        refreshDelayTimer.restart()
+        refreshSecondTimer.restart()
+
+        var shellCmd = root.buildShellCommand(subArgs)
+
+        // Try execDetached first for asynchronous non-blocking launch
+        var launched = false
+        try {
+            if (typeof Quickshell !== "undefined" && typeof Quickshell.execDetached === "function") {
+                Quickshell.execDetached(["sh", "-c", shellCmd])
+                launched = true
+            }
+        } catch(e) {
+            launched = false
+        }
+
+        // Fallback to cliProcess if execDetached is not available
+        if (!launched) {
+            cliProcess.running = false
+            cliProcess.command = ["sh", "-c", shellCmd]
+            cliProcess.running = true
+        }
     }
 
     Process {
         id: cliProcess
-        command: ["omastack"]
+        command: ["sh", "-c", "true"]
         running: false
         onExited: {
-            if (root.hostWidget && root.hostWidget.statusProcess) {
-                root.hostWidget.statusProcess.running = true
+            if (root.hostWidget && typeof root.hostWidget.refreshStatus === "function") {
+                root.hostWidget.refreshStatus()
             }
         }
     }
@@ -126,19 +247,27 @@ Panel {
 
                         Rectangle {
                             radius: 6
-                            color: (root.hostWidget && root.hostWidget.activeCount > 0) ? "#9ece6a22" : "#565f8922"
-                            border.color: (root.hostWidget && root.hostWidget.activeCount > 0) ? "#9ece6a" : "#565f89"
+                            color: root.statusNotice !== ""
+                                ? "#7dcfff22"
+                                : ((root.hostWidget && root.hostWidget.activeCount > 0) ? "#9ece6a22" : "#565f8922")
+                            border.color: root.statusNotice !== ""
+                                ? "#7dcfff"
+                                : ((root.hostWidget && root.hostWidget.activeCount > 0) ? "#9ece6a" : "#565f89")
                             border.width: 1
-                            width: statusText.implicitWidth + 12
+                            width: statusText.implicitWidth + 14
                             height: 22
 
                             Text {
                                 id: statusText
                                 anchors.centerIn: parent
-                                text: (root.hostWidget && root.hostWidget.activeCount > 0)
-                                    ? (root.hostWidget.activeCount + " Active (" + root.hostWidget.totalRam + ")")
-                                    : "Idle"
-                                color: (root.hostWidget && root.hostWidget.activeCount > 0) ? "#9ece6a" : "#7a88cf"
+                                text: root.statusNotice !== ""
+                                    ? root.statusNotice
+                                    : ((root.hostWidget && root.hostWidget.activeCount > 0)
+                                        ? (root.hostWidget.activeCount + " Active (" + root.hostWidget.totalRam + ")")
+                                        : "Idle")
+                                color: root.statusNotice !== ""
+                                    ? "#7dcfff"
+                                    : ((root.hostWidget && root.hostWidget.activeCount > 0) ? "#9ece6a" : "#7a88cf")
                                 font.pixelSize: 10
                                 font.bold: true
                             }
@@ -166,8 +295,8 @@ Panel {
                                 hoverEnabled: true
                                 cursorShape: Qt.PointingHandCursor
                                 onClicked: {
-                                    if (root.hostWidget && root.hostWidget.statusProcess) {
-                                        root.hostWidget.statusProcess.running = true
+                                    if (root.hostWidget && typeof root.hostWidget.refreshStatus === "function") {
+                                        root.hostWidget.refreshStatus()
                                     }
                                 }
                             }

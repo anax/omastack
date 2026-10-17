@@ -13,12 +13,14 @@ mkdir -p "${OMARCHY_CONFIG_DIR}" "${BIN_DIR}" "${HOME}/.local/share"
 COLOR_CYAN="\033[36m"
 COLOR_GREEN="\033[32m"
 COLOR_YELLOW="\033[33m"
+COLOR_RED="\033[31m"
 COLOR_RESET="\033[0m"
 COLOR_BOLD="\033[1m"
 
 log_info() { echo -e "${COLOR_CYAN}⚡ [Omarchy PM]${COLOR_RESET} $1"; }
 log_success() { echo -e "${COLOR_GREEN}✔ [Omarchy PM]${COLOR_RESET} $1"; }
 log_warn() { echo -e "${COLOR_YELLOW}⚠ [Omarchy PM]${COLOR_RESET} $1"; }
+log_error() { echo -e "${COLOR_RED}✖ [Omarchy PM]${COLOR_RESET} $1"; }
 
 init_plugins_db() {
     mkdir -p -m 700 "${OMARCHY_CONFIG_DIR}"
@@ -45,78 +47,180 @@ cmd_plugin_add() {
     init_plugins_db
 
     local plugin_name="omastack"
-    local SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+    local cleanup_dir=""
+    local SCRIPT_DIR=""
 
-    # Check local omastore.toml or fetch
-    if [ -f "${SCRIPT_DIR}/omastore.toml" ]; then
-        log_info "Found OmaStore manifest: ${SCRIPT_DIR}/omastore.toml"
-    else
-        log_info "Fetching manifest from repository..."
-    fi
-
-    # Install binaries and libs
-    log_info "Installing ${plugin_name} to ~/.local/share/${plugin_name}..."
-    local dest_share="${HOME}/.local/share/${plugin_name}"
-    mkdir -p -m 700 "${dest_share}"
-
-    if [ -d "${SCRIPT_DIR}/lib" ]; then
-        cp -r "${SCRIPT_DIR}/lib" "${dest_share}/"
-    fi
-    if [ -d "${SCRIPT_DIR}/templates" ]; then
-        cp -r "${SCRIPT_DIR}/templates" "${dest_share}/"
-    fi
-    if [ -f "${SCRIPT_DIR}/bin/omastack" ]; then
-        cp "${SCRIPT_DIR}/bin/omastack" "${BIN_DIR}/omastack"
-        chmod +x "${BIN_DIR}/omastack"
-    fi
-
-    # Register Hyprland keybinding
-    local hypr_dir="${HOME}/.config/hypr"
-    mkdir -p "${hypr_dir}"
-    local hypr_conf="${hypr_dir}/hyprland.conf"
-    if [ -f "${hypr_conf}" ]; then
-        if ! grep -q "omastack menu" "${hypr_conf}"; then
-            echo -e "\n# OmaStack Shortcut\nbind = SUPER ALT, SPACE, exec, omastack menu" >> "${hypr_conf}"
-            log_success "Bound Super + Alt + Space to 'omastack menu' in Hyprland"
+    # Check if target is remote git/http repo or local path
+    if [[ "${repo_url}" =~ ^(http://|https://|git@) ]]; then
+        cleanup_dir=$(mktemp -d -t omarchy-plugin-XXXXXX)
+        if command -v git >/dev/null 2>&1; then
+            log_info "Cloning plugin from ${repo_url}..."
+            git clone --depth 1 "${repo_url}" "${cleanup_dir}" >/dev/null 2>&1 || {
+                log_error "Failed to clone git repository ${repo_url}"
+                rm -rf "${cleanup_dir}"
+                exit 1
+            }
+        else
+            log_info "Downloading plugin archive..."
+            local tar_url="${repo_url%.git}/archive/refs/heads/main.tar.gz"
+            curl -fsSL "${tar_url}" | tar -xz -C "${cleanup_dir}" --strip-components=1 2>/dev/null || {
+                log_error "Failed to download tar archive from ${tar_url}"
+                rm -rf "${cleanup_dir}"
+                exit 1
+            }
         fi
+        SCRIPT_DIR="${cleanup_dir}"
+    elif [ -d "${repo_url}" ]; then
+        SCRIPT_DIR="$(cd "${repo_url}" && pwd)"
     else
-        echo -e "# Omarchy Hyprland Configuration\nbind = SUPER ALT, SPACE, exec, omastack menu" > "${hypr_conf}"
-        log_success "Created Hyprland config with OmaStack keybinding (Super + Alt + Space)"
+        SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
     fi
 
-    # Install Omarchy Quattro Plugin & Bar-Widget (~/.config/omarchy/plugins/omacom.omastack)
-    local omarchy_plugins_dir="${HOME}/.config/omarchy/plugins/omacom.omastack"
-    mkdir -p "${omarchy_plugins_dir}"
-    for f in manifest.json BarWidget.qml Panel.qml; do
-        if [ -f "${SCRIPT_DIR}/${f}" ]; then
-            cp "${SCRIPT_DIR}/${f}" "${omarchy_plugins_dir}/"
-        elif [ -f "${SCRIPT_DIR}/../${f}" ]; then
-            cp "${SCRIPT_DIR}/../${f}" "${omarchy_plugins_dir}/"
-        fi
-    done
-    log_success "Installed Omarchy Quattro Bar-Widget to ${omarchy_plugins_dir}"
+    # If the repo contains install.sh, run it
+    if [ -f "${SCRIPT_DIR}/install.sh" ]; then
+        log_info "Running plugin installation script..."
+        bash "${SCRIPT_DIR}/install.sh"
+    else
+        # Fallback manual installation
+        log_info "Installing ${plugin_name} to ~/.local/share/${plugin_name}..."
+        local dest_share="${HOME}/.local/share/${plugin_name}"
+        mkdir -p -m 700 "${dest_share}"
 
-    # Register Waybar custom module
-    local waybar_dir="${HOME}/.config/waybar"
-    mkdir -p "${waybar_dir}"
-    log_success "Configured Waybar custom/omastack module: 'omastack status --waybar'"
+        if [ -d "${SCRIPT_DIR}/lib" ]; then
+            cp -r "${SCRIPT_DIR}/lib" "${dest_share}/"
+        elif [ -d "${SCRIPT_DIR}/omastack/lib" ]; then
+            cp -r "${SCRIPT_DIR}/omastack/lib" "${dest_share}/"
+        fi
+
+        if [ -d "${SCRIPT_DIR}/templates" ]; then
+            cp -r "${SCRIPT_DIR}/templates" "${dest_share}/"
+        elif [ -d "${SCRIPT_DIR}/omastack/templates" ]; then
+            cp -r "${SCRIPT_DIR}/omastack/templates" "${dest_share}/"
+        fi
+
+        if [ -f "${SCRIPT_DIR}/bin/omastack" ]; then
+            cp "${SCRIPT_DIR}/bin/omastack" "${BIN_DIR}/omastack"
+            chmod +x "${BIN_DIR}/omastack"
+        elif [ -f "${SCRIPT_DIR}/omastack/bin/omastack" ]; then
+            cp "${SCRIPT_DIR}/omastack/bin/omastack" "${BIN_DIR}/omastack"
+            chmod +x "${BIN_DIR}/omastack"
+        fi
+
+        if [ -f "${SCRIPT_DIR}/bin/omarchy" ]; then
+            cp "${SCRIPT_DIR}/bin/omarchy" "${BIN_DIR}/omarchy"
+            chmod +x "${BIN_DIR}/omarchy"
+        fi
+
+        # Install Omarchy Quattro Plugin & Bar-Widget
+        for pdir in "${HOME}/.config/omarchy/plugins/io.github.anax.omastack" "${HOME}/.config/omarchy/plugins/omacom.omastack"; do
+            mkdir -p "${pdir}"
+            for f in manifest.json BarWidget.qml Panel.qml; do
+                if [ -f "${SCRIPT_DIR}/${f}" ]; then
+                    cp "${SCRIPT_DIR}/${f}" "${pdir}/"
+                elif [ -f "${SCRIPT_DIR}/omastack/${f}" ]; then
+                    cp "${SCRIPT_DIR}/omastack/${f}" "${pdir}/"
+                fi
+            done
+        done
+    fi
+
+    if [ -n "${cleanup_dir}" ] && [ -d "${cleanup_dir}" ]; then
+        rm -rf "${cleanup_dir}"
+    fi
 
     # Register in plugins.json
     local timestamp=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
     (
         umask 077
-        echo "{\"plugins\":[{\"id\":\"omastack\",\"name\":\"OmaStack\",\"version\":\"1.0.0\",\"repo\":\"${repo_url}\",\"installed_at\":\"${timestamp}\"}]}" > "${OMARCHY_PLUGINS_FILE}"
+        echo "{\"plugins\":[{\"id\":\"io.github.anax.omastack\",\"name\":\"OmaStack\",\"version\":\"1.0.0\",\"repo\":\"${repo_url}\",\"installed_at\":\"${timestamp}\"}]}" > "${OMARCHY_PLUGINS_FILE}"
     )
     chmod 600 "${OMARCHY_PLUGINS_FILE}" 2>/dev/null || true
 
-    log_success "Plugin 'omastack' successfully installed and activated!"
+    log_success "Plugin 'omastack' (io.github.anax.omastack) successfully installed and activated!"
     echo -e "${COLOR_GREEN}${COLOR_BOLD}➜ Ready to launch:${COLOR_RESET} Run ${COLOR_CYAN}omastack up laravel-stack${COLOR_RESET} or press ${COLOR_CYAN}Super + Alt + Space${COLOR_RESET}\n"
+}
+
+cmd_plugin_update() {
+    local target="${1:-omastack}"
+    log_info "Updating Omarchy plugin: ${COLOR_BOLD}${target}${COLOR_RESET}..."
+
+    # 1. If installed as native Arch Linux package
+    if command -v pacman >/dev/null 2>&1 && pacman -Q omastack >/dev/null 2>&1; then
+        log_info "OmaStack is installed via pacman."
+        echo -e "${COLOR_GREEN}To update via pacman, run:${COLOR_RESET}"
+        echo -e "  ${COLOR_BOLD}sudo pacman -U https://github.com/anax/omastack/releases/latest/download/omastack-1.0.0-1-any.pkg.tar.zst${COLOR_RESET}"
+        return 0
+    fi
+
+    # 2. If installed in git clone directory
+    if [ -d "${HOME}/.local/share/omastack/.git" ] && command -v git >/dev/null 2>&1; then
+        log_info "Pulling latest changes in ~/.local/share/omastack..."
+        (cd "${HOME}/.local/share/omastack" && git pull --ff-only origin main) || true
+        if [ -f "${HOME}/.local/share/omastack/install.sh" ]; then
+            bash "${HOME}/.local/share/omastack/install.sh"
+            log_success "Plugin '${target}' updated successfully!"
+            return 0
+        fi
+    fi
+
+    # 3. Fetch latest release from repository
+    local repo_url="https://github.com/anax/omastack"
+    log_info "Fetching latest update from ${repo_url}..."
+    local cleanup_dir
+    cleanup_dir=$(mktemp -d -t omarchy-update-XXXXXX)
+    if command -v git >/dev/null 2>&1; then
+        git clone --depth 1 "${repo_url}" "${cleanup_dir}" >/dev/null 2>&1 || true
+    fi
+
+    if [ -f "${cleanup_dir}/install.sh" ]; then
+        bash "${cleanup_dir}/install.sh"
+        rm -rf "${cleanup_dir}"
+        log_success "Omarchy plugin '${target}' successfully updated to latest version!"
+    else
+        rm -rf "${cleanup_dir}"
+        # Direct curl fallback
+        local tmp_sh
+        tmp_sh=$(mktemp -t omastack-update-XXXXXX.sh)
+        if curl -fsSL "https://raw.githubusercontent.com/anax/omastack/main/install.sh" -o "${tmp_sh}"; then
+            bash "${tmp_sh}"
+            rm -f "${tmp_sh}"
+            log_success "Omarchy plugin '${target}' successfully updated to latest version!"
+        else
+            log_error "Failed to fetch update. Please check your network connection."
+            rm -f "${tmp_sh}"
+            return 1
+        fi
+    fi
+}
+
+cmd_plugin_remove() {
+    local target="${1:-omastack}"
+    log_info "Removing Omarchy plugin: ${COLOR_BOLD}${target}${COLOR_RESET}..."
+
+    # Teardown any running sandboxes if CLI exists
+    if command -v omastack >/dev/null 2>&1; then
+        omastack down --all 2>/dev/null || true
+    fi
+
+    # Remove files
+    rm -rf "${HOME}/.local/share/omastack"
+    rm -f "${BIN_DIR}/omastack"
+    rm -rf "${HOME}/.config/omarchy/plugins/io.github.anax.omastack"
+    rm -rf "${HOME}/.config/omarchy/plugins/omacom.omastack"
+    rm -rf "${HOME}/.config/omastack"
+
+    if [ -f "${OMARCHY_PLUGINS_FILE}" ]; then
+        echo '{"plugins":[]}' > "${OMARCHY_PLUGINS_FILE}"
+    fi
+
+    log_success "Omarchy plugin '${target}' successfully removed."
 }
 
 cmd_plugin_list() {
     init_plugins_db
     log_info "Installed Omarchy Plugins:"
     cat "${OMARCHY_PLUGINS_FILE}"
+    echo ""
 }
 
 main() {
@@ -131,17 +235,26 @@ main() {
                 add)
                     cmd_plugin_add "${1:-}"
                     ;;
+                update|upgrade)
+                    cmd_plugin_update "${1:-omastack}"
+                    ;;
+                remove|rm|uninstall)
+                    cmd_plugin_remove "${1:-omastack}"
+                    ;;
                 list|ls)
                     cmd_plugin_list
                     ;;
                 *)
-                    echo "Usage: omarchy plugin [add <url>|list]"
+                    echo "Usage: omarchy plugin [add <url> | update <name> | remove <name> | list]"
                     ;;
             esac
             ;;
+        update|upgrade)
+            cmd_plugin_update "omastack"
+            ;;
         *)
             echo "Omarchy Linux System Manager v1.0.0"
-            echo "Usage: omarchy plugin add <repo-url>"
+            echo "Usage: omarchy plugin [add <url> | update <name> | remove <name> | list]"
             ;;
     esac
 }

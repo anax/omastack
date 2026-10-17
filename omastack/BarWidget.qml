@@ -12,6 +12,15 @@ BarWidget {
     readonly property bool opened: panelLoader.item ? panelLoader.item.opened === true : false
     readonly property bool popoutSwitchClosing: panelLoader.item ? panelLoader.item.popoutSwitchClosing === true : false
 
+    readonly property string pluginDir: {
+        var u = Qt.resolvedUrl(".").toString()
+        if (u.indexOf("file://") === 0) u = u.substring(7)
+        while (u.length > 0 && u.charAt(u.length - 1) === '/') {
+            u = u.substring(0, u.length - 1)
+        }
+        return u
+    }
+
     function open() {
         if (panelLoader.item) panelLoader.item.open()
     }
@@ -33,6 +42,11 @@ BarWidget {
         panelLoader.item.bar = root.bar
         panelLoader.item.anchorItem = button
         panelLoader.item.hostWidget = root
+    }
+
+    function refreshStatus() {
+        statusProcess.running = false
+        statusProcess.running = true
     }
 
     implicitWidth: button.implicitWidth
@@ -62,7 +76,23 @@ BarWidget {
     // CLI background process to fetch real-time JSON
     Process {
         id: statusProcess
-        command: ["omastack", "status", "--widget"]
+        command: [
+            "sh", "-c",
+            'export PATH="$HOME/.local/bin:/usr/local/bin:/usr/bin:/bin:$PATH"; ' +
+            'PDIR="' + root.pluginDir + '"; ' +
+            'BIN=""; ' +
+            'if command -v omastack >/dev/null 2>&1; then BIN="$(command -v omastack)"; ' +
+            'elif [ -x "$HOME/.local/bin/omastack" ]; then BIN="$HOME/.local/bin/omastack"; ' +
+            'elif [ -x "$PDIR/runner.sh" ]; then BIN="$PDIR/runner.sh"; ' +
+            'elif [ -x "$PDIR/omastack/runner.sh" ]; then BIN="$PDIR/omastack/runner.sh"; ' +
+            'elif [ -x "$PDIR/omastack/bin/omastack" ]; then BIN="$PDIR/omastack/bin/omastack"; ' +
+            'elif [ -x "$PDIR/bin/omastack" ]; then BIN="$PDIR/bin/omastack"; ' +
+            'elif [ -x "/usr/share/omastack/bin/omastack" ]; then BIN="/usr/share/omastack/bin/omastack"; ' +
+            'elif [ -x "/usr/local/share/omastack/bin/omastack" ]; then BIN="/usr/local/share/omastack/bin/omastack"; ' +
+            'fi; ' +
+            'if [ -n "$BIN" ]; then exec "$BIN" status --widget; ' +
+            'else exit 1; fi'
+        ]
         running: false
         stdout: StdioCollector {
             onStreamFinished: {
@@ -82,7 +112,23 @@ BarWidget {
     // Process to summon interactive Walker/Rofi menu on middle-click
     Process {
         id: menuProcess
-        command: ["omastack", "menu"]
+        command: [
+            "sh", "-c",
+            'export PATH="$HOME/.local/bin:/usr/local/bin:/usr/bin:/bin:$PATH"; ' +
+            'PDIR="' + root.pluginDir + '"; ' +
+            'BIN=""; ' +
+            'if command -v omastack >/dev/null 2>&1; then BIN="$(command -v omastack)"; ' +
+            'elif [ -x "$HOME/.local/bin/omastack" ]; then BIN="$HOME/.local/bin/omastack"; ' +
+            'elif [ -x "$PDIR/runner.sh" ]; then BIN="$PDIR/runner.sh"; ' +
+            'elif [ -x "$PDIR/omastack/runner.sh" ]; then BIN="$PDIR/omastack/runner.sh"; ' +
+            'elif [ -x "$PDIR/omastack/bin/omastack" ]; then BIN="$PDIR/omastack/bin/omastack"; ' +
+            'elif [ -x "$PDIR/bin/omastack" ]; then BIN="$PDIR/bin/omastack"; ' +
+            'elif [ -x "/usr/share/omastack/bin/omastack" ]; then BIN="/usr/share/omastack/bin/omastack"; ' +
+            'elif [ -x "/usr/local/share/omastack/bin/omastack" ]; then BIN="/usr/local/share/omastack/bin/omastack"; ' +
+            'fi; ' +
+            'if [ -n "$BIN" ]; then exec "$BIN" menu; ' +
+            'else exit 1; fi'
+        ]
         running: false
     }
 
@@ -194,7 +240,17 @@ BarWidget {
             if (buttonCode === Qt.LeftButton || buttonCode === Qt.RightButton) {
                 root.toggle()
             } else if (buttonCode === Qt.MiddleButton) {
-                menuProcess.running = true
+                try {
+                    if (typeof Quickshell !== "undefined" && typeof Quickshell.execDetached === "function") {
+                        Quickshell.execDetached(menuProcess.command)
+                    } else {
+                        menuProcess.running = false
+                        menuProcess.running = true
+                    }
+                } catch(e) {
+                    menuProcess.running = false
+                    menuProcess.running = true
+                }
             }
         }
     }

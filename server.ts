@@ -539,11 +539,23 @@ async function startServer() {
     'panel',
     'proxy',
     'logs',
+    'theme',
+    'update',
+    'upgrade',
     'version',
     '--version',
     '-v',
   ]);
-  const ALLOWED_OMARCHY_SUBCOMMANDS = new Set(['version', '--version', '-v', 'list', 'status']);
+  const ALLOWED_OMARCHY_SUBCOMMANDS = new Set([
+    'version',
+    '--version',
+    '-v',
+    'list',
+    'status',
+    'plugin',
+    'update',
+    'upgrade',
+  ]);
 
   // API: Execute real omastack CLI command from terminal (Owner-authenticated, allowlisted)
   app.post('/api/cli', requireOwnerAuth, async (req, res) => {
@@ -576,8 +588,8 @@ async function startServer() {
       });
     }
 
-    // Validate all argument tokens contain only safe characters
-    if (subArgs.some((arg) => !/^[a-zA-Z0-9_.-]+$/.test(arg))) {
+    // Validate all argument tokens contain only safe characters (including safe repo URLs)
+    if (subArgs.some((arg) => !/^[a-zA-Z0-9_./:@-]+$/.test(arg))) {
       return res.status(400).json({
         error: 'Invalid argument characters detected.',
         code: 1,

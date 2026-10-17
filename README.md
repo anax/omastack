@@ -47,6 +47,23 @@ makepkg -si
 omarchy plugin add https://github.com/anax/omastack
 ```
 
+---
+
+## 🔄 Updating OmaStack & Omarchy Plugin
+
+To update OmaStack and its Omarchy desktop bar widget to the latest release:
+
+```bash
+# Method 1: Direct CLI self-updater (fastest)
+omastack update
+
+# Method 2: Via Omarchy Plugin Manager
+omarchy plugin update omastack
+
+# Method 3: If installed via Arch Linux pacman (.pkg.tar.zst)
+sudo pacman -U https://github.com/anax/omastack/releases/latest/download/omastack-1.0.0-1-any.pkg.tar.zst
+```
+
 ### 📦 Building Release Packages Locally
 To rebuild all installable packages (`.pkg.tar.zst`, `.run`, and `.tar.gz`) into `dist/`:
 

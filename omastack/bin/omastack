@@ -48,6 +48,7 @@ Commands:
   inject [env_file]    Inject connection strings into current directory .env
   proxy [list|sync]    Manage Caddy HTTPS local proxy (*.oma.local)
   logs <template>      Tail live Docker container logs
+  update               Update OmaStack and plugin to latest version
   version              Print OmaStack version information
 
 Examples:
@@ -57,6 +58,56 @@ Examples:
   omastack down --all
 EOF
     exit 0
+}
+
+cmd_update() {
+    log_info "Checking for OmaStack updates..."
+
+    # 1. If installed as native Arch Linux package
+    if command -v pacman >/dev/null 2>&1 && pacman -Q omastack >/dev/null 2>&1; then
+        echo -e "${COLOR_CYAN}➜ OmaStack is managed by Arch pacman.${COLOR_RESET}"
+        echo -e "To update via pacman, run:"
+        echo -e "  ${COLOR_BOLD}sudo pacman -U https://github.com/anax/omastack/releases/latest/download/omastack-1.0.0-1-any.pkg.tar.zst${COLOR_RESET}"
+        echo -e "Or download the latest .pkg.tar.zst from https://github.com/anax/omastack"
+        return 0
+    fi
+
+    # 2. If running from or installed in git directory
+    local git_dir=""
+    if [ -d "${SCRIPT_DIR}/.git" ]; then
+        git_dir="${SCRIPT_DIR}"
+    elif [ -d "${SCRIPT_DIR}/../.git" ]; then
+        git_dir="${SCRIPT_DIR}/.."
+    elif [ -d "${HOME}/.local/share/omastack/.git" ]; then
+        git_dir="${HOME}/.local/share/omastack"
+    fi
+
+    if [ -n "${git_dir}" ] && command -v git >/dev/null 2>&1; then
+        log_info "Pulling latest changes in ${git_dir}..."
+        (cd "${git_dir}" && git pull --ff-only origin main) || {
+            log_warn "Fast-forward pull failed, fetching origin..."
+            (cd "${git_dir}" && git fetch && git reset --hard origin/main)
+        }
+        if [ -f "${git_dir}/install.sh" ]; then
+            bash "${git_dir}/install.sh"
+            log_success "OmaStack successfully updated to latest version!"
+            return 0
+        fi
+    fi
+
+    # 3. Direct remote update via curl
+    log_info "Downloading latest installer from GitHub..."
+    local tmp_installer
+    tmp_installer=$(mktemp -t omastack-installer-XXXXXX.sh)
+    if curl -fsSL "https://raw.githubusercontent.com/anax/omastack/main/install.sh" -o "${tmp_installer}"; then
+        bash "${tmp_installer}"
+        rm -f "${tmp_installer}"
+        log_success "OmaStack successfully updated to latest version!"
+    else
+        log_error "Failed to fetch update from GitHub. Check your network connection."
+        rm -f "${tmp_installer}"
+        return 1
+    fi
 }
 
 cmd_up() {
@@ -472,6 +523,9 @@ main() {
             else
                 log_error "Please specify a valid active stack (e.g. omastack logs laravel-stack)"
             fi
+            ;;
+        update|upgrade)
+            cmd_update
             ;;
         version|-v|--version)
             echo "omastack v${OMASTACK_VERSION} (Omarchy Linux Native)"

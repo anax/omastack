@@ -69,7 +69,7 @@ run_test_suite() {
 
     # 1. Syntax checking with bash -n
     echo -e "${BOLD}1. Validating Bash Script Syntax:${RESET}"
-    for script in "${src_dir}/bin/omastack" "${src_dir}/bin/omarchy" "${src_dir}/lib"/*.sh; do
+    for script in "${src_dir}/bin/omastack" "${src_dir}/bin/omarchy" "${src_dir}/runner.sh" "${src_dir}/../runner.sh" "${src_dir}/lib"/*.sh; do
         if [ -f "${script}" ]; then
             if bash -n "${script}"; then
                 pass_test "Syntax check: $(basename "${script}")"
@@ -471,23 +471,25 @@ EOF
         omarchy_plugins_dir="${HOME}/.config/omarchy/plugins/io.github.anax.omastack"
     fi
     mkdir -p "${omarchy_plugins_dir}"
-    for f in manifest.json BarWidget.qml Panel.qml omastack-icon.svg LICENSE; do
+    for f in manifest.json BarWidget.qml Panel.qml omastack-icon.svg runner.sh LICENSE; do
         if [ -f "${source_dir}/${f}" ]; then
             cp "${source_dir}/${f}" "${omarchy_plugins_dir}/"
         elif [ -f "${source_dir}/../${f}" ]; then
             cp "${source_dir}/../${f}" "${omarchy_plugins_dir}/"
         fi
     done
+    chmod +x "${omarchy_plugins_dir}/runner.sh" 2>/dev/null || true
     echo -e "${CYAN}➜ Installed Omarchy Quattro Bar-Widget to ${omarchy_plugins_dir}${RESET}"
 
     # Also make sure user config plugin is populated if running on host directly
     if [ -z "${destdir}" ] && [ "${omarchy_plugins_dir}" != "${HOME}/.config/omarchy/plugins/io.github.anax.omastack" ]; then
         mkdir -p "${HOME}/.config/omarchy/plugins/io.github.anax.omastack" 2>/dev/null || true
-        for f in manifest.json BarWidget.qml Panel.qml omastack-icon.svg LICENSE; do
+        for f in manifest.json BarWidget.qml Panel.qml omastack-icon.svg runner.sh LICENSE; do
             if [ -f "${omarchy_plugins_dir}/${f}" ]; then
                 cp "${omarchy_plugins_dir}/${f}" "${HOME}/.config/omarchy/plugins/io.github.anax.omastack/" 2>/dev/null || true
             fi
         done
+        chmod +x "${HOME}/.config/omarchy/plugins/io.github.anax.omastack/runner.sh" 2>/dev/null || true
     fi
 
     # Waybar module registration note
