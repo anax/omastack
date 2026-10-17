@@ -31,8 +31,14 @@ BarWidget {
         panelLoader.item.hostWidget = root
     }
 
-    implicitWidth: button.implicitWidth
-    implicitHeight: button.implicitHeight
+    TextMetrics {
+        id: buttonTextMetrics
+        text: button.text
+        font: button.font
+    }
+
+    implicitWidth: Math.max(button.implicitWidth, buttonTextMetrics.width + 24)
+    implicitHeight: button.implicitHeight > 0 ? button.implicitHeight : 30
     onBarChanged: injectPanel()
 
     // Real-time state properties populated from 'omastack status --widget'
@@ -101,13 +107,15 @@ BarWidget {
         bar: root.bar
         text: root.activeCount > 0 ? ("⚡ " + root.activeCount + " (" + root.totalRam + ")") : "⚡ 0"
         tooltipText: root.activeCount > 0
-            ? ("OmaStack: " + root.activeCount + " active sandboxes [" + root.totalRam + " RAM]\n• Left-click: Toggle details panel\n• Right-click: Open Walker menu")
-            : "OmaStack: No active sandboxes\n• Left-click: Launch sandboxes\n• Right-click: Open Walker menu"
+            ? ("OmaStack: " + root.activeCount + " active sandboxes [" + root.totalRam + " RAM]\n• Left-click: Toggle details panel\n• Right-click: Display panel\n• Middle-click: Open Walker menu")
+            : "OmaStack: No active sandboxes\n• Left-click: Launch sandboxes\n• Right-click: Display panel\n• Middle-click: Open Walker menu"
 
         onPressed: function(buttonCode) {
-            if (buttonCode === Qt.LeftButton) {
+            if (buttonCode === Qt.RightButton) {
+                root.open()
+            } else if (buttonCode === Qt.LeftButton) {
                 root.toggle()
-            } else if (buttonCode === Qt.RightButton) {
+            } else if (buttonCode === Qt.MiddleButton) {
                 menuProcess.running = true
             }
         }

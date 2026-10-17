@@ -33,6 +33,8 @@ Usage:
 Commands:
   up <template>        Spin up a multi-service stack template
   down [template|--all] Teardown active stack or all running stacks
+  restart <template>   Restart an active stack or refresh containers
+  init                 Detect framework and generate local .omastack.conf
   list                 List active sandboxes, RAM usage, and active domains
   status --waybar      Output single-line JSON payload for Waybar module
   menu                 Launch interactive Walker/Rofi dmenu or terminal TUI
@@ -234,6 +236,71 @@ cmd_list() {
     done
 }
 
+cmd_restart() {
+    local target="${1:-}"
+    if [ -z "${target}" ]; then
+        log_error "Please specify a stack to restart (e.g. omastack restart laravel-stack)"
+        exit 1
+    fi
+    local compose_file="${OMASTACK_STATE_DIR}/${target}-compose.yml"
+    if [ -f "${compose_file}" ]; then
+        log_info "Restarting sandbox '${target}'..."
+        if is_docker_available; then
+            docker compose -f "${compose_file}" -p "omastack-${target}" restart || true
+        fi
+        notify_desktop "OmaStack" "Restarted ${target} sandbox." "normal"
+        log_success "Sandbox '${target}' successfully restarted."
+    else
+        log_info "No active instance of '${target}' running. Spinning up fresh instance..."
+        cmd_up "${target}"
+    fi
+}
+
+cmd_init() {
+    log_info "Inspecting local directory for framework and dependency signatures..."
+    local detected=""
+    local conf_out=".omastack.conf"
+
+    if [ -f "composer.json" ] || [ -f "artisan" ]; then
+        detected="laravel-stack"
+        log_success "Detected PHP / Laravel project signature (composer.json / artisan)."
+    elif [ -f "foundry.toml" ] || [ -f "hardhat.config.js" ] || [ -f "hardhat.config.ts" ]; then
+        detected="web3-node"
+        log_success "Detected Web3 / Ethereum / EVM contract project signature."
+    elif [ -f "next.config.js" ] || [ -f "next.config.ts" ] || [ -f "next.config.mjs" ]; then
+        detected="nextjs-postgres"
+        log_success "Detected Next.js full-stack application signature."
+    elif [ -f "package.json" ]; then
+        if grep -q "supabase" "package.json" 2>/dev/null; then
+            detected="supabase-lite"
+            log_success "Detected Supabase client dependency in package.json."
+        elif grep -q "pg" "package.json" 2>/dev/null || grep -q "prisma" "package.json" 2>/dev/null; then
+            detected="nextjs-postgres"
+            log_success "Detected Postgres / Prisma dependency in package.json."
+        else
+            detected="nextjs-postgres"
+            log_success "Detected JavaScript / TypeScript project (package.json)."
+        fi
+    elif [ -f "workflow.json" ] || [ -d "workflows" ]; then
+        detected="automation-hub"
+        log_success "Detected Automation / n8n workflow signatures."
+    else
+        detected="nextjs-postgres"
+        log_info "No specific framework signature identified; defaulting to nextjs-postgres."
+    fi
+
+    cat << EOF > "${conf_out}"
+# OmaStack Local Project Configuration
+# Generated on $(date -u +'%Y-%m-%dT%H:%M:%SZ')
+STACK_TEMPLATE="${detected}"
+AUTO_INJECT_ENV=true
+PROXY_ENABLED=true
+EOF
+
+    log_success "Generated local project config at ${COLOR_BOLD}${conf_out}${COLOR_RESET} [default stack: ${detected}]."
+    echo -e "Run ${COLOR_CYAN}omastack up ${detected}${COLOR_RESET} or press ${COLOR_CYAN}Super + Alt + W${COLOR_RESET} to display the widget panel."
+}
+
 # Entrypoint dispatcher
 main() {
     local cmd="${1:-}"
@@ -245,6 +312,12 @@ main() {
             ;;
         down)
             cmd_down "${1:-}"
+            ;;
+        restart)
+            cmd_restart "${1:-}"
+            ;;
+        init)
+            cmd_init
             ;;
         list|ls)
             cmd_list

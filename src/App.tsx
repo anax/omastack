@@ -215,6 +215,40 @@ export default function App() {
     }
   };
 
+  // Restart active stack
+  const handleRestartStack = async (stackId: string) => {
+    addLog('cmd', `omastack restart ${stackId}`);
+    try {
+      const res = await fetch('/api/stacks/restart', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ templateId: stackId }),
+      });
+      const data = await res.json();
+      if (data.stdout) addLog('raw', data.stdout);
+      if (data.stderr) addLog('warn', data.stderr);
+      addNotification('OmaStack Restarted', `Restarted ${stackId} sandbox.`, 'success');
+      await fetchLiveState();
+    } catch (err: any) {
+      addLog('error', `✖ Failed to restart: ${err.message}`);
+    }
+  };
+
+  // Initialize project config
+  const handleInitProject = async () => {
+    addLog('cmd', 'omastack init');
+    try {
+      const res = await fetch('/api/stacks/init', { method: 'POST' });
+      const data = await res.json();
+      if (data.stdout) addLog('raw', data.stdout);
+      if (data.stderr) addLog('warn', data.stderr);
+      addNotification('OmaStack Init', 'Generated local .omastack.conf configuration.', 'success');
+      await fetchLiveState();
+    } catch (err: any) {
+      addLog('error', `✖ Failed to init: ${err.message}`);
+    }
+  };
+
   // Inject .env with real CLI execution
   const handleInjectEnv = async () => {
     addLog('cmd', `omastack inject`);
@@ -406,6 +440,8 @@ export default function App() {
         waybarStatus={waybarStatus}
         onLaunchStack={handleLaunchStack}
         onStopStack={handleStopStack}
+        onRestartStack={handleRestartStack}
+        onInitProject={handleInitProject}
         onStopAllStacks={handleStopAllStacks}
         onInjectEnv={handleInjectEnv}
         onCopySnippet={(text) => {

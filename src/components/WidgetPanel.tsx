@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Play, Square, Copy, Terminal, Shield, Cpu, RefreshCw, Layers, ExternalLink, Code2 } from 'lucide-react';
+import { X, Play, Square, Copy, Terminal, Shield, Cpu, RefreshCw, RotateCw, Sparkles, Layers, ExternalLink, Code2 } from 'lucide-react';
 import { OmarchyTheme, ActiveStack, StackTemplate, WidgetPayload, WaybarPayload } from '../types';
 
 interface WidgetPanelProps {
@@ -12,6 +12,8 @@ interface WidgetPanelProps {
   waybarStatus: WaybarPayload | null;
   onLaunchStack: (templateId: string) => void;
   onStopStack: (templateId: string) => void;
+  onRestartStack?: (templateId: string) => void;
+  onInitProject?: () => void;
   onStopAllStacks: () => void;
   onInjectEnv: () => void;
   onCopySnippet: (text: string) => void;
@@ -27,11 +29,14 @@ export const WidgetPanel: React.FC<WidgetPanelProps> = ({
   waybarStatus,
   onLaunchStack,
   onStopStack,
+  onRestartStack,
+  onInitProject,
   onStopAllStacks,
   onInjectEnv,
   onCopySnippet,
 }) => {
   const [activeTab, setActiveTab] = useState<'overview' | 'quick-launch' | 'json'>('overview');
+  const [templateFilter, setTemplateFilter] = useState<string>('');
 
   if (!isOpen) return null;
 
@@ -234,6 +239,15 @@ export const WidgetPanel: React.FC<WidgetPanelProps> = ({
                         </div>
 
                         <div className="flex items-center gap-1.5 shrink-0">
+                          {onRestartStack && (
+                            <button
+                              onClick={() => onRestartStack(stk.id)}
+                              className="p-1.5 rounded hover:bg-white/10 text-cyan-400 transition-colors"
+                              title="Restart sandbox"
+                            >
+                              <RotateCw className="w-3.5 h-3.5" />
+                            </button>
+                          )}
                           {stk.generatedEnvSnippet && (
                             <button
                               onClick={() => onCopySnippet(stk.generatedEnvSnippet!)}
@@ -260,7 +274,19 @@ export const WidgetPanel: React.FC<WidgetPanelProps> = ({
               {/* Quick Action Tools */}
               <div className="pt-2 border-t border-white/10">
                 <h4 className="font-bold text-xs uppercase tracking-wider opacity-80 mb-2">Widget Quick Actions</h4>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    onClick={onInitProject || (() => onCopySnippet('omastack init'))}
+                    className="p-2.5 rounded-xl border text-left flex items-center gap-2 hover:brightness-110 transition-all"
+                    style={{ backgroundColor: currentTheme.cardBg, borderColor: currentTheme.border }}
+                  >
+                    <Sparkles className="w-4 h-4 text-amber-400" />
+                    <div>
+                      <div className="font-bold text-[11px]">Init Project</div>
+                      <div className="text-[9px] opacity-60">Auto .omastack.conf</div>
+                    </div>
+                  </button>
+
                   <button
                     onClick={onInjectEnv}
                     className="p-2.5 rounded-xl border text-left flex items-center gap-2 hover:brightness-110 transition-all"
@@ -269,7 +295,7 @@ export const WidgetPanel: React.FC<WidgetPanelProps> = ({
                     <Code2 className="w-4 h-4" style={{ color: currentTheme.accent }} />
                     <div>
                       <div className="font-bold text-[11px]">Inject .env</div>
-                      <div className="text-[9px] opacity-60">Sync to active directory</div>
+                      <div className="text-[9px] opacity-60">Sync variables</div>
                     </div>
                   </button>
 
@@ -280,8 +306,8 @@ export const WidgetPanel: React.FC<WidgetPanelProps> = ({
                   >
                     <Shield className="w-4 h-4" style={{ color: currentTheme.primary }} />
                     <div>
-                      <div className="font-bold text-[11px]">Sync HTTPS Proxy</div>
-                      <div className="text-[9px] opacity-60">Caddy *.oma.local</div>
+                      <div className="font-bold text-[11px]">HTTPS Proxy</div>
+                      <div className="text-[9px] opacity-60">*.oma.local</div>
                     </div>
                   </button>
                 </div>
@@ -290,11 +316,33 @@ export const WidgetPanel: React.FC<WidgetPanelProps> = ({
           )}
 
           {activeTab === 'quick-launch' && (
-            <div className="space-y-2">
-              <div className="text-[11px] opacity-70 mb-2">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between gap-2">
+                <input
+                  type="text"
+                  placeholder="Filter templates (e.g. laravel, supabase, web3)..."
+                  value={templateFilter}
+                  onChange={(e) => setTemplateFilter(e.target.value)}
+                  className="w-full px-3 py-1.5 rounded-lg border bg-black/40 text-xs text-white placeholder-white/40 focus:outline-none focus:border-primary"
+                  style={{ borderColor: currentTheme.border }}
+                />
+                {templateFilter && (
+                  <button
+                    onClick={() => setTemplateFilter('')}
+                    className="text-[10px] px-2 py-1 rounded bg-white/10 hover:bg-white/20"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+
+              <div className="text-[11px] opacity-70">
                 Click any template to instantly spin up isolated Docker containers with dynamic zero-collision ports:
               </div>
-              {templates.map((tpl) => {
+
+              {templates
+                .filter((tpl) => !templateFilter || tpl.name.toLowerCase().includes(templateFilter.toLowerCase()) || tpl.description.toLowerCase().includes(templateFilter.toLowerCase()))
+                .map((tpl) => {
                 const isRunning = activeStacks.some((s) => s.id === tpl.id);
                 return (
                   <div
@@ -316,12 +364,23 @@ export const WidgetPanel: React.FC<WidgetPanelProps> = ({
 
                     <div>
                       {isRunning ? (
-                        <button
-                          onClick={() => onStopStack(tpl.id)}
-                          className="px-2.5 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1 bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-all"
-                        >
-                          <Square className="w-3 h-3" /> Stop
-                        </button>
+                        <div className="flex items-center gap-1.5">
+                          {onRestartStack && (
+                            <button
+                              onClick={() => onRestartStack(tpl.id)}
+                              className="p-1 rounded text-cyan-400 hover:bg-white/10 transition-colors"
+                              title="Restart"
+                            >
+                              <RotateCw className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                          <button
+                            onClick={() => onStopStack(tpl.id)}
+                            className="px-2.5 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1 bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-all"
+                          >
+                            <Square className="w-3 h-3" /> Stop
+                          </button>
+                        </div>
                       ) : (
                         <button
                           onClick={() => onLaunchStack(tpl.id)}

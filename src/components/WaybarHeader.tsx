@@ -113,7 +113,7 @@ export const WaybarHeader: React.FC<WaybarHeaderProps> = ({
       </div>
 
       {/* 2. CENTER: Clean Segmented Navigation Tabs */}
-      <nav className="flex items-center gap-0.5 sm:gap-1 bg-black/25 p-1 rounded-xl border border-white/10 overflow-x-auto no-scrollbar mx-2 shrink min-w-0">
+      <nav className="flex items-center gap-0.5 sm:gap-1 bg-black/25 p-1 rounded-xl border border-white/10 overflow-x-auto no-scrollbar mx-1.5 sm:mx-2 shrink min-w-0 max-w-fit">
         {NAV_TABS.map((tab) => {
           const isActive = activeTab === tab.id;
           return (
@@ -137,10 +137,10 @@ export const WaybarHeader: React.FC<WaybarHeaderProps> = ({
       </nav>
 
       {/* 3. RIGHT: Unified Sandbox Status, RAM Gauge, Theme Switcher & Clock */}
-      <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
+      <div className="flex items-center gap-2 sm:gap-2.5 shrink-0 relative z-30">
         {/* Unified Sandbox Status & Widget Panel Toggle */}
         <div
-          className="group relative flex items-center gap-2 px-2.5 py-1 rounded-full border shadow-sm transition-all cursor-pointer hover:border-white/30"
+          className="group relative flex items-center gap-2 px-2.5 py-1 rounded-full border shadow-sm transition-all cursor-pointer hover:border-white/30 shrink-0 z-20"
           style={{
             backgroundColor: currentTheme.cardBg,
             borderColor: activeStacks.length > 0 ? currentTheme.accent : currentTheme.border,
@@ -148,9 +148,9 @@ export const WaybarHeader: React.FC<WaybarHeaderProps> = ({
           onClick={onOpenWidgetPanel}
           onContextMenu={(e) => {
             e.preventDefault();
-            onStopAllStacks();
+            onOpenWidgetPanel();
           }}
-          title="Click to toggle OmaStack Widget Panel (W) | Right-click to stop all"
+          title="Click or right-click to display OmaStack Panel (Super + Alt + W)"
         >
           <span className="relative flex h-2 w-2">
             <span
@@ -183,7 +183,7 @@ export const WaybarHeader: React.FC<WaybarHeaderProps> = ({
 
           {/* Hover Tooltip */}
           <div
-            className="absolute top-full mt-2 right-0 hidden group-hover:block z-50 w-72 p-3 rounded-lg shadow-2xl border text-[11px] backdrop-blur-md pointer-events-none"
+            className="absolute top-full mt-2.5 right-0 hidden group-hover:block z-50 w-72 p-3 rounded-lg shadow-2xl border text-[11px] backdrop-blur-md pointer-events-none"
             style={{
               backgroundColor: currentTheme.bg,
               borderColor: currentTheme.border,
@@ -191,11 +191,11 @@ export const WaybarHeader: React.FC<WaybarHeaderProps> = ({
             }}
           >
             <div className="font-bold mb-1 flex items-center justify-between" style={{ color: currentTheme.primary }}>
-              <span>Waybar Module Tooltip (Live)</span>
+              <span>OmaStack Bar Module</span>
               <span className="text-[10px] opacity-70">class: {waybarStatus?.class || 'idle'}</span>
             </div>
             <pre className="whitespace-pre-wrap font-mono opacity-90 text-[10px] my-1">
-              {waybarStatus?.tooltip || '⚡ OmaStack: No active sandboxes\n\n[Left-Click] Open Menu\n[Right-Click] Stop All Stacks'}
+              {`⚡ OmaStack: ${activeStacks.length} active sandbox${activeStacks.length === 1 ? '' : 'es'} [${totalRamUsed}MB RAM]\n\n• Left-Click: Toggle details panel\n• Right-Click: Display panel\n• Super + Alt + W: Widget shortcut`}
             </pre>
           </div>
         </div>

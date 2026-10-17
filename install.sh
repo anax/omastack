@@ -145,6 +145,15 @@ run_test_suite() {
         fail_test "Failed 'omastack panel': ${panel_alias_out}"
     fi
 
+    local init_test_out
+    init_test_out=$(bash "${cli_bin}" init 2>&1)
+    if [[ "${init_test_out}" =~ "Generated local project config at" ]]; then
+        pass_test "Command 'omastack init' inspected project and generated .omastack.conf"
+        rm -f .omastack.conf
+    else
+        fail_test "Failed 'omastack init': ${init_test_out}"
+    fi
+
     # 3. Test Templates
     echo -e "\n${BOLD}3. Validating Stack Templates:${RESET}"
     local templates=("automation-hub" "laravel-stack" "nextjs-postgres" "supabase-lite" "web3-node")

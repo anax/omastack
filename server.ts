@@ -269,6 +269,33 @@ try {
     });
   });
 
+  // API: Restart stack with real CLI execution
+  app.post('/api/stacks/restart', async (req, res) => {
+    const { templateId } = req.body;
+    if (!templateId || typeof templateId !== 'string' || !/^[a-zA-Z0-9_-]+$/.test(templateId)) {
+      return res.status(400).json({ error: 'Valid alphanumeric templateId required' });
+    }
+
+    const { stdout, stderr, code } = await runCli(['restart', templateId]);
+    res.json({
+      success: code === 0,
+      stdout,
+      stderr,
+      code,
+    });
+  });
+
+  // API: Init project stack configuration
+  app.post('/api/stacks/init', async (req, res) => {
+    const { stdout, stderr, code } = await runCli(['init']);
+    res.json({
+      success: code === 0,
+      stdout,
+      stderr,
+      code,
+    });
+  });
+
   // API: Real Waybar JSON execution
   app.get('/api/waybar', async (req, res) => {
     const { stdout } = await runCli(['status', '--waybar']);

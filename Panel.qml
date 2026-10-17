@@ -10,6 +10,7 @@ Panel {
     id: root
     moduleName: "io.github.anax.omastack"
     manageIpc: false
+    z: 9999
 
     property var anchorItem: null
     property var hostWidget: null
@@ -30,7 +31,7 @@ Panel {
     }
 
     implicitWidth: 380
-    implicitHeight: 480
+    implicitHeight: 520
 
     // Process executor helper
     function executeCli(args) {
@@ -93,6 +94,17 @@ Panel {
                         color: (root.hostWidget && root.hostWidget.activeCount > 0) ? "#9ece6a" : "#7a88cf"
                         font.pixelSize: 11
                         font.bold: true
+                    }
+                }
+
+                Button {
+                    text: "↻"
+                    implicitWidth: 24
+                    implicitHeight: 24
+                    onClicked: {
+                        if (root.hostWidget && root.hostWidget.statusProcess) {
+                            root.hostWidget.statusProcess.running = true
+                        }
                     }
                 }
 
@@ -169,6 +181,13 @@ Panel {
                             Item { Layout.fillWidth: true }
 
                             Button {
+                                text: "↺"
+                                implicitHeight: 22
+                                implicitWidth: 32
+                                onClicked: root.executeCli(["omastack", "restart", modelData.id])
+                            }
+
+                            Button {
                                 text: "Stop"
                                 implicitHeight: 22
                                 implicitWidth: 48
@@ -240,7 +259,13 @@ Panel {
             // Quick Actions Row
             RowLayout {
                 Layout.fillWidth: true
-                spacing: 8
+                spacing: 6
+
+                Button {
+                    Layout.fillWidth: true
+                    text: "Init Conf"
+                    onClicked: root.executeCli(["omastack", "init"])
+                }
 
                 Button {
                     Layout.fillWidth: true
@@ -250,7 +275,7 @@ Panel {
 
                 Button {
                     Layout.fillWidth: true
-                    text: "Walker Menu"
+                    text: "Walker"
                     onClicked: {
                         root.close()
                         root.executeCli(["omastack", "menu"])
