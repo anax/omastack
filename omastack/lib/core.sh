@@ -55,7 +55,8 @@ notify_desktop() {
     local message="$2"
     local urgency="${3:-normal}"
     if command -v notify-send >/dev/null 2>&1; then
-        notify-send -u "${urgency}" -a "OmaStack" -i "dialog-information" "${title}" "${message}" || true
+        notify-send -u "${urgency}" -a "OmaStack" -i "dialog-information" -h "string:x-canonical-private-synchronous:omastack" "${title}" "${message}" 2>/dev/null || \
+        notify-send -u "${urgency}" -a "OmaStack" -i "dialog-information" "${title}" "${message}" 2>/dev/null || true
     fi
 }
 

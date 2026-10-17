@@ -203,16 +203,17 @@ cmd_up() {
         fi
     done
 
-    if is_docker_available; then
-        log_info "Launching Docker Compose containers..."
-        docker compose --env-file "${secrets_file}" -f "${compose_dest}" -p "omastack-${template}" up -d
-        wait_for_stack_healthy "${compose_dest}"
-    else
-        log_warn "Docker daemon is offline or inaccessible!"
+    if ! ensure_docker_daemon; then
+        log_error "Docker daemon is offline or inaccessible!"
         echo -e "${COLOR_YELLOW}➜ To launch containers, start Docker with:${COLOR_RESET} ${COLOR_BOLD}sudo systemctl enable --now docker${COLOR_RESET}"
-        echo -e "${COLOR_YELLOW}➜ Ensure user has docker permissions:${COLOR_RESET} ${COLOR_BOLD}sudo usermod -aG docker \$USER${COLOR_RESET}"
-        notify_desktop "OmaStack: Docker Offline" "Start Docker with: sudo systemctl start docker" "critical"
+        echo -e "${COLOR_YELLOW}➜ Ensure user has docker permissions:${COLOR_RESET} ${COLOR_BOLD}sudo usermod -aG docker \$USER && newgrp docker${COLOR_RESET}"
+        notify_desktop "OmaStack: Docker Offline" "Run: sudo systemctl enable --now docker" "critical"
+        return 1
     fi
+
+    log_info "Launching Docker Compose containers..."
+    docker compose --env-file "${secrets_file}" -f "${compose_dest}" -p "omastack-${template}" up -d
+    wait_for_stack_healthy "${compose_dest}"
 
     # Setup Proxy Domains if defined in stack.conf
     if [ -f "${conf_file}" ]; then

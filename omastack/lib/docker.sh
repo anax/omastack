@@ -8,6 +8,59 @@ is_docker_available() {
     command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1
 }
 
+# Auto-start Docker daemon if installed but stopped
+ensure_docker_daemon() {
+    if is_docker_available; then
+        return 0
+    fi
+
+    if ! command -v docker >/dev/null 2>&1; then
+        return 1
+    fi
+
+    log_info "Docker daemon is offline. Attempting to start Docker service..."
+
+    # 1. Try systemctl start docker (sudoers NOPASSWD or rootless)
+    if command -v systemctl >/dev/null 2>&1; then
+        systemctl start docker >/dev/null 2>&1 || true
+        systemctl --user start docker >/dev/null 2>&1 || true
+    fi
+
+    # Wait up to 3 seconds to see if socket became available
+    local count=0
+    while [ "${count}" -lt 3 ]; do
+        if is_docker_available; then
+            log_success "Docker daemon successfully started!"
+            return 0
+        fi
+        sleep 1
+        count=$((count + 1))
+    done
+
+    # 2. Try pkexec (GUI / Polkit prompt for Wayland/X11 desktops)
+    if command -v pkexec >/dev/null 2>&1 && [ -n "${WAYLAND_DISPLAY:-${DISPLAY:-}}" ]; then
+        log_info "Prompting for authorization to start Docker via Polkit..."
+        pkexec systemctl start docker >/dev/null 2>&1 || true
+        sleep 1
+        if is_docker_available; then
+            log_success "Docker daemon successfully started via Polkit!"
+            return 0
+        fi
+    fi
+
+    # 3. Try sudo non-interactively
+    if command -v sudo >/dev/null 2>&1; then
+        sudo -n systemctl start docker >/dev/null 2>&1 || true
+        sleep 1
+        if is_docker_available; then
+            log_success "Docker daemon successfully started!"
+            return 0
+        fi
+    fi
+
+    return 1
+}
+
 # Ensure shared Docker network exists
 ensure_omastack_network() {
     if is_docker_available; then
