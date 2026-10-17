@@ -34,7 +34,34 @@ if [ -z "${BIN}" ]; then
     exit 127
 fi
 
-# 3. Optional user desktop notification for user feedback
+# 3. Auto-bootstrap CLI binary into ~/.local/bin/omastack if missing
+if [ ! -x "${HOME}/.local/bin/omastack" ]; then
+    mkdir -p "${HOME}/.local/bin" 2>/dev/null || true
+    cp "${BIN}" "${HOME}/.local/bin/omastack" 2>/dev/null || true
+    chmod +x "${HOME}/.local/bin/omastack" 2>/dev/null || true
+fi
+
+# 4. Auto-bootstrap library files into ~/.local/share/omastack if missing
+if [ ! -d "${HOME}/.local/share/omastack/lib" ]; then
+    mkdir -p "${HOME}/.local/share/omastack" 2>/dev/null || true
+    if [ -d "${SCRIPT_DIR}/omastack/lib" ]; then
+        cp -r "${SCRIPT_DIR}/omastack/lib" "${HOME}/.local/share/omastack/" 2>/dev/null || true
+        cp -r "${SCRIPT_DIR}/omastack/templates" "${HOME}/.local/share/omastack/" 2>/dev/null || true
+    elif [ -d "${SCRIPT_DIR}/lib" ]; then
+        cp -r "${SCRIPT_DIR}/lib" "${HOME}/.local/share/omastack/" 2>/dev/null || true
+        cp -r "${SCRIPT_DIR}/templates" "${HOME}/.local/share/omastack/" 2>/dev/null || true
+    fi
+fi
+
+# 5. Ensure ~/.local/bin is present in shell startup configs
+if [ -f "${HOME}/.bashrc" ] && ! grep -q '\.local/bin' "${HOME}/.bashrc" 2>/dev/null; then
+    echo 'export PATH="${HOME}/.local/bin:${PATH}"' >> "${HOME}/.bashrc" 2>/dev/null || true
+fi
+if [ -f "${HOME}/.zshrc" ] && ! grep -q '\.local/bin' "${HOME}/.zshrc" 2>/dev/null; then
+    echo 'export PATH="${HOME}/.local/bin:${PATH}"' >> "${HOME}/.zshrc" 2>/dev/null || true
+fi
+
+# 6. Optional user desktop notification for user feedback
 CMD="${1:-}"
 SUB="${2:-}"
 if [ "${CMD}" = "up" ] && [ -n "${SUB}" ]; then
@@ -51,5 +78,5 @@ elif [ "${CMD}" = "down" ] && [ -n "${SUB}" ]; then
     fi
 fi
 
-# 4. Execute omastack
+# 7. Execute omastack
 exec "${BIN}" "$@"
