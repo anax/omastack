@@ -4,28 +4,44 @@
 
 set -euo pipefail
 
-# Resolve script directory and source libraries
-if [ -d "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/lib" ]; then
-    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-elif [ -d "${OMASTACK_HOME:-${HOME}/.local/share/omastack}/lib" ]; then
-    SCRIPT_DIR="${OMASTACK_HOME:-${HOME}/.local/share/omastack}"
-elif [ -d "${HOME}/.local/share/omastack/lib" ]; then
-    SCRIPT_DIR="${HOME}/.local/share/omastack"
-elif [ -d "/usr/share/omastack/lib" ]; then
-    SCRIPT_DIR="/usr/share/omastack"
-elif [ -d "/usr/local/share/omastack/lib" ]; then
-    SCRIPT_DIR="/usr/local/share/omastack"
-else
-    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# Resolve script directory and source libraries with extensive search path
+RESOLVED_LIB_DIR=""
+SELF_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PARENT_DIR="$(cd "${SELF_DIR}/.." && pwd)"
+
+for candidate in \
+    "${SELF_DIR}/lib" \
+    "${SELF_DIR}/omastack/lib" \
+    "${PARENT_DIR}/lib" \
+    "${PARENT_DIR}/omastack/lib" \
+    "${OMASTACK_HOME:-${HOME}/.local/share/omastack}/lib" \
+    "${HOME}/.local/share/omastack/lib" \
+    "${HOME}/.config/omarchy/plugins/io.github.anax.omastack/omastack/lib" \
+    "${HOME}/.config/omarchy/plugins/io.github.anax.omastack/lib" \
+    "${HOME}/.config/omarchy/plugins/omacom.omastack/omastack/lib" \
+    "${HOME}/.config/omarchy/plugins/omacom.omastack/lib" \
+    "/usr/local/share/omastack/lib" \
+    "/usr/share/omastack/lib"; do
+    if [ -d "${candidate}" ] && [ -f "${candidate}/core.sh" ]; then
+        RESOLVED_LIB_DIR="${candidate}"
+        break
+    fi
+done
+
+if [ -z "${RESOLVED_LIB_DIR}" ]; then
+    echo "Error: OmaStack libraries not found (core.sh missing)." >&2
+    exit 1
 fi
 
+SCRIPT_DIR="$(cd "${RESOLVED_LIB_DIR}/.." && pwd)"
+
 # Source libraries
-source "${SCRIPT_DIR}/lib/core.sh"
-source "${SCRIPT_DIR}/lib/docker.sh"
-source "${SCRIPT_DIR}/lib/env.sh"
-source "${SCRIPT_DIR}/lib/proxy.sh"
-source "${SCRIPT_DIR}/lib/theme.sh"
-source "${SCRIPT_DIR}/lib/ui.sh"
+source "${RESOLVED_LIB_DIR}/core.sh"
+source "${RESOLVED_LIB_DIR}/docker.sh"
+source "${RESOLVED_LIB_DIR}/env.sh"
+source "${RESOLVED_LIB_DIR}/proxy.sh"
+source "${RESOLVED_LIB_DIR}/theme.sh"
+source "${RESOLVED_LIB_DIR}/ui.sh"
 
 usage() {
     cat << 'EOF'
@@ -122,19 +138,26 @@ cmd_up() {
         exit 1
     fi
 
-    local tmpl_dir="${SCRIPT_DIR}/templates/${template}"
-    if [ ! -d "${tmpl_dir}" ]; then
-        tmpl_dir="${OMASTACK_TEMPLATES_DIR}/${template}"
-    fi
-    if [ ! -d "${tmpl_dir}" ] && [ -d "/usr/share/omastack/templates/${template}" ]; then
-        tmpl_dir="/usr/share/omastack/templates/${template}"
-    fi
-    if [ ! -d "${tmpl_dir}" ] && [ -d "/usr/local/share/omastack/templates/${template}" ]; then
-        tmpl_dir="/usr/local/share/omastack/templates/${template}"
-    fi
+    local tmpl_dir=""
+    for cand in \
+        "${SCRIPT_DIR}/templates/${template}" \
+        "${SCRIPT_DIR}/omastack/templates/${template}" \
+        "${OMASTACK_TEMPLATES_DIR:-}/templates/${template}" \
+        "${OMASTACK_TEMPLATES_DIR:-}/${template}" \
+        "${HOME}/.local/share/omastack/templates/${template}" \
+        "${HOME}/.config/omarchy/plugins/io.github.anax.omastack/omastack/templates/${template}" \
+        "${HOME}/.config/omarchy/plugins/io.github.anax.omastack/templates/${template}" \
+        "${HOME}/.config/omarchy/plugins/omacom.omastack/omastack/templates/${template}" \
+        "/usr/local/share/omastack/templates/${template}" \
+        "/usr/share/omastack/templates/${template}"; do
+        if [ -n "${cand}" ] && [ -d "${cand}" ] && [ -f "${cand}/docker-compose.yml" ]; then
+            tmpl_dir="${cand}"
+            break
+        fi
+    done
 
-    if [ ! -d "${tmpl_dir}" ]; then
-        log_error "Template '${template}' not found in ${SCRIPT_DIR}/templates or ${OMASTACK_TEMPLATES_DIR}"
+    if [ -z "${tmpl_dir}" ]; then
+        log_error "Template '${template}' not found in any OmaStack template directories."
         exit 1
     fi
 
@@ -306,14 +329,26 @@ cmd_list() {
         echo "No active sandboxes currently running."
         echo ""
         echo "Available templates to launch:"
-        local tmpl_search_dir="${SCRIPT_DIR}/templates"
-        if [ ! -d "${tmpl_search_dir}" ]; then
-            tmpl_search_dir="${OMASTACK_TEMPLATES_DIR}"
+        local tmpl_search_dir=""
+        for cand in \
+            "${SCRIPT_DIR}/templates" \
+            "${SCRIPT_DIR}/omastack/templates" \
+            "${OMASTACK_TEMPLATES_DIR:-}/templates" \
+            "${OMASTACK_TEMPLATES_DIR:-}" \
+            "${HOME}/.local/share/omastack/templates" \
+            "${HOME}/.config/omarchy/plugins/io.github.anax.omastack/omastack/templates" \
+            "${HOME}/.config/omarchy/plugins/io.github.anax.omastack/templates" \
+            "${HOME}/.config/omarchy/plugins/omacom.omastack/omastack/templates" \
+            "/usr/local/share/omastack/templates" \
+            "/usr/share/omastack/templates"; do
+            if [ -n "${cand}" ] && [ -d "${cand}" ]; then
+                tmpl_search_dir="${cand}"
+                break
+            fi
+        done
+        if [ -n "${tmpl_search_dir}" ]; then
+            ls -1 "${tmpl_search_dir}" 2>/dev/null | sed 's/^/ - /'
         fi
-        if [ ! -d "${tmpl_search_dir}" ] && [ -d "/usr/share/omastack/templates" ]; then
-            tmpl_search_dir="/usr/share/omastack/templates"
-        fi
-        ls -1 "${tmpl_search_dir}" 2>/dev/null | sed 's/^/ - /'
         return
     fi
 

@@ -1,14 +1,574 @@
 #!/usr/bin/env bash
-# OmaStack Root Binary Forwarder
+# OmaStack Main Executable CLI & Menu Dispatcher
 # SPDX-License-Identifier: MIT
+
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-if [ -f "${SCRIPT_DIR}/omastack/bin/omastack" ]; then
-    exec bash "${SCRIPT_DIR}/omastack/bin/omastack" "$@"
-elif [ -f "${SCRIPT_DIR}/runner.sh" ]; then
-    exec bash "${SCRIPT_DIR}/runner.sh" "$@"
+# Resolve script directory and source libraries with extensive search path
+RESOLVED_LIB_DIR=""
+SELF_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PARENT_DIR="$(cd "${SELF_DIR}/.." && pwd)"
+
+for candidate in \
+    "${SELF_DIR}/lib" \
+    "${SELF_DIR}/omastack/lib" \
+    "${PARENT_DIR}/lib" \
+    "${PARENT_DIR}/omastack/lib" \
+    "${OMASTACK_HOME:-${HOME}/.local/share/omastack}/lib" \
+    "${HOME}/.local/share/omastack/lib" \
+    "${HOME}/.config/omarchy/plugins/io.github.anax.omastack/omastack/lib" \
+    "${HOME}/.config/omarchy/plugins/io.github.anax.omastack/lib" \
+    "${HOME}/.config/omarchy/plugins/omacom.omastack/omastack/lib" \
+    "${HOME}/.config/omarchy/plugins/omacom.omastack/lib" \
+    "/usr/local/share/omastack/lib" \
+    "/usr/share/omastack/lib"; do
+    if [ -d "${candidate}" ] && [ -f "${candidate}/core.sh" ]; then
+        RESOLVED_LIB_DIR="${candidate}"
+        break
+    fi
+done
+
+if [ -z "${RESOLVED_LIB_DIR}" ]; then
+    echo "Error: OmaStack libraries not found (core.sh missing)." >&2
+    exit 1
 fi
 
-echo "Error: Cannot locate omastack main binary" >&2
-exit 1
+SCRIPT_DIR="$(cd "${RESOLVED_LIB_DIR}/.." && pwd)"
+
+# Source libraries
+source "${RESOLVED_LIB_DIR}/core.sh"
+source "${RESOLVED_LIB_DIR}/docker.sh"
+source "${RESOLVED_LIB_DIR}/env.sh"
+source "${RESOLVED_LIB_DIR}/proxy.sh"
+source "${RESOLVED_LIB_DIR}/theme.sh"
+source "${RESOLVED_LIB_DIR}/ui.sh"
+
+usage() {
+    cat << 'EOF'
+OmaStack - Native, zero-bloat ephemeral sandbox launcher for Omarchy Linux
+
+Usage:
+  omastack <command> [options]
+
+Commands:
+  up <template>        Spin up a multi-service stack template
+  down [template|--all] Teardown active stack or all running stacks
+  restart <template>   Restart an active stack or refresh containers
+  init                 Detect framework and generate local .omastack.conf
+  list                 List active sandboxes, RAM usage, and active domains
+  status --waybar      Output single-line JSON payload for Waybar module
+  menu                 Launch interactive Walker/Rofi dmenu or terminal TUI
+  widget [options]     Launch OmaStack Widget Panel (--json, --dry-run, --gui)
+  panel [options]      Alias for widget panel
+  theme [list|apply]   List or apply Omarchy curated theme packages
+  inject [env_file]    Inject connection strings into current directory .env
+  proxy [list|sync]    Manage Caddy HTTPS local proxy (*.oma.local)
+  logs <template>      Tail live Docker container logs
+  update               Update OmaStack and plugin to latest version
+  version              Print OmaStack version information
+
+Examples:
+  omastack up laravel-stack
+  omastack up supabase-lite
+  omastack status --waybar
+  omastack down --all
+EOF
+    exit 0
+}
+
+cmd_update() {
+    log_info "Checking for OmaStack updates..."
+
+    # 1. If installed as native Arch Linux package
+    if command -v pacman >/dev/null 2>&1 && pacman -Q omastack >/dev/null 2>&1; then
+        echo -e "${COLOR_CYAN}➜ OmaStack is managed by Arch pacman.${COLOR_RESET}"
+        echo -e "To update via pacman, run:"
+        echo -e "  ${COLOR_BOLD}sudo pacman -U https://github.com/anax/omastack/releases/latest/download/omastack-1.0.0-1-any.pkg.tar.zst${COLOR_RESET}"
+        echo -e "Or download the latest .pkg.tar.zst from https://github.com/anax/omastack"
+        return 0
+    fi
+
+    # 2. If running from or installed in git directory
+    local git_dir=""
+    if [ -d "${SCRIPT_DIR}/.git" ]; then
+        git_dir="${SCRIPT_DIR}"
+    elif [ -d "${SCRIPT_DIR}/../.git" ]; then
+        git_dir="${SCRIPT_DIR}/.."
+    elif [ -d "${HOME}/.local/share/omastack/.git" ]; then
+        git_dir="${HOME}/.local/share/omastack"
+    fi
+
+    if [ -n "${git_dir}" ] && command -v git >/dev/null 2>&1; then
+        log_info "Pulling latest changes in ${git_dir}..."
+        (cd "${git_dir}" && git pull --ff-only origin main) || {
+            log_warn "Fast-forward pull failed, fetching origin..."
+            (cd "${git_dir}" && git fetch && git reset --hard origin/main)
+        }
+        if [ -f "${git_dir}/install.sh" ]; then
+            bash "${git_dir}/install.sh"
+            log_success "OmaStack successfully updated to latest version!"
+            return 0
+        fi
+    fi
+
+    # 3. Direct remote update via curl
+    log_info "Downloading latest installer from GitHub..."
+    local tmp_installer
+    tmp_installer=$(mktemp -t omastack-installer-XXXXXX.sh)
+    if curl -fsSL "https://raw.githubusercontent.com/anax/omastack/main/install.sh" -o "${tmp_installer}"; then
+        bash "${tmp_installer}"
+        rm -f "${tmp_installer}"
+        log_success "OmaStack successfully updated to latest version!"
+    else
+        log_error "Failed to fetch update from GitHub. Check your network connection."
+        rm -f "${tmp_installer}"
+        return 1
+    fi
+}
+
+cmd_up() {
+    local template="${1:-}"
+    if [ -z "${template}" ]; then
+        log_error "Please specify a template (e.g. laravel-stack, supabase-lite, nextjs-postgres, automation-hub, web3-node)"
+        exit 1
+    fi
+
+    if [[ ! "${template}" =~ ^[a-zA-Z0-9_-]+$ ]]; then
+        log_error "Invalid template name '${template}' (alphanumerics, hyphens, and underscores only)."
+        exit 1
+    fi
+
+    local tmpl_dir=""
+    for cand in \
+        "${SCRIPT_DIR}/templates/${template}" \
+        "${SCRIPT_DIR}/omastack/templates/${template}" \
+        "${OMASTACK_TEMPLATES_DIR:-}/templates/${template}" \
+        "${OMASTACK_TEMPLATES_DIR:-}/${template}" \
+        "${HOME}/.local/share/omastack/templates/${template}" \
+        "${HOME}/.config/omarchy/plugins/io.github.anax.omastack/omastack/templates/${template}" \
+        "${HOME}/.config/omarchy/plugins/io.github.anax.omastack/templates/${template}" \
+        "${HOME}/.config/omarchy/plugins/omacom.omastack/omastack/templates/${template}" \
+        "/usr/local/share/omastack/templates/${template}" \
+        "/usr/share/omastack/templates/${template}"; do
+        if [ -n "${cand}" ] && [ -d "${cand}" ] && [ -f "${cand}/docker-compose.yml" ]; then
+            tmpl_dir="${cand}"
+            break
+        fi
+    done
+
+    if [ -z "${tmpl_dir}" ]; then
+        log_error "Template '${template}' not found in any OmaStack template directories."
+        exit 1
+    fi
+
+    log_info "Initializing ephemeral sandbox: ${COLOR_BOLD}${template}${COLOR_RESET}..."
+    check_dependencies
+    ensure_omastack_network
+
+    # Read stack.conf for ports
+    local conf_file="${tmpl_dir}/stack.conf"
+    local compose_src="${tmpl_dir}/docker-compose.yml"
+    local compose_dest="${OMASTACK_STATE_DIR}/${template}-compose.yml"
+
+    # Dynamic Port Scanner & Conflict Resolution
+    log_info "Scanning local network ports with ss..."
+    local port_args=""
+
+    if [ -f "${conf_file}" ]; then
+        while IFS='=' read -r port_var default_port; do
+            [[ "${port_var}" =~ ^PORT_ ]] || continue
+            default_port=$(echo "${default_port}" | tr -d ' "\r')
+            local resolved_port
+            resolved_port=$(find_available_port "${default_port}")
+            export "${port_var}=${resolved_port}"
+            port_args="${port_args} ${port_var}=${resolved_port}"
+            if [ "${resolved_port}" != "${default_port}" ]; then
+                log_warn "Port collision detected for ${port_var}! Dynamically remapped ${default_port} -> ${resolved_port}"
+            fi
+        done < "${conf_file}"
+    fi
+
+    # Ensure per-sandbox random secrets exist before starting containers
+    ensure_stack_secrets "${template}"
+    local secrets_file="${OMASTACK_STATE_DIR}/${template}.secrets.env"
+
+    # Render compose file with resolved ports (0600 permissions)
+    cp "${compose_src}" "${compose_dest}"
+    chmod 600 "${compose_dest}" 2>/dev/null || true
+
+    if is_docker_available; then
+        log_info "Launching Docker Compose containers..."
+        docker compose --env-file "${secrets_file}" -f "${compose_dest}" -p "omastack-${template}" up -d
+        wait_for_stack_healthy "${compose_dest}"
+    else
+        log_info "Docker daemon offline; initialized ephemeral sandbox state in localized mode."
+        log_success "Generated target Compose spec at ${compose_dest} with resolved ports."
+    fi
+
+    # Setup Proxy Domains if defined in stack.conf
+    if [ -f "${conf_file}" ]; then
+        local domains
+        domains=$(grep -E "^DOMAIN_" "${conf_file}" || true)
+        if [ -n "${domains}" ]; then
+            while IFS='=' read -r dom_var dom_val; do
+                dom_val=$(echo "${dom_val}" | tr -d ' "\r')
+                local dom_name="${dom_val%%:*}"
+                local dom_port_var="${dom_val#*:}"
+                local target_port="${!dom_port_var:-80}"
+                register_proxy_domain "${dom_name}" "${target_port}"
+            done <<< "${domains}"
+        fi
+    fi
+
+    # Format Connection String & Sync to Clipboard
+    local env_snippet
+    env_snippet=$(generate_env_snippet "${template}" "${port_args}")
+    copy_to_clipboard "${env_snippet}"
+
+    # Build valid ports and domains JSON
+    local ports_json=""
+    if [ -f "${conf_file}" ]; then
+        while IFS='=' read -r port_var default_port; do
+            [[ "${port_var}" =~ ^PORT_ ]] || continue
+            local p_clean="${port_var#PORT_}"
+            local p_val="${!port_var:-${default_port}}"
+            p_val=$(echo "${p_val}" | tr -d ' "\r')
+            if [ -n "${ports_json}" ]; then
+                ports_json="${ports_json},"
+            fi
+            ports_json="${ports_json}\"${p_clean}\":${p_val}"
+        done < "${conf_file}"
+    fi
+
+    local domains_json=""
+    if [ -f "${conf_file}" ]; then
+        local domains
+        domains=$(grep -E "^DOMAIN_" "${conf_file}" || true)
+        if [ -n "${domains}" ]; then
+            while IFS='=' read -r dom_var dom_val; do
+                dom_val=$(echo "${dom_val}" | tr -d ' "\r')
+                local dom_name="${dom_val%%:*}"
+                if [ -n "${domains_json}" ]; then
+                    domains_json="${domains_json},"
+                fi
+                domains_json="${domains_json}{\"url\":\"https://${dom_name}\",\"port\":80}"
+            done <<< "${domains}"
+        fi
+    fi
+
+    # State tracking with valid JSON
+    local json_state="{\"name\":\"${template}\",\"status\":\"running\",\"started_at\":\"$(date -u +'%Y-%m-%dT%H:%M:%SZ')\",\"ports\":{${ports_json}},\"domains\":[${domains_json}],\"ram_mb\":180}"
+    save_stack_state "${template}" "${json_state}"
+
+    notify_desktop "OmaStack Sandbox Ready!" "🚀 ${template} is up! Connection variables copied to clipboard." "normal"
+    log_success "Sandbox '${template}' successfully running! Connection string snippet copied via wl-copy."
+}
+
+cmd_down() {
+    local target="${1:-}"
+    local purge_flag="${2:-}"
+    local compose_down_args=("down" "--remove-orphans")
+
+    if [ "${target}" = "--purge" ]; then
+        target="--all"
+        compose_down_args=("down" "-v" "--remove-orphans")
+    elif [ "${purge_flag}" = "--purge" ]; then
+        compose_down_args=("down" "-v" "--remove-orphans")
+    fi
+
+    if [ "${target}" = "--all" ] || [ -z "${target}" ]; then
+        local active_stacks
+        active_stacks=$(get_active_stacks)
+        if [ -z "${active_stacks}" ]; then
+            log_info "No active sandboxes to tear down."
+            return
+        fi
+
+        log_info "Tearing down all active OmaStack sandboxes (volumes preserved by default)..."
+        for stack in ${active_stacks}; do
+            if [[ ! "${stack}" =~ ^[a-zA-Z0-9_-]+$ ]]; then
+                continue
+            fi
+            local compose_file="${OMASTACK_STATE_DIR}/${stack}-compose.yml"
+            if [ -f "${compose_file}" ]; then
+                if is_docker_available; then
+                    docker compose -f "${compose_file}" -p "omastack-${stack}" "${compose_down_args[@]}" || true
+                fi
+                remove_stack_state "${stack}"
+            fi
+        done
+        notify_desktop "OmaStack Cleared" "All active Docker sandboxes stopped and RAM freed." "normal"
+        log_success "All sandboxes successfully stopped and cleaned up!"
+    else
+        if [[ ! "${target}" =~ ^[a-zA-Z0-9_-]+$ ]]; then
+            log_error "Invalid sandbox name '${target}'."
+            exit 1
+        fi
+        local compose_file="${OMASTACK_STATE_DIR}/${target}-compose.yml"
+        if [ -f "${compose_file}" ]; then
+            log_info "Stopping sandbox '${target}' (volumes preserved)..."
+            if is_docker_available; then
+                docker compose -f "${compose_file}" -p "omastack-${target}" "${compose_down_args[@]}" || true
+            fi
+            remove_stack_state "${target}"
+            notify_desktop "OmaStack" "Stopped ${target} sandbox." "normal"
+            log_success "Sandbox '${target}' stopped."
+        else
+            log_warn "No active state file found for '${target}'"
+        fi
+    fi
+}
+
+cmd_list() {
+    echo -e "${COLOR_BOLD}OmaStack Active Ephemeral Sandboxes${COLOR_RESET}"
+    echo -e "================================================="
+    local active_stacks
+    active_stacks=$(get_active_stacks)
+
+    if [ -z "${active_stacks}" ]; then
+        echo "No active sandboxes currently running."
+        echo ""
+        echo "Available templates to launch:"
+        local tmpl_search_dir=""
+        for cand in \
+            "${SCRIPT_DIR}/templates" \
+            "${SCRIPT_DIR}/omastack/templates" \
+            "${OMASTACK_TEMPLATES_DIR:-}/templates" \
+            "${OMASTACK_TEMPLATES_DIR:-}" \
+            "${HOME}/.local/share/omastack/templates" \
+            "${HOME}/.config/omarchy/plugins/io.github.anax.omastack/omastack/templates" \
+            "${HOME}/.config/omarchy/plugins/io.github.anax.omastack/templates" \
+            "${HOME}/.config/omarchy/plugins/omacom.omastack/omastack/templates" \
+            "/usr/local/share/omastack/templates" \
+            "/usr/share/omastack/templates"; do
+            if [ -n "${cand}" ] && [ -d "${cand}" ]; then
+                tmpl_search_dir="${cand}"
+                break
+            fi
+        done
+        if [ -n "${tmpl_search_dir}" ]; then
+            ls -1 "${tmpl_search_dir}" 2>/dev/null | sed 's/^/ - /'
+        fi
+        return
+    fi
+
+    printf "%-18s %-12s %-25s\n" "STACK" "RAM USAGE" "STATUS"
+    printf "%-18s %-12s %-25s\n" "-----" "---------" "------"
+    for stack in ${active_stacks}; do
+        local ram
+        ram=$(get_stack_ram_usage "${stack}")
+        printf "%-18s %-12s %-25s\n" "${stack}" "${ram}" "Healthy / Active"
+    done
+}
+
+cmd_restart() {
+    local target="${1:-}"
+    if [ -z "${target}" ]; then
+        log_error "Please specify a stack to restart (e.g. omastack restart laravel-stack)"
+        exit 1
+    fi
+    if [[ ! "${target}" =~ ^[a-zA-Z0-9_-]+$ ]]; then
+        log_error "Invalid stack name '${target}'."
+        exit 1
+    fi
+    local compose_file="${OMASTACK_STATE_DIR}/${target}-compose.yml"
+    if [ -f "${compose_file}" ]; then
+        log_info "Restarting sandbox '${target}'..."
+        if is_docker_available; then
+            docker compose -f "${compose_file}" -p "omastack-${target}" restart || true
+        fi
+        notify_desktop "OmaStack" "Restarted ${target} sandbox." "normal"
+        log_success "Sandbox '${target}' successfully restarted."
+    else
+        log_info "No active instance of '${target}' running. Spinning up fresh instance..."
+        cmd_up "${target}"
+    fi
+}
+
+cmd_init() {
+    log_info "Inspecting local directory for framework and dependency signatures..."
+    local detected=""
+    local conf_out=".omastack.conf"
+
+    if [ -f "wp-config.php" ] || [ -f "wp-config-sample.php" ]; then
+        detected="wordpress-mariadb"
+        log_success "Detected WordPress / WooCommerce project signature (wp-config.php)."
+    elif [ -f "composer.json" ] || [ -f "artisan" ]; then
+        detected="laravel-stack"
+        log_success "Detected PHP / Laravel project signature (composer.json / artisan)."
+    elif [ -f "manage.py" ]; then
+        detected="django-celery"
+        log_success "Detected Python Django / Celery project signature (manage.py)."
+    elif [ -f "Gemfile" ] || [ -f "config/deploy.yml" ]; then
+        detected="rails-kamal"
+        log_success "Detected Ruby on Rails / Kamal project signature (Gemfile)."
+    elif [ -f "go.mod" ] || [ -f "Cargo.toml" ]; then
+        detected="golang-microservices"
+        log_success "Detected Go / Rust backend microservice signature (go.mod / Cargo.toml)."
+    elif [ -f "foundry.toml" ] || [ -f "hardhat.config.js" ] || [ -f "hardhat.config.ts" ]; then
+        detected="web3-node"
+        log_success "Detected Web3 / Ethereum / EVM contract project signature."
+    elif [ -f "prometheus.yml" ] || [ -d "grafana" ]; then
+        detected="observability-lgtm"
+        log_success "Detected Grafana / Prometheus observability configuration."
+    elif [ -f "requirements.txt" ] || [ -f "pyproject.toml" ]; then
+        if grep -qi "django\|celery\|fastapi" "requirements.txt" "pyproject.toml" 2>/dev/null; then
+            detected="django-celery"
+            log_success "Detected Python Django / FastAPI / Celery dependencies."
+        else
+            detected="ai-rag-stack"
+            log_success "Detected Python AI / RAG / Vector application signature."
+        fi
+    elif [ -f "next.config.js" ] || [ -f "next.config.ts" ] || [ -f "next.config.mjs" ]; then
+        detected="nextjs-postgres"
+        log_success "Detected Next.js full-stack application signature."
+    elif [ -f "package.json" ]; then
+        if grep -q "supabase" "package.json" 2>/dev/null; then
+            detected="supabase-lite"
+            log_success "Detected Supabase client dependency in package.json."
+        elif grep -q "@directus" "package.json" 2>/dev/null || grep -q "directus" "package.json" 2>/dev/null; then
+            detected="directus-cms"
+            log_success "Detected Directus Headless CMS dependency in package.json."
+        elif grep -q "clickhouse" "package.json" 2>/dev/null || grep -q "kafkajs" "package.json" 2>/dev/null; then
+            detected="clickhouse-analytics"
+            log_success "Detected ClickHouse / Kafka event streaming dependency in package.json."
+        elif grep -q "keycloak" "package.json" 2>/dev/null; then
+            detected="keycloak-iam"
+            log_success "Detected Keycloak OIDC/IAM dependency in package.json."
+        elif grep -q "mongoose" "package.json" 2>/dev/null || grep -q "mongodb" "package.json" 2>/dev/null; then
+            detected="mern-mongo"
+            log_success "Detected MongoDB / Mongoose dependency in package.json."
+        elif grep -q "qdrant" "package.json" 2>/dev/null || grep -q "langchain" "package.json" 2>/dev/null; then
+            detected="ai-rag-stack"
+            log_success "Detected AI / Vector RAG dependency in package.json."
+        elif grep -q "pg" "package.json" 2>/dev/null || grep -q "prisma" "package.json" 2>/dev/null; then
+            detected="nextjs-postgres"
+            log_success "Detected Postgres / Prisma dependency in package.json."
+        else
+            detected="nextjs-postgres"
+            log_success "Detected JavaScript / TypeScript project (package.json)."
+        fi
+    elif [ -f "workflow.json" ] || [ -d "workflows" ]; then
+        detected="automation-hub"
+        log_success "Detected Automation / n8n workflow signatures."
+    else
+        detected="nextjs-postgres"
+        log_info "No specific framework signature identified; defaulting to nextjs-postgres."
+    fi
+
+    cat << EOF > "${conf_out}"
+# OmaStack Local Project Configuration
+# Generated on $(date -u +'%Y-%m-%dT%H:%M:%SZ')
+STACK_TEMPLATE="${detected}"
+AUTO_INJECT_ENV=true
+PROXY_ENABLED=true
+EOF
+
+    log_success "Generated local project config at ${COLOR_BOLD}${conf_out}${COLOR_RESET} [default stack: ${detected}]."
+    echo -e "Run ${COLOR_CYAN}omastack up ${detected}${COLOR_RESET} or press ${COLOR_CYAN}Super + Alt + W${COLOR_RESET} to display the widget panel."
+}
+
+# Entrypoint dispatcher
+main() {
+    local cmd="${1:-}"
+    shift || true
+
+    case "${cmd}" in
+        up)
+            cmd_up "${1:-}"
+            ;;
+        down)
+            cmd_down "${1:-}" "${2:-}"
+            ;;
+        restart)
+            cmd_restart "${1:-}"
+            ;;
+        init)
+            cmd_init
+            ;;
+        list|ls)
+            cmd_list
+            ;;
+        status)
+            case "${1:-}" in
+                --waybar)
+                    output_waybar_json
+                    ;;
+                --widget|--panel|-w)
+                    output_widget_json
+                    ;;
+                *)
+                    cmd_list
+                    ;;
+            esac
+            ;;
+        menu|ui)
+            launch_walker_menu
+            ;;
+        widget|panel)
+            launch_widget_panel "${1:-}"
+            ;;
+        theme)
+            case "${1:-list}" in
+                list|ls)
+                    list_theme_packages
+                    ;;
+                apply|set)
+                    local t_name="${2:-}"
+                    if [ -z "${t_name}" ]; then
+                        log_error "Please specify a theme package to apply (e.g. omastack theme apply tokyo-night)"
+                        echo ""
+                        list_theme_packages
+                        exit 1
+                    fi
+                    apply_theme_package "${t_name}"
+                    ;;
+                current|show)
+                    detect_omarchy_theme
+                    echo -e "${COLOR_BOLD}Current Active Omarchy Theme:${COLOR_RESET}"
+                    echo "  Background: ${OMASTACK_THEME_BG}"
+                    echo "  Foreground: ${OMASTACK_THEME_FG}"
+                    echo "  Primary:    ${OMASTACK_THEME_PRIMARY}"
+                    echo "  Secondary:  ${OMASTACK_THEME_SECONDARY}"
+                    echo "  Accent:     ${OMASTACK_THEME_ACCENT}"
+                    echo "  Border:     ${OMASTACK_THEME_BORDER}"
+                    ;;
+                *)
+                    list_theme_packages
+                    ;;
+            esac
+            ;;
+        inject)
+            local snippet
+            snippet=$(generate_env_snippet "generic" "")
+            inject_local_env "${snippet}" ".env"
+            ;;
+        proxy)
+            sync_caddy_proxy
+            ;;
+        logs)
+            local stack="${1:-}"
+            local follow_flag="${2:-}"
+            if [[ "${stack}" =~ ^[a-zA-Z0-9_-]+$ ]] && [ -f "${OMASTACK_STATE_DIR}/${stack}-compose.yml" ]; then
+                if [ -t 1 ] && { [ "${follow_flag}" = "-f" ] || [ "${follow_flag}" = "--follow" ]; }; then
+                    docker compose -f "${OMASTACK_STATE_DIR}/${stack}-compose.yml" logs -f --tail=100
+                else
+                    docker compose -f "${OMASTACK_STATE_DIR}/${stack}-compose.yml" logs --tail=100
+                fi
+            else
+                log_error "Please specify a valid active stack (e.g. omastack logs laravel-stack)"
+            fi
+            ;;
+        update|upgrade)
+            cmd_update
+            ;;
+        version|-v|--version)
+            echo "omastack v${OMASTACK_VERSION} (Omarchy Linux Native)"
+            ;;
+        *)
+            usage
+            ;;
+    esac
+}
+
+main "$@"

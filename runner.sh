@@ -9,21 +9,32 @@ export PATH="${HOME}/.local/bin:/usr/local/bin:/usr/bin:/bin:${PATH}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BIN=""
 
-# 2. Locate omastack binary with extensive fallback order
-if command -v omastack >/dev/null 2>&1; then
-    BIN="$(command -v omastack)"
-elif [ -f "${HOME}/.local/bin/omastack" ]; then
-    BIN="${HOME}/.local/bin/omastack"
-elif [ -f "${SCRIPT_DIR}/omastack/bin/omastack" ]; then
-    BIN="${SCRIPT_DIR}/omastack/bin/omastack"
-elif [ -f "${SCRIPT_DIR}/bin/omastack" ]; then
-    BIN="${SCRIPT_DIR}/bin/omastack"
-elif [ -f "${SCRIPT_DIR}/../bin/omastack" ]; then
-    BIN="${SCRIPT_DIR}/../bin/omastack"
-elif [ -f "/usr/share/omastack/bin/omastack" ]; then
-    BIN="/usr/share/omastack/bin/omastack"
-elif [ -f "/usr/local/share/omastack/bin/omastack" ]; then
-    BIN="/usr/local/share/omastack/bin/omastack"
+# 2. Locate omastack binary with extensive fallback order (preventing self-loop)
+for cand in \
+    "${SCRIPT_DIR}/omastack/bin/omastack" \
+    "${SCRIPT_DIR}/bin/omastack" \
+    "${SCRIPT_DIR}/../omastack/bin/omastack" \
+    "${SCRIPT_DIR}/../bin/omastack" \
+    "${HOME}/.local/share/omastack/bin/omastack" \
+    "${HOME}/.config/omarchy/plugins/io.github.anax.omastack/omastack/bin/omastack" \
+    "${HOME}/.config/omarchy/plugins/io.github.anax.omastack/bin/omastack" \
+    "${HOME}/.config/omarchy/plugins/omacom.omastack/omastack/bin/omastack" \
+    "${HOME}/.local/bin/omastack" \
+    "/usr/local/bin/omastack" \
+    "/usr/bin/omastack" \
+    "/usr/share/omastack/bin/omastack" \
+    "/usr/local/share/omastack/bin/omastack"; do
+    if [ -f "${cand}" ] && [ ! "${cand}" -ef "${BASH_SOURCE[0]}" ]; then
+        BIN="${cand}"
+        break
+    fi
+done
+
+if [ -z "${BIN}" ] && command -v omastack >/dev/null 2>&1; then
+    cand_cmd="$(command -v omastack)"
+    if [ ! "${cand_cmd}" -ef "${BASH_SOURCE[0]}" ]; then
+        BIN="${cand_cmd}"
+    fi
 fi
 
 if [ -z "${BIN}" ]; then

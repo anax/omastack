@@ -34,8 +34,8 @@ BarWidget {
             'PDIR="' + root.pluginDir + '"; ' +
             'mkdir -p "$HOME/.local/bin" "$HOME/.local/share/omastack"; ' +
             'BIN=""; ' +
-            'if [ -f "$PDIR/bin/omastack" ]; then BIN="$PDIR/bin/omastack"; ' +
-            'elif [ -f "$PDIR/omastack/bin/omastack" ]; then BIN="$PDIR/omastack/bin/omastack"; fi; ' +
+            'if [ -f "$PDIR/omastack/bin/omastack" ]; then BIN="$PDIR/omastack/bin/omastack"; ' +
+            'elif [ -f "$PDIR/bin/omastack" ]; then BIN="$PDIR/bin/omastack"; fi; ' +
             'if [ -n "$BIN" ]; then cp "$BIN" "$HOME/.local/bin/omastack"; chmod +x "$HOME/.local/bin/omastack"; fi; ' +
             'if [ -d "$PDIR/omastack/lib" ]; then cp -r "$PDIR/omastack/lib" "$HOME/.local/share/omastack/" 2>/dev/null; cp -r "$PDIR/omastack/templates" "$HOME/.local/share/omastack/" 2>/dev/null; ' +
             'elif [ -d "$PDIR/lib" ]; then cp -r "$PDIR/lib" "$HOME/.local/share/omastack/" 2>/dev/null; cp -r "$PDIR/templates" "$HOME/.local/share/omastack/" 2>/dev/null; fi; ' +
@@ -106,14 +106,13 @@ BarWidget {
             'export PATH="$HOME/.local/bin:/usr/local/bin:/usr/bin:/bin:$PATH"; ' +
             'PDIR="' + root.pluginDir + '"; ' +
             'BIN=""; ' +
-            'if command -v omastack >/dev/null 2>&1; then BIN="$(command -v omastack)"; ' +
-            'elif [ -f "$HOME/.local/bin/omastack" ]; then BIN="$HOME/.local/bin/omastack"; ' +
-            'elif [ -f "$PDIR/runner.sh" ]; then BIN="$PDIR/runner.sh"; ' +
-            'elif [ -f "$PDIR/omastack/runner.sh" ]; then BIN="$PDIR/omastack/runner.sh"; ' +
+            'if [ -f "$PDIR/omastack/bin/omastack" ]; then BIN="$PDIR/omastack/bin/omastack"; ' +
             'elif [ -f "$PDIR/bin/omastack" ]; then BIN="$PDIR/bin/omastack"; ' +
-            'elif [ -f "$PDIR/omastack/bin/omastack" ]; then BIN="$PDIR/omastack/bin/omastack"; ' +
-            'elif [ -f "/usr/share/omastack/bin/omastack" ]; then BIN="/usr/share/omastack/bin/omastack"; ' +
-            'elif [ -f "/usr/local/share/omastack/bin/omastack" ]; then BIN="/usr/local/share/omastack/bin/omastack"; ' +
+            'elif [ -f "$PDIR/runner.sh" ]; then BIN="$PDIR/runner.sh"; ' +
+            'elif [ -f "$HOME/.local/bin/omastack" ]; then BIN="$HOME/.local/bin/omastack"; ' +
+            'elif [ -f "/usr/local/bin/omastack" ]; then BIN="/usr/local/bin/omastack"; ' +
+            'elif [ -f "/usr/bin/omastack" ]; then BIN="/usr/bin/omastack"; ' +
+            'elif command -v omastack >/dev/null 2>&1; then BIN="$(command -v omastack)"; ' +
             'fi; ' +
             'if [ -n "$BIN" ]; then exec bash "$BIN" status --widget; ' +
             'else exit 1; fi'
@@ -142,14 +141,13 @@ BarWidget {
             'export PATH="$HOME/.local/bin:/usr/local/bin:/usr/bin:/bin:$PATH"; ' +
             'PDIR="' + root.pluginDir + '"; ' +
             'BIN=""; ' +
-            'if command -v omastack >/dev/null 2>&1; then BIN="$(command -v omastack)"; ' +
-            'elif [ -f "$HOME/.local/bin/omastack" ]; then BIN="$HOME/.local/bin/omastack"; ' +
-            'elif [ -f "$PDIR/runner.sh" ]; then BIN="$PDIR/runner.sh"; ' +
-            'elif [ -f "$PDIR/omastack/runner.sh" ]; then BIN="$PDIR/omastack/runner.sh"; ' +
+            'if [ -f "$PDIR/omastack/bin/omastack" ]; then BIN="$PDIR/omastack/bin/omastack"; ' +
             'elif [ -f "$PDIR/bin/omastack" ]; then BIN="$PDIR/bin/omastack"; ' +
-            'elif [ -f "$PDIR/omastack/bin/omastack" ]; then BIN="$PDIR/omastack/bin/omastack"; ' +
-            'elif [ -f "/usr/share/omastack/bin/omastack" ]; then BIN="/usr/share/omastack/bin/omastack"; ' +
-            'elif [ -f "/usr/local/share/omastack/bin/omastack" ]; then BIN="/usr/local/share/omastack/bin/omastack"; ' +
+            'elif [ -f "$PDIR/runner.sh" ]; then BIN="$PDIR/runner.sh"; ' +
+            'elif [ -f "$HOME/.local/bin/omastack" ]; then BIN="$HOME/.local/bin/omastack"; ' +
+            'elif [ -f "/usr/local/bin/omastack" ]; then BIN="/usr/local/bin/omastack"; ' +
+            'elif [ -f "/usr/bin/omastack" ]; then BIN="/usr/bin/omastack"; ' +
+            'elif command -v omastack >/dev/null 2>&1; then BIN="$(command -v omastack)"; ' +
             'fi; ' +
             'if [ -n "$BIN" ]; then exec bash "$BIN" menu; ' +
             'else exit 1; fi'
