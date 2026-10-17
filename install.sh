@@ -145,6 +145,14 @@ run_test_suite() {
         fail_test "Failed 'omastack panel': ${panel_alias_out}"
     fi
 
+    local theme_list_out
+    theme_list_out=$(bash "${cli_bin}" theme list 2>&1)
+    if [[ "${theme_list_out}" =~ "OmaStack Curated Omarchy Theme Packages" && "${theme_list_out}" =~ "tokyo-night" ]]; then
+        pass_test "Command 'omastack theme list' displayed curated theme packages catalog"
+    else
+        fail_test "Failed 'omastack theme list': ${theme_list_out}"
+    fi
+
     local init_test_out
     init_test_out=$(bash "${cli_bin}" init 2>&1)
     if [[ "${init_test_out}" =~ "Generated local project config at" ]]; then

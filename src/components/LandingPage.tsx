@@ -35,6 +35,7 @@ import {
 } from 'lucide-react';
 import { OmaStackLogo } from './OmaStackLogo';
 import { HeroBackgroundAnimation, deriveFieldPalette } from './HeroBackgroundAnimation';
+import { ThemePackagesSection } from './ThemePackagesSection';
 import { OmarchyTheme, OmarchyThemeKey, StackTemplate, ActiveStack } from '../types';
 import { OMARCHY_THEMES } from '../themes';
 
@@ -50,6 +51,7 @@ interface LandingPageProps {
   onOpenWalkerMenu: () => void;
   onOpenWidgetPanel: () => void;
   onCopySnippet: (text: string) => void;
+  onNotify?: (title: string, message: string) => void;
 }
 
 export const LandingPage: React.FC<LandingPageProps> = ({
@@ -64,6 +66,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   onOpenWalkerMenu,
   onOpenWidgetPanel,
   onCopySnippet,
+  onNotify,
 }) => {
   const [copiedInstallCmd, setCopiedInstallCmd] = useState<string | null>(null);
   const [activeInstallTab, setActiveInstallTab] = useState<'plugin' | 'download' | 'curl' | 'git'>('plugin');
@@ -302,56 +305,12 @@ chmod +x ~/.local/bin/omastack`;
 
       {/* Main Page Container */}
       <div className="max-w-6xl mx-auto px-4 sm:px-6 space-y-24">
-        {/* 2. "PICK A THEME, CHANGE EVERYTHING" (Omarchy signature section) */}
-        <section className="max-w-5xl mx-auto space-y-4 text-center">
-        <div className="space-y-1">
-          <div
-            className="text-[11px] font-bold uppercase tracking-wider font-mono flex items-center justify-center gap-1.5"
-            style={{ color: currentTheme.primary }}
-          >
-            <Palette className="w-3.5 h-3.5" />
-            <span>Pick a theme, change everything</span>
-          </div>
-          <h2 className="text-xl sm:text-2xl font-black">
-            Six Omarchy Palettes. Synced Across Bar, Shell &amp; Sandboxes.
-          </h2>
-          <p className="text-xs text-white/85 max-w-lg mx-auto">
-            A theme restyles your terminal, Waybar, Walker menu, and this site simultaneously. Click below or press <kbd className="px-1.5 py-0.5 rounded bg-black/50 border border-white/20 font-mono text-[10px] text-white">T</kbd> to cycle them.
-          </p>
-        </div>
-
-        {/* Theme Pills */}
-        <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
-          {themeList.map((key) => {
-            const t = OMARCHY_THEMES[key];
-            const isSelected = currentTheme.key === key;
-
-            return (
-              <button
-                key={key}
-                onClick={() => onSelectTheme(key)}
-                className={`px-3.5 py-2 rounded-xl border flex items-center gap-2.5 transition-all cursor-pointer font-mono text-[11px] ${
-                  isSelected ? 'ring-2 scale-105 shadow-md' : 'opacity-70 hover:opacity-100 hover:scale-102'
-                }`}
-                style={{
-                  backgroundColor: isSelected ? t.cardBg : `${t.bg}90`,
-                  borderColor: isSelected ? t.primary : t.border,
-                  color: t.fg,
-                  boxShadow: isSelected ? `0 0 15px ${t.primary}40` : undefined,
-                }}
-              >
-                <div className="flex items-center gap-1">
-                  <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: t.primary }} />
-                  <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: t.accent }} />
-                  <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: t.secondary }} />
-                </div>
-                <span className="font-bold">{t.name}</span>
-                {isSelected && <span className="text-[10px] text-emerald-400 font-bold">active</span>}
-              </button>
-            );
-          })}
-        </div>
-      </section>
+        {/* 2. OMARCHY THEME PACKAGES SHOWCASE */}
+        <ThemePackagesSection
+          currentTheme={currentTheme}
+          onSelectTheme={onSelectTheme}
+          onNotify={onNotify}
+        />
 
       {/* 3. "SEE IT IN ACTION" — INTERACTIVE HUD & CONFLICT RESOLVER */}
       <section className="max-w-5xl mx-auto space-y-4">

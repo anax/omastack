@@ -4,11 +4,23 @@ export type OmarchyThemeKey =
   | 'gruvbox-dark'
   | 'rose-pine'
   | 'nordic'
-  | 'cyberpunk';
+  | 'cyberpunk'
+  | 'dracula'
+  | 'one-dark'
+  | 'kanagawa'
+  | 'synthwave-84'
+  | 'monokai-pro'
+  | 'solarized-dark';
 
 export interface OmarchyTheme {
   key: OmarchyThemeKey;
   name: string;
+  category: 'Popular' | 'Pastel & Soft' | 'Retro & Vintage' | 'Cyber & Neon' | 'High Contrast';
+  description: string;
+  author: string;
+  downloads: string;
+  rating: number;
+  tags: string[];
   bg: string;
   cardBg: string;
   fg: string;
@@ -17,6 +29,7 @@ export interface OmarchyTheme {
   accent: string;
   border: string;
   waybarBg: string;
+  hyprlandBorder?: string;
 }
 
 export interface ServiceDetail {

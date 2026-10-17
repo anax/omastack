@@ -124,7 +124,7 @@ export default function App() {
         setIsWidgetPanelOpen((prev) => !prev);
       } else if (!isInput && (e.key === 't' || e.key === 'T')) {
         // Omarchy signature: Press T to flip through themes
-        const themeKeys: OmarchyThemeKey[] = ['tokyo-night', 'catppuccin-mocha', 'gruvbox-dark', 'rose-pine', 'nordic', 'cyberpunk'];
+        const themeKeys = Object.keys(OMARCHY_THEMES) as OmarchyThemeKey[];
         setThemeKey((prev) => {
           const idx = themeKeys.indexOf(prev);
           const next = themeKeys[(idx + 1) % themeKeys.length];
@@ -407,6 +407,7 @@ export default function App() {
               navigator.clipboard.writeText(text);
               addNotification('Copied to Clipboard', 'Text copied successfully.');
             }}
+            onNotify={addNotification}
           />
         )}
 
