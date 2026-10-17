@@ -22,7 +22,6 @@ export const OmaStackLogo: React.FC<OmaStackLogoProps> = ({
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
         className="shrink-0 overflow-visible"
-        shapeRendering={animated ? 'crispEdges' : 'auto'}
       >
         <defs>
           <filter id="react-glow" x="-20%" y="-20%" width="140%" height="140%">
@@ -30,29 +29,6 @@ export const OmaStackLogo: React.FC<OmaStackLogoProps> = ({
             <feComposite in="SourceGraphic" in2="blur" operator="over" />
           </filter>
         </defs>
-
-        {/* Ambient Backlight */}
-        <circle cx="256" cy="256" r="200" fill="#7dcfff" fillOpacity="0.15" />
-
-        {/* Pixelated Isometric Corner Brackets when animated in Hero */}
-        {animated && (
-          <g fill="#00f0ff" opacity="0.75">
-            {/* Top pixel crest */}
-            <rect x="248" y="24" width="16" height="16" />
-            <rect x="232" y="40" width="16" height="16" fill="#bbdd97" />
-            <rect x="264" y="40" width="16" height="16" fill="#bbdd97" />
-            {/* Left pixel bracket */}
-            <rect x="36" y="240" width="16" height="16" fill="#9ece6a" />
-            <rect x="52" y="224" width="12" height="12" fill="#00f0ff" />
-            <rect x="52" y="260" width="12" height="12" fill="#678549" />
-            {/* Right pixel bracket */}
-            <rect x="460" y="240" width="16" height="16" fill="#9ece6a" />
-            <rect x="448" y="224" width="12" height="12" fill="#00f0ff" />
-            <rect x="448" y="260" width="12" height="12" fill="#678549" />
-            {/* Bottom pixel crest */}
-            <rect x="248" y="468" width="16" height="16" fill="#678549" />
-          </g>
-        )}
 
         <g transform="translate(256, 256) scale(0.72) translate(-400, -370)">
           {/* Tier 3: Bottom Container Slab */}
@@ -114,16 +90,6 @@ export const OmaStackLogo: React.FC<OmaStackLogoProps> = ({
               opacity="0.85"
               filter="url(#react-glow)"
             />
-
-            {/* Rising Voxel Data Sparks from the Aperture Portal */}
-            {animated && (
-              <g className="omastack-voxel-sparks">
-                <rect x="390" y="130" width="20" height="20" fill="#00f0ff" />
-                <rect x="354" y="168" width="16" height="16" fill="#daecc6" />
-                <rect x="430" y="160" width="16" height="16" fill="#7dcfff" />
-                <rect x="392" y="78" width="16" height="16" fill="#bbdd97" opacity="0.85" />
-              </g>
-            )}
           </g>
         </g>
 
@@ -131,37 +97,29 @@ export const OmaStackLogo: React.FC<OmaStackLogoProps> = ({
           <style>{`
             @keyframes omaTierTop {
               0%, 100% { transform: translateY(0px); }
-              50% { transform: translateY(-14px); }
+              50% { transform: translateY(-10px); }
             }
             @keyframes omaTierMiddle {
               0%, 100% { transform: translateY(0px); }
-              50% { transform: translateY(-6px); }
+              50% { transform: translateY(-4px); }
             }
             @keyframes omaTierBottom {
               0%, 100% { transform: translateY(0px); }
-              50% { transform: translateY(6px); }
-            }
-            @keyframes omaVoxelSparks {
-              0%, 100% { transform: translateY(0px); opacity: 0.95; }
-              50% { transform: translateY(-18px); opacity: 0.45; }
+              50% { transform: translateY(4px); }
             }
             .omastack-tier-top {
-              animation: omaTierTop 3.6s steps(6, end) infinite;
+              animation: omaTierTop 4.2s ease-in-out infinite;
             }
             .omastack-tier-middle {
-              animation: omaTierMiddle 3.6s steps(6, end) infinite;
+              animation: omaTierMiddle 4.2s ease-in-out infinite;
             }
             .omastack-tier-bottom {
-              animation: omaTierBottom 3.6s steps(6, end) infinite;
-            }
-            .omastack-voxel-sparks {
-              animation: omaVoxelSparks 2.4s steps(4, end) infinite;
+              animation: omaTierBottom 4.2s ease-in-out infinite;
             }
             @media (prefers-reduced-motion: reduce) {
               .omastack-tier-top,
               .omastack-tier-middle,
-              .omastack-tier-bottom,
-              .omastack-voxel-sparks {
+              .omastack-tier-bottom {
                 animation: none !important;
               }
             }

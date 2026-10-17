@@ -6,13 +6,24 @@ set -euo pipefail
 
 OMASTACK_VERSION="1.0.0"
 OMASTACK_HOME="${OMASTACK_HOME:-${HOME}/.local/share/omastack}"
-OMASTACK_CONFIG_DIR="${HOME}/.config/omastack"
-OMASTACK_STATE_DIR="${OMASTACK_HOME}/state"
-OMASTACK_TEMPLATES_DIR="${OMASTACK_HOME}/templates"
-OMASTACK_CERTS_DIR="${OMASTACK_HOME}/certs"
+OMASTACK_CONFIG_DIR="${OMASTACK_CONFIG_DIR:-${HOME}/.config/omastack}"
+OMASTACK_STATE_DIR="${OMASTACK_STATE_DIR:-${OMASTACK_HOME}/state}"
+OMASTACK_CERTS_DIR="${OMASTACK_CERTS_DIR:-${OMASTACK_HOME}/certs}"
+OMASTACK_TEMPLATES_DIR="${OMASTACK_TEMPLATES_DIR:-${OMASTACK_HOME}/templates}"
+if [ ! -d "${OMASTACK_TEMPLATES_DIR}" ] && [ -d "/usr/share/omastack/templates" ]; then
+    OMASTACK_TEMPLATES_DIR="/usr/share/omastack/templates"
+fi
 
-mkdir -p -m 700 "${OMASTACK_HOME}" "${OMASTACK_CONFIG_DIR}" "${OMASTACK_STATE_DIR}" "${OMASTACK_TEMPLATES_DIR}" "${OMASTACK_CERTS_DIR}"
-chmod 700 "${OMASTACK_HOME}" "${OMASTACK_CONFIG_DIR}" "${OMASTACK_STATE_DIR}" "${OMASTACK_CERTS_DIR}" 2>/dev/null || true
+if [ -w "$(dirname "${OMASTACK_HOME}")" ] || [ -w "${OMASTACK_HOME}" ]; then
+    mkdir -p -m 700 "${OMASTACK_HOME}" "${OMASTACK_STATE_DIR}" "${OMASTACK_CERTS_DIR}" 2>/dev/null || true
+    chmod 700 "${OMASTACK_HOME}" "${OMASTACK_STATE_DIR}" "${OMASTACK_CERTS_DIR}" 2>/dev/null || true
+else
+    # Fallback to user home directory if OMASTACK_HOME is read-only (e.g. /usr/share/omastack)
+    OMASTACK_STATE_DIR="${HOME}/.local/share/omastack/state"
+    OMASTACK_CERTS_DIR="${HOME}/.local/share/omastack/certs"
+    mkdir -p -m 700 "${HOME}/.local/share/omastack" "${OMASTACK_STATE_DIR}" "${OMASTACK_CERTS_DIR}" 2>/dev/null || true
+fi
+mkdir -p -m 700 "${OMASTACK_CONFIG_DIR}" 2>/dev/null || true
 
 # ANSI Colors
 COLOR_RESET="\033[0m"

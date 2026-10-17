@@ -11,6 +11,10 @@ elif [ -d "${OMASTACK_HOME:-${HOME}/.local/share/omastack}/lib" ]; then
     SCRIPT_DIR="${OMASTACK_HOME:-${HOME}/.local/share/omastack}"
 elif [ -d "${HOME}/.local/share/omastack/lib" ]; then
     SCRIPT_DIR="${HOME}/.local/share/omastack"
+elif [ -d "/usr/share/omastack/lib" ]; then
+    SCRIPT_DIR="/usr/share/omastack"
+elif [ -d "/usr/local/share/omastack/lib" ]; then
+    SCRIPT_DIR="/usr/local/share/omastack"
 else
     SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 fi
@@ -69,6 +73,12 @@ cmd_up() {
     local tmpl_dir="${SCRIPT_DIR}/templates/${template}"
     if [ ! -d "${tmpl_dir}" ]; then
         tmpl_dir="${OMASTACK_TEMPLATES_DIR}/${template}"
+    fi
+    if [ ! -d "${tmpl_dir}" ] && [ -d "/usr/share/omastack/templates/${template}" ]; then
+        tmpl_dir="/usr/share/omastack/templates/${template}"
+    fi
+    if [ ! -d "${tmpl_dir}" ] && [ -d "/usr/local/share/omastack/templates/${template}" ]; then
+        tmpl_dir="/usr/local/share/omastack/templates/${template}"
     fi
 
     if [ ! -d "${tmpl_dir}" ]; then
@@ -244,7 +254,14 @@ cmd_list() {
         echo "No active sandboxes currently running."
         echo ""
         echo "Available templates to launch:"
-        ls -1 "${SCRIPT_DIR}/templates" 2>/dev/null | sed 's/^/ - /'
+        local tmpl_search_dir="${SCRIPT_DIR}/templates"
+        if [ ! -d "${tmpl_search_dir}" ]; then
+            tmpl_search_dir="${OMASTACK_TEMPLATES_DIR}"
+        fi
+        if [ ! -d "${tmpl_search_dir}" ] && [ -d "/usr/share/omastack/templates" ]; then
+            tmpl_search_dir="/usr/share/omastack/templates"
+        fi
+        ls -1 "${tmpl_search_dir}" 2>/dev/null | sed 's/^/ - /'
         return
     fi
 

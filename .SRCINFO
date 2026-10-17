@@ -1,0 +1,21 @@
+pkgbase = omastack
+	pkgdesc = Native, zero-bloat ephemeral full-stack sandbox launcher and Docker manager for Omarchy Linux
+	pkgver = 1.0.0
+	pkgrel = 1
+	url = https://github.com/anax/omastack
+	install = omastack.install
+	arch = any
+	license = MIT
+	depends = bash
+	depends = docker
+	depends = docker-compose
+	depends = iproute2
+	depends = wl-clipboard
+	optdepends = caddy: Local *.oma.local reverse proxy support
+	optdepends = mkcert: Automated trusted local SSL certificate generation
+	optdepends = rofi: Interactive application launcher menu
+	optdepends = walker: Fast application launcher runner
+	optdepends = waybar: Status bar module integration
+	optdepends = libnotify: Desktop notification alerts
+
+pkgname = omastack

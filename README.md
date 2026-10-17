@@ -12,20 +12,46 @@
 
 ---
 
-## ⚡ Quick Start & Installation
+## ⚡ Quick Start & Installation for Omarchy Linux
 
-### Option 1: Omarchy Plugin Manager (Recommended)
-Install OmaStack with a single command via the native Omarchy plugin manager:
+### Option 1: Native Arch Linux Package (`pacman -U`)
+Install the native pre-built package directly using `pacman`:
 
+```bash
+# Install pre-built package
+sudo pacman -U omastack-1.0.0-1-any.pkg.tar.zst
+```
+
+### Option 2: Self-Extracting Offline Installer (`.run`)
+Single standalone executable containing all 15 stack templates, CLI, and Quickshell widgets with zero network dependency:
+
+```bash
+chmod +x omastack-installer.run
+./omastack-installer.run
+
+# Optional flags:
+./omastack-installer.run --test         # Run 37-step test suite
+./omastack-installer.run --system       # Install system-wide to /usr/local
+./omastack-installer.run --uninstall    # Cleanly remove
+```
+
+### Option 3: Build from Source via `PKGBUILD` (`makepkg`)
+```bash
+git clone https://github.com/anax/omastack.git
+cd omastack
+makepkg -si
+```
+
+### Option 4: Omarchy Plugin Manager
 ```bash
 omarchy plugin add https://github.com/anax/omastack
 ```
 
-### Option 2: Clone & Local Setup
+### 📦 Building Release Packages Locally
+To rebuild all installable packages (`.pkg.tar.zst`, `.run`, and `.tar.gz`) into `dist/`:
+
 ```bash
-git clone https://github.com/anax/omastack.git ~/.config/omarchy/plugins/io.github.anax.omastack
-cd ~/.config/omarchy/plugins/io.github.anax.omastack
-./install.sh
+./package.sh
 ```
 
 ### 🗑️ Safe Removal & Uninstallation

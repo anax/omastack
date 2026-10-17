@@ -7,6 +7,8 @@
   "scripts": {
     "dev": "tsx server.ts",
     "build": "vite build",
+    "package": "bash package.sh",
+    "test:cli": "bash install.sh --test",
     "start": "node server.ts",
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",

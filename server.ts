@@ -185,13 +185,16 @@ async function startServer() {
     next();
   };
 
-  // Serve raw install script
+  // Serve raw install script or downloadable file
   app.get('/install.sh', (req, res) => {
     const rootPath = path.join(process.cwd(), 'install.sh');
     const subPath = path.join(process.cwd(), 'omastack', 'install.sh');
     const installPath = fs.existsSync(rootPath) ? rootPath : subPath;
     if (fs.existsSync(installPath)) {
-      res.setHeader('Content-Type', 'text/plain');
+      res.setHeader('Content-Type', 'text/x-shellscript; charset=utf-8');
+      if (req.query.download === '1' || req.headers.accept?.includes('text/html')) {
+        res.setHeader('Content-Disposition', 'attachment; filename="install.sh"');
+      }
       res.send(fs.readFileSync(installPath, 'utf-8'));
     } else {
       res.status(404).send('# Installer not found');

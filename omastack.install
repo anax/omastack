@@ -1,0 +1,27 @@
+# OmaStack Arch Linux Package Post-Install Script
+# SPDX-License-Identifier: MIT
+
+post_install() {
+    echo ""
+    echo "=================================================================="
+    echo "  ⚡ OmaStack successfully installed on Omarchy Linux!"
+    echo ""
+    echo "  - CLI:                omastack --help"
+    echo "  - Launch a Stack:     omastack up laravel-stack"
+    echo "  - List Sandboxes:     omastack list"
+    echo "  - Widget Panel:       Super + Alt + W  (omastack widget)"
+    echo "  - Hyprland Launcher:  Super + Alt + Space (omastack menu)"
+    echo "  - Quattro Bar Plugin: ~/.config/omarchy/plugins/io.github.anax.omastack"
+    echo "=================================================================="
+    echo ""
+}
+
+post_upgrade() {
+    post_install
+}
+
+post_remove() {
+    echo ""
+    echo "⚡ OmaStack removed. User data in ~/.local/share/omastack was preserved."
+    echo ""
+}

@@ -369,7 +369,7 @@ export default function App() {
 
   return (
     <div
-      className="min-h-screen flex flex-col font-sans transition-colors duration-200 select-none"
+      className="min-h-screen flex flex-col font-sans transition-colors duration-200 select-none overflow-x-hidden"
       style={{
         backgroundColor: currentTheme.bg,
         color: currentTheme.fg,
@@ -390,7 +390,7 @@ export default function App() {
       />
 
       {/* Main Content */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6">
+      <main className={`flex-1 w-full mx-auto ${activeTab === 'landing' ? 'max-w-none p-0' : 'max-w-7xl p-4 md:p-6'}`}>
         {activeTab === 'landing' && (
           <LandingPage
             currentTheme={currentTheme}

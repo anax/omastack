@@ -275,40 +275,104 @@ main() {
     local source_dir
     source_dir=$(resolve_source_dir)
 
-    # Check if uninstall mode requested
-    if [ $# -gt 0 ] && { [ "$1" = "uninstall" ] || [ "$1" = "--uninstall" ] || [ "$1" = "-u" ]; }; then
-        echo -e "${YELLOW}${BOLD}➜ Uninstalling OmaStack...${RESET}"
-        if command -v omastack >/dev/null 2>&1; then
-            echo -e "${CYAN}➜ Stopping any active sandboxes...${RESET}"
-            omastack down --all 2>/dev/null || true
-        fi
-        echo -e "${CYAN}➜ Removing OmaStack files and Quickshell widgets...${RESET}"
-        rm -f "${HOME}/.local/bin/omastack"
-        rm -rf "${HOME}/.local/share/omastack"
-        rm -rf "${HOME}/.config/omarchy/plugins/io.github.anax.omastack"
-        rm -rf "${HOME}/.config/omarchy/plugins/omacom.omastack"
-        rm -f "${HOME}/.config/omarchy/widgets/omastack.json"
-        echo -e "\n${GREEN}${BOLD}✔ OmaStack has been successfully uninstalled.${RESET}\n"
-        exit 0
-    fi
+    local prefix="${HOME}/.local"
+    local destdir=""
+    local custom_install_dir=""
+    local is_system=false
 
-    # Check if test mode requested
-    if [ $# -gt 0 ] && { [ "$1" = "test" ] || [ "$1" = "--test" ] || [ "$1" = "-t" ]; }; then
-        run_test_suite "${source_dir}"
-        exit 0
-    fi
+    while [ $# -gt 0 ]; do
+        case "$1" in
+            uninstall|--uninstall|-u)
+                echo -e "${YELLOW}${BOLD}➜ Uninstalling OmaStack...${RESET}"
+                if command -v omastack >/dev/null 2>&1; then
+                    echo -e "${CYAN}➜ Stopping any active sandboxes...${RESET}"
+                    omastack down --all 2>/dev/null || true
+                fi
+                echo -e "${CYAN}➜ Removing OmaStack files and Quickshell widgets...${RESET}"
+                rm -f "${HOME}/.local/bin/omastack"
+                rm -rf "${HOME}/.local/share/omastack"
+                rm -rf "${HOME}/.config/omarchy/plugins/io.github.anax.omastack"
+                rm -rf "${HOME}/.config/omarchy/plugins/omacom.omastack"
+                rm -f "${HOME}/.config/omarchy/widgets/omastack.json"
+                echo -e "\n${GREEN}${BOLD}✔ OmaStack has been successfully uninstalled.${RESET}\n"
+                exit 0
+                ;;
+            test|--test|-t)
+                run_test_suite "${source_dir}"
+                exit 0
+                ;;
+            --system|-s)
+                prefix="/usr/local"
+                is_system=true
+                shift
+                ;;
+            --prefix)
+                prefix="$2"
+                shift 2
+                ;;
+            --destdir)
+                destdir="$2"
+                shift 2
+                ;;
+            --install-dir)
+                custom_install_dir="$2"
+                shift 2
+                ;;
+            --help|-h)
+                cat << 'EOF'
+OmaStack Universal Installer for Omarchy Linux
+
+Usage:
+  ./install.sh [options]
+
+Options:
+  --test, -t           Run test suite validating scripts, CLI, templates & contracts
+  --uninstall, -u      Tear down active sandboxes and cleanly remove OmaStack
+  --system, -s         Install system-wide to /usr/local (requires sudo/root)
+  --prefix <path>      Custom installation prefix (default: ~/.local)
+  --destdir <path>     Staging destination directory (for package builders)
+  --help, -h           Show this help message
+
+Examples:
+  ./install.sh                      # Standard user install to ~/.local/bin and ~/.local/share/omastack
+  ./install.sh --test               # Run validation test suite
+  sudo ./install.sh --system        # System-wide install to /usr/local
+EOF
+                exit 0
+                ;;
+            *)
+                echo -e "${RED}Unknown option: $1${RESET}" >&2
+                echo "Run ./install.sh --help for available options." >&2
+                exit 1
+                ;;
+        esac
+    done
 
     echo -e "${GREEN}Installing OmaStack on Omarchy Linux...${RESET}\n"
 
-    local install_dir="${OMASTACK_HOME:-${HOME}/.local/share/omastack}"
-    local bin_dir="${HOME}/.local/bin"
+    local install_dir
+    local bin_dir
     local config_dir="${HOME}/.config/omastack"
 
-    mkdir -p "${install_dir}" "${install_dir}/bin" "${bin_dir}" "${config_dir}"
+    if [ -n "${custom_install_dir}" ]; then
+        install_dir="${destdir}${custom_install_dir}"
+        bin_dir="${destdir}${prefix}/bin"
+    elif [ "${prefix}" = "${HOME}/.local" ]; then
+        install_dir="${destdir}${OMASTACK_HOME:-${HOME}/.local/share/omastack}"
+        bin_dir="${destdir}${HOME}/.local/bin"
+    else
+        install_dir="${destdir}${prefix}/share/omastack"
+        bin_dir="${destdir}${prefix}/bin"
+    fi
+
+    mkdir -p "${install_dir}" "${install_dir}/bin" "${bin_dir}"
 
     echo -e "${CYAN}➜ Copying binaries, libraries, and templates...${RESET}"
     cp -r "${source_dir}/lib" "${install_dir}/"
     cp -r "${source_dir}/templates" "${install_dir}/"
+    if [ -d "${source_dir}/assets" ]; then
+        cp -r "${source_dir}/assets" "${install_dir}/"
+    fi
     if [ -f "${source_dir}/omastore.toml" ]; then
         cp "${source_dir}/omastore.toml" "${install_dir}/"
     fi
@@ -329,30 +393,47 @@ main() {
         chmod +x "${install_dir}/bin/omarchy" "${bin_dir}/omarchy"
     fi
 
-    # Ensure ~/.local/bin is in PATH
-    if [[ ":$PATH:" != *":$bin_dir:"* ]]; then
-        echo -e "${CYAN}➜ Adding ~/.local/bin to PATH in ~/.bashrc and ~/.zshrc...${RESET}"
-        echo 'export PATH="${HOME}/.local/bin:${PATH}"' >> "${HOME}/.bashrc" 2>/dev/null || true
-        echo 'export PATH="${HOME}/.local/bin:${PATH}"' >> "${HOME}/.zshrc" 2>/dev/null || true
+    # Copy icons
+    if [ -f "${source_dir}/omastack-icon.svg" ]; then
+        cp "${source_dir}/omastack-icon.svg" "${install_dir}/"
+    elif [ -f "${source_dir}/../omastack-icon.svg" ]; then
+        cp "${source_dir}/../omastack-icon.svg" "${install_dir}/"
     fi
 
-    # Integrate with Omarchy Hyprland if present
-    local hypr_config="${HOME}/.config/hypr/hyprland.conf"
-    if [ -f "${hypr_config}" ]; then
-        if ! grep -q "omastack menu" "${hypr_config}"; then
-            echo -e "${CYAN}➜ Binding Super + Alt + Space to 'omastack menu' in Hyprland...${RESET}"
-            echo -e "\n# OmaStack Menu Shortcut\nbind = SUPER ALT, SPACE, exec, omastack menu" >> "${hypr_config}"
-        fi
-        if ! grep -q "omastack widget" "${hypr_config}"; then
-            echo -e "${CYAN}➜ Binding Super + Alt + W to 'omastack widget' panel in Hyprland...${RESET}"
-            echo -e "# OmaStack Widget Panel Shortcut\nbind = SUPER ALT, W, exec, omastack widget" >> "${hypr_config}"
+    # Install scalable desktop icon
+    local icon_dest="${destdir}${prefix}/share/icons/hicolor/scalable/apps"
+    if [ -d "${destdir}${prefix}/share" ] || [ "${is_system}" = true ]; then
+        mkdir -p "${icon_dest}"
+        if [ -f "${install_dir}/omastack-icon.svg" ]; then
+            cp "${install_dir}/omastack-icon.svg" "${icon_dest}/omastack.svg" 2>/dev/null || true
         fi
     fi
 
-    # Register desktop widget panel configuration
-    local widget_dir="${HOME}/.config/omarchy/widgets"
-    mkdir -p "${widget_dir}" "${config_dir}/widgets"
-    cat << 'EOF' > "${config_dir}/widgets/omastack.json"
+    # Ensure ~/.local/bin is in PATH if doing standard user install
+    if [ -z "${destdir}" ] && [ "${prefix}" = "${HOME}/.local" ]; then
+        if [[ ":$PATH:" != *":$bin_dir:"* ]]; then
+            echo -e "${CYAN}➜ Adding ~/.local/bin to PATH in ~/.bashrc and ~/.zshrc...${RESET}"
+            echo 'export PATH="${HOME}/.local/bin:${PATH}"' >> "${HOME}/.bashrc" 2>/dev/null || true
+            echo 'export PATH="${HOME}/.local/bin:${PATH}"' >> "${HOME}/.zshrc" 2>/dev/null || true
+        fi
+
+        # Integrate with Omarchy Hyprland if present
+        local hypr_config="${HOME}/.config/hypr/hyprland.conf"
+        if [ -f "${hypr_config}" ]; then
+            if ! grep -q "omastack menu" "${hypr_config}"; then
+                echo -e "${CYAN}➜ Binding Super + Alt + Space to 'omastack menu' in Hyprland...${RESET}"
+                echo -e "\n# OmaStack Menu Shortcut\nbind = SUPER ALT, SPACE, exec, omastack menu" >> "${hypr_config}"
+            fi
+            if ! grep -q "omastack widget" "${hypr_config}"; then
+                echo -e "${CYAN}➜ Binding Super + Alt + W to 'omastack widget' panel in Hyprland...${RESET}"
+                echo -e "# OmaStack Widget Panel Shortcut\nbind = SUPER ALT, W, exec, omastack widget" >> "${hypr_config}"
+            fi
+        fi
+
+        # Register desktop widget panel configuration
+        local widget_dir="${HOME}/.config/omarchy/widgets"
+        mkdir -p "${widget_dir}" "${config_dir}/widgets" 2>/dev/null || true
+        cat << 'EOF' > "${config_dir}/widgets/omastack.json"
 {
   "name": "OmaStack Widget Panel",
   "exec": "omastack widget --json",
@@ -361,11 +442,17 @@ main() {
   "class": "omastack-widget"
 }
 EOF
-    cp "${config_dir}/widgets/omastack.json" "${widget_dir}/omastack.json" 2>/dev/null || true
-    echo -e "${CYAN}➜ Configured Omarchy Widget Panel in ~/.config/omarchy/widgets/omastack.json${RESET}"
+        cp "${config_dir}/widgets/omastack.json" "${widget_dir}/omastack.json" 2>/dev/null || true
+        echo -e "${CYAN}➜ Configured Omarchy Widget Panel in ~/.config/omarchy/widgets/omastack.json${RESET}"
+    fi
 
-    # Install Omarchy Quattro Plugin & Bar-Widget (~/.config/omarchy/plugins/io.github.anax.omastack)
-    local omarchy_plugins_dir="${HOME}/.config/omarchy/plugins/io.github.anax.omastack"
+    # Install Omarchy Quattro Plugin & Bar-Widget
+    local omarchy_plugins_dir
+    if [ -n "${destdir}" ] || [ "${is_system}" = true ]; then
+        omarchy_plugins_dir="${destdir}${prefix}/share/omarchy/plugins/io.github.anax.omastack"
+    else
+        omarchy_plugins_dir="${HOME}/.config/omarchy/plugins/io.github.anax.omastack"
+    fi
     mkdir -p "${omarchy_plugins_dir}"
     for f in manifest.json BarWidget.qml Panel.qml omastack-icon.svg LICENSE; do
         if [ -f "${source_dir}/${f}" ]; then
@@ -375,6 +462,16 @@ EOF
         fi
     done
     echo -e "${CYAN}➜ Installed Omarchy Quattro Bar-Widget to ${omarchy_plugins_dir}${RESET}"
+
+    # Also make sure user config plugin is populated if running on host directly
+    if [ -z "${destdir}" ] && [ "${omarchy_plugins_dir}" != "${HOME}/.config/omarchy/plugins/io.github.anax.omastack" ]; then
+        mkdir -p "${HOME}/.config/omarchy/plugins/io.github.anax.omastack" 2>/dev/null || true
+        for f in manifest.json BarWidget.qml Panel.qml omastack-icon.svg LICENSE; do
+            if [ -f "${omarchy_plugins_dir}/${f}" ]; then
+                cp "${omarchy_plugins_dir}/${f}" "${HOME}/.config/omarchy/plugins/io.github.anax.omastack/" 2>/dev/null || true
+            fi
+        done
+    fi
 
     # Waybar module registration note
     local waybar_config="${HOME}/.config/omarchy/waybar/config.jsonc"

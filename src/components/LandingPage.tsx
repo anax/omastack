@@ -30,6 +30,8 @@ import {
   MessageSquareQuote,
   ChevronRight,
   Quote,
+  Download,
+  Archive,
 } from 'lucide-react';
 import { OmaStackLogo } from './OmaStackLogo';
 import { HeroBackgroundAnimation, deriveFieldPalette } from './HeroBackgroundAnimation';
@@ -64,7 +66,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   onCopySnippet,
 }) => {
   const [copiedInstallCmd, setCopiedInstallCmd] = useState<string | null>(null);
-  const [activeInstallTab, setActiveInstallTab] = useState<'plugin' | 'curl' | 'git'>('plugin');
+  const [activeInstallTab, setActiveInstallTab] = useState<'plugin' | 'download' | 'curl' | 'git'>('plugin');
   const [demoSelectedTemplate, setDemoSelectedTemplate] = useState<string>('laravel-stack');
   const [demoSimulatedPortConflict, setDemoSimulatedPortConflict] = useState<boolean>(true);
   const [activeDoctrineIndex, setActiveDoctrineIndex] = useState<number>(0);
@@ -169,89 +171,38 @@ chmod +x ~/.local/bin/omastack`;
 
   return (
     <div className="space-y-24 pb-20 font-sans text-xs">
-      {/* 1. HERO SECTION WITH PIXELATED ISOMETRIC CONTAINER FIELD & OMASTACK LOGO */}
+      {/* 1. FULL-WIDTH HERO SECTION BLENDED WITH HEADER */}
       <section
-        className="relative pt-4 pb-12 px-4 sm:px-6 overflow-hidden rounded-3xl border select-none"
+        className="relative w-full -mt-12 pt-24 pb-20 sm:pt-28 sm:pb-24 px-4 sm:px-8 overflow-hidden border-b select-none"
         style={{
           backgroundColor: fieldPalette.bg,
-          borderColor: currentTheme.border,
+          borderColor: `${currentTheme.border}26`,
         }}
       >
-        {/* Pixelated Bayer-Dithered Field + Isometric Container Rings & Micro-Containers */}
+        {/* Subtle Pixelated Bayer-Dithered Field */}
         <HeroBackgroundAnimation
           currentTheme={currentTheme}
           logoRef={heroLogoRef}
           pulseTriggerCount={logoPulseCount}
         />
 
-        {/* Top Editorial Ticker */}
-        <div
-          data-hero-quiet="true"
-          className="relative z-10 max-w-4xl mx-auto rounded-full px-4 py-2 border flex items-center justify-between gap-3 text-[11px] backdrop-blur-md shadow-sm transition-all"
-          style={{
-            backgroundColor: `${currentTheme.cardBg}cc`,
-            borderColor: currentTheme.border,
-            color: currentTheme.fg,
-          }}
-        >
-          <div className="flex items-center gap-2 truncate">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
-            <span className="font-bold text-emerald-400">OmaStack for Omarchy Linux</span>
-            <span className="opacity-40">•</span>
-            <span className="opacity-80 truncate">Chef's Choice Ephemeral Containers</span>
-          </div>
-
-          <div className="flex items-center gap-2 shrink-0">
-            <span
-              className="hidden sm:inline-block px-2 py-0.5 rounded text-[10px] font-mono font-bold"
-              style={{ backgroundColor: `${currentTheme.primary}20`, color: currentTheme.primary }}
-            >
-              Press T to flip theme
-            </span>
-            <a
-              href="https://github.com/anax/omastack"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-1 opacity-70 hover:opacity-100 transition-opacity font-mono text-[10px]"
-            >
-              <span>GitHub</span>
-              <ExternalLink className="w-3 h-3" />
-            </a>
-          </div>
-        </div>
-
         {/* HERO CONTENT */}
-        <div className="relative z-10 flex flex-col items-center text-center space-y-7 max-w-4xl mx-auto pt-10">
-          {/* Ambient Glow behind OmaStackLogo */}
-          <div
-            className="absolute -top-8 left-1/2 -translate-x-1/2 w-72 h-72 rounded-full blur-[95px] opacity-25 pointer-events-none"
-            style={{ backgroundColor: currentTheme.primary }}
-          />
-
-          {/* 3D Isometric OmaStack Logo (Interactive: Click to emit Pixelated Container Shockwave) */}
+        <div className="relative z-10 flex flex-col items-center text-center space-y-6 w-full max-w-5xl mx-auto px-4">
+          {/* 3D Isometric OmaStack Logo */}
           <div
             ref={heroLogoRef}
             data-omastack-hero-logo="true"
+            data-hero-quiet="true"
             onClick={() => setLogoPulseCount((c) => c + 1)}
-            title="Click OmaStack Logo to emit isometric pixel shockwave"
-            className="relative group cursor-pointer transition-transform duration-300 hover:scale-105 active:scale-95"
+            title="Click to emit isometric pixel pulse"
+            className="relative cursor-pointer transition-transform duration-300 hover:scale-105 active:scale-95 pb-1"
           >
-            <div
-              className="absolute -inset-4 rounded-full blur-xl opacity-40 group-hover:opacity-80 transition-opacity"
-              style={{ backgroundColor: '#00f0ff' }}
-            />
-            <OmaStackLogo size={108} animated={true} />
-            <div className="mt-1 flex items-center justify-center gap-1.5 font-mono text-[10px] tracking-widest uppercase opacity-75 group-hover:opacity-100 transition-opacity">
-              <span className="inline-block w-1.5 h-1.5 bg-[#00f0ff]" />
-              <span className="text-white font-bold">OMA</span>
-              <span className="text-[#9ece6a] font-bold">STACK</span>
-              <span className="inline-block w-1.5 h-1.5 bg-[#9ece6a]" />
-            </div>
+            <OmaStackLogo size={96} animated={true} />
           </div>
 
-          {/* Main Headline */}
-          <div data-hero-quiet="true" className="space-y-4">
-            <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black tracking-tight leading-[1.08] select-text">
+          {/* Main Headline & Subtitle */}
+          <div data-hero-quiet="true" className="space-y-3 w-full max-w-4xl">
+            <h1 className="font-mono text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight leading-[1.1] select-text">
               The OmaStack Sandboxes for{' '}
               <span
                 className="bg-clip-text text-transparent bg-gradient-to-r"
@@ -262,112 +213,97 @@ chmod +x ~/.local/bin/omastack`;
                 Omarchy Linux.
               </span>
             </h1>
-            <p className="text-base sm:text-xl font-medium opacity-90 max-w-2xl mx-auto text-balance leading-relaxed">
-              Vibe your way through instant full-stack environments. Zero port collisions. Complete keyboard speed.
+            <p className="font-sans text-base sm:text-lg lg:text-xl text-white/90 font-medium max-w-2xl mx-auto text-balance leading-relaxed">
+              Instant full-stack Docker environments. Zero port conflicts.
             </p>
           </div>
 
-          {/* Editorial Philosophy Paragraph */}
-          <p
-            data-hero-quiet="true"
-            className="text-xs sm:text-sm max-w-2xl opacity-80 leading-relaxed text-balance"
-          >
-            Linux development used to be a chore: wrestling with{' '}
-            <code className="px-1.5 py-0.5 rounded bg-black/40 text-amber-300 font-mono text-[11px]">
-              port already allocated
-            </code>{' '}
-            errors, fighting untrusted self-signed SSL warnings in your browser, and leaving background daemons eating laptop RAM.
-            <br className="hidden sm:inline" />
-            <strong className="text-white/95 font-semibold"> OmaStack solves it all</strong> with automated{' '}
-            <code className="px-1.5 py-0.5 rounded bg-black/40 text-cyan-300 font-mono text-[11px]">
-              ss -tuln
-            </code>{' '}
-            socket healing, green-padlock local HTTPS (
-            <code className="px-1.5 py-0.5 rounded bg-black/40 text-purple-300 font-mono text-[11px]">
-              *.oma.local
-            </code>
-            ), and connection strings piped straight to your Wayland clipboard.
-          </p>
-
-          {/* Action CTAs */}
+          {/* Clean Primary Actions */}
           <div
             data-hero-quiet="true"
-            className="flex flex-wrap items-center justify-center gap-3 pt-2"
+            className="flex flex-wrap items-center justify-center gap-3 pt-2 font-mono text-xs sm:text-sm"
           >
-            <button
-              onClick={onOpenDashboard}
-              className="px-6 py-3.5 rounded-xl font-bold flex items-center gap-2.5 shadow-xl transition-all hover:scale-105 hover:brightness-110 cursor-pointer text-xs"
+            <a
+              href="/install.sh?download=1"
+              download="install.sh"
+              className="px-6 py-3 rounded-xl font-bold flex items-center gap-2 shadow-lg transition-all hover:scale-105 hover:brightness-110 cursor-pointer"
               style={{
                 backgroundColor: currentTheme.primary,
                 color: currentTheme.bg,
               }}
             >
-              <Play className="w-4 h-4 fill-current" />
-              <span>Launch Live Dashboard</span>
-            </button>
+              <Download className="w-4 h-4 fill-current" />
+              <span>Download install.sh</span>
+            </a>
 
             <button
-              onClick={onOpenTerminal}
-              className="px-5 py-3.5 rounded-xl font-bold flex items-center gap-2 border transition-all hover:scale-105 hover:bg-white/5 cursor-pointer text-xs"
+              onClick={onOpenDashboard}
+              className="px-6 py-3 rounded-xl font-bold flex items-center gap-2 border transition-all hover:scale-105 hover:bg-white/10 cursor-pointer"
               style={{
                 backgroundColor: currentTheme.cardBg,
                 borderColor: currentTheme.border,
                 color: currentTheme.fg,
               }}
             >
-              <Terminal className="w-4 h-4 text-emerald-400" />
-              <span>Interactive CLI Simulator</span>
-            </button>
-
-            <button
-              onClick={onOpenWidgetPanel}
-              className="px-4 py-3.5 rounded-xl font-medium flex items-center gap-2 border transition-all hover:scale-105 hover:bg-white/5 cursor-pointer text-xs"
-              style={{
-                backgroundColor: `${currentTheme.cardBg}80`,
-                borderColor: currentTheme.border,
-                color: currentTheme.secondary,
-              }}
-              title="Open Widget Panel (Super + Alt + W)"
-            >
-              <Sliders className="w-4 h-4" />
-              <span>
-                Widget Panel <kbd className="opacity-60 text-[10px] font-mono">W</kbd>
-              </span>
+              <Play className="w-4 h-4 fill-current" />
+              <span>Live Dashboard</span>
             </button>
           </div>
 
-          {/* 1-Line Quick Install Box */}
-          <div
-            data-hero-quiet="true"
-            className="w-full max-w-xl p-2 rounded-xl border flex items-center justify-between gap-3 shadow-lg bg-black/60 backdrop-blur"
-            style={{ borderColor: currentTheme.border }}
-          >
-            <div className="flex items-center gap-2 overflow-x-auto text-[11px] font-mono text-left pl-3 text-white/90">
-              <span style={{ color: currentTheme.primary }}>$</span>
-              <span className="truncate">{pluginCmd}</span>
-            </div>
-            <button
-              onClick={() => copyText(pluginCmd, 'plugin')}
-              className="px-3.5 py-1.5 rounded-lg flex items-center gap-1.5 transition-all text-[11px] font-bold shrink-0 hover:brightness-125 cursor-pointer"
-              style={{
-                backgroundColor: copiedInstallCmd === 'plugin' ? '#10b981' : currentTheme.cardBg,
-                color: copiedInstallCmd === 'plugin' ? '#ffffff' : currentTheme.accent,
-                border: `1px solid ${currentTheme.border}`,
-              }}
+          {/* 1-Line Quick Install Command Bar */}
+          <div data-hero-quiet="true" className="pt-1 flex flex-col items-center gap-2 w-full max-w-lg">
+            <div
+              className="w-full p-1.5 rounded-xl border flex items-center justify-between gap-3 bg-black/50 backdrop-blur shadow-md"
+              style={{ borderColor: currentTheme.border }}
             >
-              {copiedInstallCmd === 'plugin' ? (
-                <Check className="w-3.5 h-3.5" />
-              ) : (
-                <Copy className="w-3.5 h-3.5" />
-              )}
-              <span>{copiedInstallCmd === 'plugin' ? 'Copied!' : 'Copy'}</span>
-            </button>
+              <div className="flex items-center gap-2 overflow-x-auto text-[11px] sm:text-xs font-mono text-left pl-3 text-white/90">
+                <span style={{ color: currentTheme.primary }}>$</span>
+                <span className="truncate">{pluginCmd}</span>
+              </div>
+              <button
+                onClick={() => copyText(pluginCmd, 'plugin')}
+                className="px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all text-[11px] sm:text-xs font-bold shrink-0 hover:brightness-125 cursor-pointer font-mono"
+                style={{
+                  backgroundColor: copiedInstallCmd === 'plugin' ? '#10b981' : currentTheme.cardBg,
+                  color: copiedInstallCmd === 'plugin' ? '#ffffff' : currentTheme.accent,
+                  border: `1px solid ${currentTheme.border}`,
+                }}
+              >
+                {copiedInstallCmd === 'plugin' ? (
+                  <Check className="w-3.5 h-3.5" />
+                ) : (
+                  <Copy className="w-3.5 h-3.5" />
+                )}
+                <span>{copiedInstallCmd === 'plugin' ? 'Copied!' : 'Copy'}</span>
+              </button>
+            </div>
+
+            <div className="flex items-center gap-3 text-[11px] font-mono opacity-70">
+              <a
+                href="/api/export-zip"
+                download="omastack-omarchy.zip"
+                className="hover:opacity-100 hover:text-white transition-opacity underline decoration-dotted underline-offset-2 flex items-center gap-1"
+              >
+                <Archive className="w-3 h-3" />
+                <span>Offline .zip bundle</span>
+              </a>
+              <span>•</span>
+              <button
+                onClick={onOpenTerminal}
+                className="hover:opacity-100 hover:text-white transition-opacity underline decoration-dotted underline-offset-2 flex items-center gap-1 cursor-pointer"
+              >
+                <Terminal className="w-3 h-3 text-emerald-400" />
+                <span>CLI Simulator</span>
+              </button>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* 2. "PICK A THEME, CHANGE EVERYTHING" (Omarchy signature section) */}
-      <section className="max-w-5xl mx-auto space-y-4 text-center">
+      {/* Main Page Container */}
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 space-y-24">
+        {/* 2. "PICK A THEME, CHANGE EVERYTHING" (Omarchy signature section) */}
+        <section className="max-w-5xl mx-auto space-y-4 text-center">
         <div className="space-y-1">
           <div
             className="text-[11px] font-bold uppercase tracking-wider font-mono flex items-center justify-center gap-1.5"
@@ -379,8 +315,8 @@ chmod +x ~/.local/bin/omastack`;
           <h2 className="text-xl sm:text-2xl font-black">
             Six Omarchy Palettes. Synced Across Bar, Shell &amp; Sandboxes.
           </h2>
-          <p className="text-xs opacity-70 max-w-lg mx-auto">
-            A theme restyles your terminal, Waybar, Walker menu, and this site simultaneously. Click below or press <kbd className="px-1.5 py-0.5 rounded bg-black/40 border border-white/10 font-mono text-[10px]">T</kbd> to cycle them.
+          <p className="text-xs text-white/85 max-w-lg mx-auto">
+            A theme restyles your terminal, Waybar, Walker menu, and this site simultaneously. Click below or press <kbd className="px-1.5 py-0.5 rounded bg-black/50 border border-white/20 font-mono text-[10px] text-white">T</kbd> to cycle them.
           </p>
         </div>
 
@@ -958,23 +894,35 @@ chmod +x ~/.local/bin/omastack`;
         </div>
 
         {/* Tabs */}
-        <div className="flex items-center justify-center gap-2 border-b pb-4" style={{ borderColor: currentTheme.border }}>
+        <div className="flex flex-wrap items-center justify-center gap-2 border-b pb-4" style={{ borderColor: currentTheme.border }}>
           <button
             onClick={() => setActiveInstallTab('plugin')}
             className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer font-mono ${
-              activeInstallTab === 'plugin' ? 'shadow-md' : 'opacity-60 hover:opacity-100'
+              activeInstallTab === 'plugin' ? 'shadow-md' : 'opacity-70 hover:opacity-100'
             }`}
             style={{
               backgroundColor: activeInstallTab === 'plugin' ? currentTheme.primary : 'transparent',
               color: activeInstallTab === 'plugin' ? currentTheme.bg : currentTheme.fg,
             }}
           >
-            Omarchy Plugin Manager (Recommended)
+            Omarchy Plugin Manager
+          </button>
+          <button
+            onClick={() => setActiveInstallTab('download')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer font-mono ${
+              activeInstallTab === 'download' ? 'shadow-md' : 'opacity-70 hover:opacity-100'
+            }`}
+            style={{
+              backgroundColor: activeInstallTab === 'download' ? currentTheme.primary : 'transparent',
+              color: activeInstallTab === 'download' ? currentTheme.bg : currentTheme.fg,
+            }}
+          >
+            Direct File Download (.sh / .zip)
           </button>
           <button
             onClick={() => setActiveInstallTab('curl')}
             className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer font-mono ${
-              activeInstallTab === 'curl' ? 'shadow-md' : 'opacity-60 hover:opacity-100'
+              activeInstallTab === 'curl' ? 'shadow-md' : 'opacity-70 hover:opacity-100'
             }`}
             style={{
               backgroundColor: activeInstallTab === 'curl' ? currentTheme.primary : 'transparent',
@@ -986,7 +934,7 @@ chmod +x ~/.local/bin/omastack`;
           <button
             onClick={() => setActiveInstallTab('git')}
             className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer font-mono ${
-              activeInstallTab === 'git' ? 'shadow-md' : 'opacity-60 hover:opacity-100'
+              activeInstallTab === 'git' ? 'shadow-md' : 'opacity-70 hover:opacity-100'
             }`}
             style={{
               backgroundColor: activeInstallTab === 'git' ? currentTheme.primary : 'transparent',
@@ -999,6 +947,109 @@ chmod +x ~/.local/bin/omastack`;
 
         {/* Tab Content */}
         <div className="space-y-4">
+          {activeInstallTab === 'download' && (
+            <div className="space-y-4">
+              <p className="text-xs text-white/80">
+                Download standalone installable files for manual execution or airgapped / offline environments:
+              </p>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* 1. install.sh */}
+                <div
+                  className="p-4 rounded-2xl border bg-black/40 space-y-3 flex flex-col justify-between"
+                  style={{ borderColor: currentTheme.border }}
+                >
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="font-mono font-bold text-sm text-emerald-400 flex items-center gap-1.5">
+                        <Download className="w-4 h-4" />
+                        install.sh
+                      </span>
+                      <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-mono">
+                        15.6 KB
+                      </span>
+                    </div>
+                    <p className="text-xs text-white/70">
+                      Universal standalone installer script. Automatically validates bash syntax, tests socket discovery, and symlinks OmaStack binaries.
+                    </p>
+                  </div>
+
+                  <div className="space-y-2 pt-2">
+                    <a
+                      href="/install.sh?download=1"
+                      download="install.sh"
+                      className="w-full py-2.5 rounded-xl font-bold flex items-center justify-center gap-2 text-xs font-mono transition-all hover:scale-[1.02] shadow cursor-pointer"
+                      style={{
+                        backgroundColor: currentTheme.primary,
+                        color: currentTheme.bg,
+                      }}
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      <span>Download install.sh</span>
+                    </a>
+                    <div className="flex items-center justify-between p-2 rounded-lg bg-black/60 border border-white/10 text-[10px] font-mono">
+                      <code className="text-white/85 truncate">chmod +x install.sh &amp;&amp; ./install.sh</code>
+                      <button
+                        onClick={() => copyText('chmod +x install.sh && ./install.sh', 'sh-run')}
+                        className="p-1 hover:text-white shrink-0 ml-1 text-white/60 hover:text-white cursor-pointer"
+                        title="Copy command"
+                      >
+                        {copiedInstallCmd === 'sh-run' ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 2. omastack-omarchy.zip */}
+                <div
+                  className="p-4 rounded-2xl border bg-black/40 space-y-3 flex flex-col justify-between"
+                  style={{ borderColor: currentTheme.border }}
+                >
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="font-mono font-bold text-sm text-cyan-400 flex items-center gap-1.5">
+                        <Archive className="w-4 h-4" />
+                        omastack-omarchy.zip
+                      </span>
+                      <span className="text-[10px] px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 font-mono">
+                        Complete Bundle
+                      </span>
+                    </div>
+                    <p className="text-xs text-white/70">
+                      Full offline distribution containing all 14 curated Docker Compose stacks, Caddy configurations, and Quickshell Bar-Widget files.
+                    </p>
+                  </div>
+
+                  <div className="space-y-2 pt-2">
+                    <a
+                      href="/api/export-zip"
+                      download="omastack-omarchy.zip"
+                      className="w-full py-2.5 rounded-xl font-bold flex items-center justify-center gap-2 text-xs font-mono transition-all hover:scale-[1.02] shadow cursor-pointer border"
+                      style={{
+                        backgroundColor: `${currentTheme.cardBg}cc`,
+                        borderColor: currentTheme.border,
+                        color: currentTheme.fg,
+                      }}
+                    >
+                      <Archive className="w-3.5 h-3.5 text-cyan-400" />
+                      <span>Download Offline .zip</span>
+                    </a>
+                    <div className="flex items-center justify-between p-2 rounded-lg bg-black/60 border border-white/10 text-[10px] font-mono">
+                      <code className="text-white/85 truncate">unzip omastack-omarchy.zip</code>
+                      <button
+                        onClick={() => copyText('unzip omastack-omarchy.zip -d ~/.local/share/omastack && ~/.local/share/omastack/install.sh', 'zip-run')}
+                        className="p-1 hover:text-white shrink-0 ml-1 text-white/60 hover:text-white cursor-pointer"
+                        title="Copy command"
+                      >
+                        {copiedInstallCmd === 'zip-run' ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {activeInstallTab === 'plugin' && (
             <div className="space-y-3">
               <p className="text-xs opacity-80">
@@ -1125,6 +1176,7 @@ chmod +x ~/.local/bin/omastack`;
           <span>MIT License</span>
         </div>
       </footer>
+      </div>
     </div>
   );
 };
