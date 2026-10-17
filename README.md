@@ -112,7 +112,7 @@ Templates are stored in `~/.local/share/omastack/templates/`:
 | :--- | :--- | :--- | :--- |
 | **`laravel-stack`** | MySQL 8.0, Redis Alpine, Mailpit (SMTP), Meilisearch | `3306`, `6379`, `8025`, `7700` | `https://mail.oma.local`<br>`https://search.oma.local` |
 | **`supabase-lite`** | PostgreSQL 16 (`pgvector`), PostgREST, PgAdmin | `5432`, `3000`, `5051` | `https://supabase.oma.local`<br>`https://api.supabase.oma.local` |
-| **`nextjs-postgres`** | PostgreSQL 16, Redis Alpine, Adminer UI | `5432`, `6379`, `8080` | `https://db.oma.local` |
+| **`nextjs-postgres`** | Next.js 14 App Router, PostgreSQL 16, Redis Alpine, Adminer UI | `3000`, `5432`, `6379`, `8080` | `https://next.oma.local`<br>`https://db.oma.local` |
 | **`rails-kamal`** | PostgreSQL 16, Redis/SolidQueue, Mailpit, MinIO S3 | `5432`, `6379`, `8025`, `9000`, `9001` | `https://rails-mail.oma.local`<br>`https://s3.oma.local` |
 | **`django-celery`** | PostgreSQL 16, Redis Broker, Flower Celery UI, Mailpit | `5432`, `6379`, `5555`, `8025`, `1025` | `https://flower.oma.local`<br>`https://django-mail.oma.local` |
 | **`ai-rag-stack`** | Qdrant Vector DB, PostgreSQL 16 (`pgvector`), Redis | `6333`, `6334`, `5432`, `6379` | `https://qdrant.oma.local` |

@@ -86,6 +86,7 @@ PGADMIN_URL=http://127.0.0.1:${PORT_PGADMIN:-5050}"
             ;;
         nextjs-postgres)
             snippet="${snippet}
+NEXT_PUBLIC_APP_URL=http://localhost:${PORT_NEXTJS:-3000}
 DATABASE_URL=postgresql://appuser:${db_pass}@127.0.0.1:${PORT_POSTGRES:-5432}/appdb?schema=public
 REDIS_URL=redis://127.0.0.1:${PORT_REDIS:-6379}
 ADMINER_URL=http://127.0.0.1:${PORT_ADMINER:-8080}"

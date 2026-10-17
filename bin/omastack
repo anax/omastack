@@ -196,6 +196,13 @@ cmd_up() {
     cp "${compose_src}" "${compose_dest}"
     chmod 600 "${compose_dest}" 2>/dev/null || true
 
+    # Copy auxiliary template files (e.g. server.js) to state directory if present
+    for extra in "${tmpl_dir}"/*; do
+        if [ -f "${extra}" ] && [ "$(basename "${extra}")" != "docker-compose.yml" ] && [ "$(basename "${extra}")" != "stack.conf" ]; then
+            cp "${extra}" "${OMASTACK_STATE_DIR}/$(basename "${extra}")" 2>/dev/null || true
+        fi
+    done
+
     if is_docker_available; then
         log_info "Launching Docker Compose containers..."
         docker compose --env-file "${secrets_file}" -f "${compose_dest}" -p "omastack-${template}" up -d
@@ -273,7 +280,7 @@ cmd_up() {
             local svc="${port_var#PORT_}"
             local p_val="${!port_var:-${default_port}}"
             p_val=$(echo "${p_val}" | tr -d ' "\r')
-            if [ "${svc}" = "ADMINER" ] || [ "${svc}" = "STUDIO" ] || [ "${svc}" = "N8N" ] || [ "${svc}" = "GRAFANA" ] || [ "${svc}" = "DIRECTUS" ] || [ "${svc}" = "KEYCLOAK" ] || [ "${svc}" = "MAILPIT_HTTP" ] || [ "${svc}" = "MONGO_EXPRESS" ] || [ "${svc}" = "PMA" ]; then
+            if [ "${svc}" = "NEXTJS" ] || [ "${svc}" = "APP" ] || [ "${svc}" = "ADMINER" ] || [ "${svc}" = "STUDIO" ] || [ "${svc}" = "N8N" ] || [ "${svc}" = "GRAFANA" ] || [ "${svc}" = "DIRECTUS" ] || [ "${svc}" = "KEYCLOAK" ] || [ "${svc}" = "MAILPIT_HTTP" ] || [ "${svc}" = "MONGO_EXPRESS" ] || [ "${svc}" = "PMA" ]; then
                 echo -e "  ➜ Web UI (${svc}):   ${COLOR_BOLD}http://localhost:${p_val}${COLOR_RESET}"
             else
                 echo -e "  ➜ Service (${svc}):  localhost:${p_val}"
@@ -282,10 +289,9 @@ cmd_up() {
     fi
 
     if [ "${template}" = "nextjs-postgres" ]; then
-        echo -e "\n${COLOR_YELLOW}ℹ Next.js Note: OmaStack runs the backend (Postgres + Redis + Adminer on :8080).${COLOR_RESET}"
-        echo -e "  To access your Next.js app on ${COLOR_BOLD}http://localhost:3000${COLOR_RESET}:"
-        echo -e "  1. In your Next.js project directory, run: ${COLOR_CYAN}omastack inject${COLOR_RESET}"
-        echo -e "  2. Start your dev server: ${COLOR_CYAN}npm run dev${COLOR_RESET}"
+        echo -e "\n${COLOR_CYAN}🚀 Next.js App is live at:${COLOR_RESET}  ${COLOR_BOLD}http://localhost:${PORT_NEXTJS:-3000}${COLOR_RESET}"
+        echo -e "${COLOR_CYAN}🛠 Adminer DB UI is live at:${COLOR_RESET} ${COLOR_BOLD}http://localhost:${PORT_ADMINER:-8080}${COLOR_RESET}"
+        echo -e "  ➜ To connect your local Next.js project: run ${COLOR_CYAN}omastack inject${COLOR_RESET} in your project root."
     fi
 }
 

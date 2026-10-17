@@ -200,7 +200,7 @@ render_widget_panel_box() {
     echo -e "${COLOR_CYAN}│${COLOR_RESET}  Available Stack Templates (15 Curated Sandboxes):          ${COLOR_CYAN}│${COLOR_RESET}"
     echo -e "${COLOR_CYAN}│${COLOR_RESET}   1. laravel-stack        (MySQL 8.0, Redis, Mailpit, Meili) ${COLOR_CYAN}│${COLOR_RESET}"
     echo -e "${COLOR_CYAN}│${COLOR_RESET}   2. supabase-lite        (PostgreSQL 16, PostgREST, PgAdmin)${COLOR_CYAN}│${COLOR_RESET}"
-    echo -e "${COLOR_CYAN}│${COLOR_RESET}   3. nextjs-postgres      (PostgreSQL 16, Redis, Adminer)    ${COLOR_CYAN}│${COLOR_RESET}"
+    echo -e "${COLOR_CYAN}│${COLOR_RESET}   3. nextjs-postgres      (Next.js App, Postgres 16, Redis)  ${COLOR_CYAN}│${COLOR_RESET}"
     echo -e "${COLOR_CYAN}│${COLOR_RESET}   4. rails-kamal          (PostgreSQL 16, Redis, Mail, MinIO)${COLOR_CYAN}│${COLOR_RESET}"
     echo -e "${COLOR_CYAN}│${COLOR_RESET}   5. django-celery        (Postgres 16, Redis, Flower, Mail) ${COLOR_CYAN}│${COLOR_RESET}"
     echo -e "${COLOR_CYAN}│${COLOR_RESET}   6. ai-rag-stack         (Qdrant Vector, pgvector, Redis)   ${COLOR_CYAN}│${COLOR_RESET}"

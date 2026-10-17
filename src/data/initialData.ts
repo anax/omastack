@@ -157,21 +157,27 @@ services:
   },
   {
     id: 'nextjs-postgres',
-    name: 'Next.js + Postgres',
-    description: 'PostgreSQL 16, Redis Alpine, and Adminer database management web interface.',
+    name: 'Next.js 14 Full-Stack',
+    description: 'Next.js 14 App Router, PostgreSQL 16, Redis Alpine & Adminer UI on localhost:3000.',
     services: [
+      { name: 'nextjs', image: 'node:20-alpine', defaultPort: 3000, assignedPort: 3000, status: 'healthy' },
       { name: 'postgres', image: 'postgres:16-alpine', defaultPort: 5432, assignedPort: 5432, status: 'healthy' },
       { name: 'redis', image: 'redis:alpine', defaultPort: 6379, assignedPort: 6379, status: 'healthy' },
       { name: 'adminer', image: 'adminer:latest', defaultPort: 8080, assignedPort: 8080, status: 'healthy' },
     ],
-    domains: [{ domain: 'db.oma.local', portVar: 'PORT_ADMINER' }],
+    domains: [
+      { domain: 'next.oma.local', portVar: 'PORT_NEXTJS' },
+      { domain: 'db.oma.local', portVar: 'PORT_ADMINER' },
+    ],
     confContent: `# stack.conf - Metadata and Default Ports for nextjs-postgres
 STACK_NAME="nextjs-postgres"
-STACK_DESCRIPTION="Next.js Full-Stack Essentials: PostgreSQL 16, Redis Alpine & Adminer UI"
+STACK_DESCRIPTION="Next.js Full-Stack Essentials: App Router, PostgreSQL 16, Redis Alpine & Adminer UI"
+PORT_NEXTJS=3000
 PORT_POSTGRES=5432
 PORT_REDIS=6379
 PORT_ADMINER=8080
 
+DOMAIN_APP="next.oma.local:PORT_NEXTJS"
 DOMAIN_ADMINER="db.oma.local:PORT_ADMINER"`,
     composeContent: `version: '3.8'
 
@@ -180,6 +186,15 @@ networks:
     external: true
 
 services:
+  nextjs:
+    image: node:20-alpine
+    container_name: omastack-nextjs-app
+    restart: unless-stopped
+    ports:
+      - "\${PORT_NEXTJS:-3000}:3000"
+    networks:
+      - omastack-net
+
   postgres:
     image: postgres:16-alpine
     container_name: omastack-nextjs-postgres
