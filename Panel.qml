@@ -243,6 +243,11 @@ Panel {
                 }
                 Button {
                     Layout.fillWidth: true
+                    text: "🐍 django-celery"
+                    onClicked: root.executeCli(["omastack", "up", "django-celery"])
+                }
+                Button {
+                    Layout.fillWidth: true
                     text: "🧠 ai-rag-stack"
                     onClicked: root.executeCli(["omastack", "up", "ai-rag-stack"])
                 }
@@ -255,6 +260,31 @@ Panel {
                     Layout.fillWidth: true
                     text: "🐹 golang-microservices"
                     onClicked: root.executeCli(["omastack", "up", "golang-microservices"])
+                }
+                Button {
+                    Layout.fillWidth: true
+                    text: "📈 observability-lgtm"
+                    onClicked: root.executeCli(["omastack", "up", "observability-lgtm"])
+                }
+                Button {
+                    Layout.fillWidth: true
+                    text: "⚡ clickhouse-analytics"
+                    onClicked: root.executeCli(["omastack", "up", "clickhouse-analytics"])
+                }
+                Button {
+                    Layout.fillWidth: true
+                    text: "🔐 keycloak-iam"
+                    onClicked: root.executeCli(["omastack", "up", "keycloak-iam"])
+                }
+                Button {
+                    Layout.fillWidth: true
+                    text: "🐰 directus-cms"
+                    onClicked: root.executeCli(["omastack", "up", "directus-cms"])
+                }
+                Button {
+                    Layout.fillWidth: true
+                    text: "📝 wordpress-mariadb"
+                    onClicked: root.executeCli(["omastack", "up", "wordpress-mariadb"])
                 }
                 Button {
                     Layout.fillWidth: true

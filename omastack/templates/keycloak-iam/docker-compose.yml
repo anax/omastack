@@ -1,0 +1,54 @@
+version: '3.8'
+
+networks:
+  omastack-net:
+    external: true
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: omastack-keycloak-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: keycloak
+      POSTGRES_USER: keycloak
+      POSTGRES_PASSWORD: keycloakpassword
+    ports:
+      - "127.0.0.1:${PORT_POSTGRES:-5432}:5432"
+    networks:
+      - omastack-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U keycloak"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0
+    container_name: omastack-keycloak-iam
+    restart: unless-stopped
+    command: start-dev
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: "jdbc:postgresql://postgres:5432/keycloak"
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: keycloakpassword
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: adminpassword
+      KC_HTTP_ENABLED: "true"
+    ports:
+      - "127.0.0.1:${PORT_KEYCLOAK:-8084}:8080"
+    depends_on:
+      - postgres
+    networks:
+      - omastack-net
+
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: omastack-keycloak-mailpit
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${PORT_MAILPIT_HTTP:-8025}:8025"
+      - "127.0.0.1:${PORT_MAILPIT_SMTP:-1025}:1025"
+    networks:
+      - omastack-net

@@ -71,9 +71,15 @@ Templates are stored in `~/.local/share/omastack/templates/`:
 | **`supabase-lite`** | PostgreSQL 16 (`pgvector`), PostgREST, PgAdmin | `5432`, `3000`, `5051` | `https://supabase.oma.local`<br>`https://api.supabase.oma.local` |
 | **`nextjs-postgres`** | PostgreSQL 16, Redis Alpine, Adminer UI | `5432`, `6379`, `8080` | `https://db.oma.local` |
 | **`rails-kamal`** | PostgreSQL 16, Redis/SolidQueue, Mailpit, MinIO S3 | `5432`, `6379`, `8025`, `9000`, `9001` | `https://rails-mail.oma.local`<br>`https://s3.oma.local` |
+| **`django-celery`** | PostgreSQL 16, Redis Broker, Flower Celery UI, Mailpit | `5432`, `6379`, `5555`, `8025`, `1025` | `https://flower.oma.local`<br>`https://django-mail.oma.local` |
 | **`ai-rag-stack`** | Qdrant Vector DB, PostgreSQL 16 (`pgvector`), Redis | `6333`, `6334`, `5432`, `6379` | `https://qdrant.oma.local` |
 | **`mern-mongo`** | MongoDB 7, Mongo Express Web UI, Redis Alpine | `27017`, `8081`, `6379` | `https://mongo.oma.local` |
 | **`golang-microservices`** | RabbitMQ 3 Management, Jaeger Tracing, PostgreSQL 16, Redis | `5672`, `15672`, `16686`, `4318`, `5432`, `6379` | `https://amqp.oma.local`<br>`https://trace.oma.local` |
+| **`observability-lgtm`** | Grafana Dashboards, Prometheus Metrics, Loki Logs, Redis | `3001`, `9090`, `3100`, `6379` | `https://grafana.oma.local`<br>`https://prometheus.oma.local` |
+| **`clickhouse-analytics`** | ClickHouse OLAP DB, Redpanda Kafka Console, Redis | `8123`, `9009`, `8082`, `6379` | `https://clickhouse.oma.local`<br>`https://kafka.oma.local` |
+| **`keycloak-iam`** | Keycloak 24 OIDC/OAuth2 IAM, PostgreSQL 16, Mailpit | `8084`, `5432`, `8025`, `1025` | `https://auth.oma.local`<br>`https://auth-mail.oma.local` |
+| **`directus-cms`** | Directus 11 Headless CMS & Data Studio, PostgreSQL 16, Redis | `8055`, `5432`, `6379` | `https://cms.oma.local` |
+| **`wordpress-mariadb`** | MariaDB 11, Redis Object Cache, phpMyAdmin UI, Mailpit | `3306`, `6379`, `8083`, `8025`, `1025` | `https://pma.oma.local`<br>`https://wp-mail.oma.local` |
 | **`automation-hub`** | n8n Workflow Automation, PostgreSQL 16, Redis Queue | `5678`, `5432`, `6379` | `https://n8n.oma.local` |
 | **`web3-node`** | EVM RPC Proxy (Anvil/Hardhat), PostgreSQL 16, Redis | `8545`, `5432`, `6379` | `https://rpc.oma.local` |
 

@@ -602,5 +602,435 @@ services:
     networks:
       - omastack-net`,
   },
+  {
+    id: 'django-celery',
+    name: 'Python Django + Celery',
+    description: 'PostgreSQL 16, Redis Celery Broker, Flower Task Monitor UI & Mailpit SMTP.',
+    services: [
+      { name: 'postgres', image: 'postgres:16-alpine', defaultPort: 5432, assignedPort: 5432, status: 'healthy' },
+      { name: 'redis', image: 'redis:alpine', defaultPort: 6379, assignedPort: 6379, status: 'healthy' },
+      { name: 'flower', image: 'mher/flower:latest', defaultPort: 5555, assignedPort: 5555, status: 'healthy' },
+      { name: 'mailpit', image: 'axllent/mailpit:latest', defaultPort: 8025, assignedPort: 8025, status: 'healthy' },
+    ],
+    domains: [
+      { domain: 'flower.oma.local', portVar: 'PORT_FLOWER' },
+      { domain: 'django-mail.oma.local', portVar: 'PORT_MAILPIT_HTTP' },
+    ],
+    confContent: `# stack.conf - Metadata and Default Ports for django-celery
+STACK_NAME="django-celery"
+STACK_DESCRIPTION="Python Django & FastAPI Stack: PostgreSQL 16, Redis Broker, Flower Celery UI & Mailpit"
+PORT_POSTGRES=5432
+PORT_REDIS=6379
+PORT_FLOWER=5555
+PORT_MAILPIT_HTTP=8025
+PORT_MAILPIT_SMTP=1025
+
+DOMAIN_FLOWER="flower.oma.local:PORT_FLOWER"
+DOMAIN_MAIL="django-mail.oma.local:PORT_MAILPIT_HTTP"`,
+    composeContent: `version: '3.8'
+
+networks:
+  omastack-net:
+    external: true
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: omastack-django-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: djangodb
+      POSTGRES_USER: django
+      POSTGRES_PASSWORD: djangopassword
+    ports:
+      - "127.0.0.1:\${PORT_POSTGRES:-5432}:5432"
+    networks:
+      - omastack-net
+
+  redis:
+    image: redis:alpine
+    container_name: omastack-django-redis
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:\${PORT_REDIS:-6379}:6379"
+    networks:
+      - omastack-net
+
+  flower:
+    image: mher/flower:latest
+    container_name: omastack-django-flower
+    restart: unless-stopped
+    environment:
+      CELERY_BROKER_URL: "redis://redis:6379/0"
+      FLOWER_PORT: 5555
+    ports:
+      - "127.0.0.1:\${PORT_FLOWER:-5555}:5555"
+    networks:
+      - omastack-net
+
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: omastack-django-mailpit
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:\${PORT_MAILPIT_HTTP:-8025}:8025"
+      - "127.0.0.1:\${PORT_MAILPIT_SMTP:-1025}:1025"
+    networks:
+      - omastack-net`,
+  },
+  {
+    id: 'observability-lgtm',
+    name: 'Grafana Observability',
+    description: 'Grafana OSS Dashboards, Prometheus Metrics, Loki Log Aggregation & Redis Cache.',
+    services: [
+      { name: 'grafana', image: 'grafana/grafana-oss:latest', defaultPort: 3001, assignedPort: 3001, status: 'healthy' },
+      { name: 'prometheus', image: 'prom/prometheus:latest', defaultPort: 9090, assignedPort: 9090, status: 'healthy' },
+      { name: 'loki', image: 'grafana/loki:latest', defaultPort: 3100, assignedPort: 3100, status: 'healthy' },
+      { name: 'redis', image: 'redis:alpine', defaultPort: 6379, assignedPort: 6379, status: 'healthy' },
+    ],
+    domains: [
+      { domain: 'grafana.oma.local', portVar: 'PORT_GRAFANA' },
+      { domain: 'prometheus.oma.local', portVar: 'PORT_PROMETHEUS' },
+    ],
+    confContent: `# stack.conf - Metadata and Default Ports for observability-lgtm
+STACK_NAME="observability-lgtm"
+STACK_DESCRIPTION="Grafana LGTM Observability: Grafana Dashboards, Prometheus Metrics, Loki Logs & Redis"
+PORT_GRAFANA=3001
+PORT_PROMETHEUS=9090
+PORT_LOKI=3100
+PORT_REDIS=6379
+
+DOMAIN_GRAFANA="grafana.oma.local:PORT_GRAFANA"
+DOMAIN_PROMETHEUS="prometheus.oma.local:PORT_PROMETHEUS"`,
+    composeContent: `version: '3.8'
+
+networks:
+  omastack-net:
+    external: true
+
+services:
+  grafana:
+    image: grafana/grafana-oss:latest
+    container_name: omastack-obs-grafana
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: adminpassword
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
+    ports:
+      - "127.0.0.1:\${PORT_GRAFANA:-3001}:3000"
+    networks:
+      - omastack-net
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: omastack-obs-prometheus
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:\${PORT_PROMETHEUS:-9090}:9090"
+    networks:
+      - omastack-net
+
+  loki:
+    image: grafana/loki:latest
+    container_name: omastack-obs-loki
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:\${PORT_LOKI:-3100}:3100"
+    networks:
+      - omastack-net
+
+  redis:
+    image: redis:alpine
+    container_name: omastack-obs-redis
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:\${PORT_REDIS:-6379}:6379"
+    networks:
+      - omastack-net`,
+  },
+  {
+    id: 'clickhouse-analytics',
+    name: 'ClickHouse + Redpanda',
+    description: 'ClickHouse OLAP Analytics Server, Redpanda Kafka Console UI & Redis Alpine.',
+    services: [
+      { name: 'clickhouse', image: 'clickhouse/clickhouse-server:latest', defaultPort: 8123, assignedPort: 8123, status: 'healthy' },
+      { name: 'redpanda-console', image: 'redpandadata/console:latest', defaultPort: 8082, assignedPort: 8082, status: 'healthy' },
+      { name: 'redis', image: 'redis:alpine', defaultPort: 6379, assignedPort: 6379, status: 'healthy' },
+    ],
+    domains: [
+      { domain: 'clickhouse.oma.local', portVar: 'PORT_CLICKHOUSE_HTTP' },
+      { domain: 'kafka.oma.local', portVar: 'PORT_REDPANDA_UI' },
+    ],
+    confContent: `# stack.conf - Metadata and Default Ports for clickhouse-analytics
+STACK_NAME="clickhouse-analytics"
+STACK_DESCRIPTION="Real-Time Analytics & Event Streaming: ClickHouse OLAP DB, Redpanda Console & Redis"
+PORT_CLICKHOUSE_HTTP=8123
+PORT_CLICKHOUSE_NATIVE=9009
+PORT_REDPANDA_UI=8082
+PORT_REDIS=6379
+
+DOMAIN_CLICKHOUSE="clickhouse.oma.local:PORT_CLICKHOUSE_HTTP"
+DOMAIN_KAFKA="kafka.oma.local:PORT_REDPANDA_UI"`,
+    composeContent: `version: '3.8'
+
+networks:
+  omastack-net:
+    external: true
+
+services:
+  clickhouse:
+    image: clickhouse/clickhouse-server:latest
+    container_name: omastack-analytics-clickhouse
+    restart: unless-stopped
+    environment:
+      CLICKHOUSE_DB: analytics
+      CLICKHOUSE_USER: default
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
+    ports:
+      - "127.0.0.1:\${PORT_CLICKHOUSE_HTTP:-8123}:8123"
+      - "127.0.0.1:\${PORT_CLICKHOUSE_NATIVE:-9009}:9000"
+    networks:
+      - omastack-net
+
+  redpanda-console:
+    image: redpandadata/console:latest
+    container_name: omastack-analytics-redpanda
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:\${PORT_REDPANDA_UI:-8082}:8080"
+    networks:
+      - omastack-net
+
+  redis:
+    image: redis:alpine
+    container_name: omastack-analytics-redis
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:\${PORT_REDIS:-6379}:6379"
+    networks:
+      - omastack-net`,
+  },
+  {
+    id: 'keycloak-iam',
+    name: 'Keycloak OIDC / IAM',
+    description: 'Keycloak 24 Identity & Access Management (OAuth2/OIDC), PostgreSQL 16 & Mailpit.',
+    services: [
+      { name: 'keycloak', image: 'quay.io/keycloak/keycloak:24.0', defaultPort: 8084, assignedPort: 8084, status: 'healthy' },
+      { name: 'postgres', image: 'postgres:16-alpine', defaultPort: 5432, assignedPort: 5432, status: 'healthy' },
+      { name: 'mailpit', image: 'axllent/mailpit:latest', defaultPort: 8025, assignedPort: 8025, status: 'healthy' },
+    ],
+    domains: [
+      { domain: 'auth.oma.local', portVar: 'PORT_KEYCLOAK' },
+      { domain: 'auth-mail.oma.local', portVar: 'PORT_MAILPIT_HTTP' },
+    ],
+    confContent: `# stack.conf - Metadata and Default Ports for keycloak-iam
+STACK_NAME="keycloak-iam"
+STACK_DESCRIPTION="Identity & SSO Auth Sandbox: Keycloak 24 OIDC/OAuth2, PostgreSQL 16 & Mailpit SMTP"
+PORT_KEYCLOAK=8084
+PORT_POSTGRES=5432
+PORT_MAILPIT_HTTP=8025
+PORT_MAILPIT_SMTP=1025
+
+DOMAIN_AUTH="auth.oma.local:PORT_KEYCLOAK"
+DOMAIN_MAIL="auth-mail.oma.local:PORT_MAILPIT_HTTP"`,
+    composeContent: `version: '3.8'
+
+networks:
+  omastack-net:
+    external: true
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: omastack-keycloak-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: keycloak
+      POSTGRES_USER: keycloak
+      POSTGRES_PASSWORD: keycloakpassword
+    ports:
+      - "127.0.0.1:\${PORT_POSTGRES:-5432}:5432"
+    networks:
+      - omastack-net
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0
+    container_name: omastack-keycloak-iam
+    restart: unless-stopped
+    command: start-dev
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: "jdbc:postgresql://postgres:5432/keycloak"
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: keycloakpassword
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: adminpassword
+      KC_HTTP_ENABLED: "true"
+    ports:
+      - "127.0.0.1:\${PORT_KEYCLOAK:-8084}:8080"
+    networks:
+      - omastack-net
+
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: omastack-keycloak-mailpit
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:\${PORT_MAILPIT_HTTP:-8025}:8025"
+      - "127.0.0.1:\${PORT_MAILPIT_SMTP:-1025}:1025"
+    networks:
+      - omastack-net`,
+  },
+  {
+    id: 'directus-cms',
+    name: 'Directus Headless CMS',
+    description: 'Directus 11 Instant REST+GraphQL Data Studio, PostgreSQL 16 & Redis Cache.',
+    services: [
+      { name: 'directus', image: 'directus/directus:latest', defaultPort: 8055, assignedPort: 8055, status: 'healthy' },
+      { name: 'postgres', image: 'postgres:16-alpine', defaultPort: 5432, assignedPort: 5432, status: 'healthy' },
+      { name: 'redis', image: 'redis:alpine', defaultPort: 6379, assignedPort: 6379, status: 'healthy' },
+    ],
+    domains: [{ domain: 'cms.oma.local', portVar: 'PORT_DIRECTUS' }],
+    confContent: `# stack.conf - Metadata and Default Ports for directus-cms
+STACK_NAME="directus-cms"
+STACK_DESCRIPTION="Headless CMS & Data Studio: Directus 11 API/Admin, PostgreSQL 16 & Redis Cache"
+PORT_DIRECTUS=8055
+PORT_POSTGRES=5432
+PORT_REDIS=6379
+
+DOMAIN_CMS="cms.oma.local:PORT_DIRECTUS"`,
+    composeContent: `version: '3.8'
+
+networks:
+  omastack-net:
+    external: true
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: omastack-directus-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: directus
+      POSTGRES_USER: directus
+      POSTGRES_PASSWORD: directuspassword
+    ports:
+      - "127.0.0.1:\${PORT_POSTGRES:-5432}:5432"
+    networks:
+      - omastack-net
+
+  redis:
+    image: redis:alpine
+    container_name: omastack-directus-redis
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:\${PORT_REDIS:-6379}:6379"
+    networks:
+      - omastack-net
+
+  directus:
+    image: directus/directus:latest
+    container_name: omastack-directus-cms
+    restart: unless-stopped
+    environment:
+      SECRET: "omastack-directus-local-secret-key-2026"
+      DB_CLIENT: "pg"
+      DB_HOST: "postgres"
+      DB_PORT: "5432"
+      DB_DATABASE: "directus"
+      DB_USER: "directus"
+      DB_PASSWORD: "directuspassword"
+      CACHE_ENABLED: "true"
+      CACHE_STORE: "redis"
+      REDIS: "redis://redis:6379"
+      ADMIN_EMAIL: "admin@omastack.local"
+      ADMIN_PASSWORD: "adminpassword"
+    ports:
+      - "127.0.0.1:\${PORT_DIRECTUS:-8055}:8055"
+    networks:
+      - omastack-net`,
+  },
+  {
+    id: 'wordpress-mariadb',
+    name: 'WordPress + MariaDB 11',
+    description: 'MariaDB 11 database, Redis Object Cache, phpMyAdmin Web UI & Mailpit SMTP.',
+    services: [
+      { name: 'mariadb', image: 'mariadb:11', defaultPort: 3306, assignedPort: 3306, status: 'healthy' },
+      { name: 'redis', image: 'redis:alpine', defaultPort: 6379, assignedPort: 6379, status: 'healthy' },
+      { name: 'phpmyadmin', image: 'phpmyadmin:latest', defaultPort: 8083, assignedPort: 8083, status: 'healthy' },
+      { name: 'mailpit', image: 'axllent/mailpit:latest', defaultPort: 8025, assignedPort: 8025, status: 'healthy' },
+    ],
+    domains: [
+      { domain: 'pma.oma.local', portVar: 'PORT_PMA' },
+      { domain: 'wp-mail.oma.local', portVar: 'PORT_MAILPIT_HTTP' },
+    ],
+    confContent: `# stack.conf - Metadata and Default Ports for wordpress-mariadb
+STACK_NAME="wordpress-mariadb"
+STACK_DESCRIPTION="WordPress & WooCommerce Stack: MariaDB 11, Redis Object Cache, phpMyAdmin & Mailpit"
+PORT_MARIADB=3306
+PORT_REDIS=6379
+PORT_PMA=8083
+PORT_MAILPIT_HTTP=8025
+PORT_MAILPIT_SMTP=1025
+
+DOMAIN_PMA="pma.oma.local:PORT_PMA"
+DOMAIN_MAIL="wp-mail.oma.local:PORT_MAILPIT_HTTP"`,
+    composeContent: `version: '3.8'
+
+networks:
+  omastack-net:
+    external: true
+
+services:
+  mariadb:
+    image: mariadb:11
+    container_name: omastack-wp-mariadb
+    restart: unless-stopped
+    environment:
+      MARIADB_DATABASE: wordpress
+      MARIADB_USER: wpuser
+      MARIADB_PASSWORD: wppassword
+      MARIADB_ROOT_PASSWORD: wppassword
+    ports:
+      - "127.0.0.1:\${PORT_MARIADB:-3306}:3306"
+    networks:
+      - omastack-net
+
+  redis:
+    image: redis:alpine
+    container_name: omastack-wp-redis
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:\${PORT_REDIS:-6379}:6379"
+    networks:
+      - omastack-net
+
+  phpmyadmin:
+    image: phpmyadmin:latest
+    container_name: omastack-wp-phpmyadmin
+    restart: unless-stopped
+    environment:
+      PMA_HOST: mariadb
+      PMA_PORT: 3306
+      PMA_USER: wpuser
+      PMA_PASSWORD: wppassword
+    ports:
+      - "127.0.0.1:\${PORT_PMA:-8083}:80"
+    networks:
+      - omastack-net
+
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: omastack-wp-mailpit
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:\${PORT_MAILPIT_HTTP:-8025}:8025"
+      - "127.0.0.1:\${PORT_MAILPIT_SMTP:-1025}:1025"
+    networks:
+      - omastack-net`,
+  },
 ];
+
 

@@ -156,7 +156,7 @@ run_test_suite() {
 
     # 3. Test Templates
     echo -e "\n${BOLD}3. Validating Stack Templates:${RESET}"
-    local templates=("ai-rag-stack" "automation-hub" "golang-microservices" "laravel-stack" "mern-mongo" "nextjs-postgres" "rails-kamal" "supabase-lite" "web3-node")
+    local templates=("ai-rag-stack" "automation-hub" "clickhouse-analytics" "directus-cms" "django-celery" "golang-microservices" "keycloak-iam" "laravel-stack" "mern-mongo" "nextjs-postgres" "observability-lgtm" "rails-kamal" "supabase-lite" "web3-node" "wordpress-mariadb")
     for tmpl in "${templates[@]}"; do
         local tmpl_dir="${src_dir}/templates/${tmpl}"
         if [ -d "${tmpl_dir}" ] && [ -f "${tmpl_dir}/docker-compose.yml" ] && [ -f "${tmpl_dir}/stack.conf" ]; then

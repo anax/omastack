@@ -1,0 +1,60 @@
+version: '3.8'
+
+networks:
+  omastack-net:
+    external: true
+
+services:
+  mariadb:
+    image: mariadb:11
+    container_name: omastack-wp-mariadb
+    restart: unless-stopped
+    environment:
+      MARIADB_DATABASE: wordpress
+      MARIADB_USER: wpuser
+      MARIADB_PASSWORD: wppassword
+      MARIADB_ROOT_PASSWORD: wppassword
+    ports:
+      - "127.0.0.1:${PORT_MARIADB:-3306}:3306"
+    networks:
+      - omastack-net
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:alpine
+    container_name: omastack-wp-redis
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${PORT_REDIS:-6379}:6379"
+    networks:
+      - omastack-net
+
+  phpmyadmin:
+    image: phpmyadmin:latest
+    container_name: omastack-wp-phpmyadmin
+    restart: unless-stopped
+    environment:
+      PMA_HOST: mariadb
+      PMA_PORT: 3306
+      PMA_USER: wpuser
+      PMA_PASSWORD: wppassword
+    ports:
+      - "127.0.0.1:${PORT_PMA:-8083}:80"
+    depends_on:
+      - mariadb
+    networks:
+      - omastack-net
+
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: omastack-wp-mailpit
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${PORT_MAILPIT_HTTP:-8025}:8025"
+      - "127.0.0.1:${PORT_MAILPIT_SMTP:-1025}:1025"
+    networks:
+      - omastack-net

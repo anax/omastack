@@ -89,7 +89,7 @@ chmod +x ~/.local/bin/omastack`;
       number: '01',
       title: 'Curated OmaStack Sandboxes',
       subtitle: 'We pick the tools and tune the details, so you can get straight to work.',
-      desc: 'No more writing verbose 200-line docker-compose files for every test project. OmaStack ships with 9 carefully tuned, alpine-based multi-service environments for Laravel, Supabase, Next.js, Rails 8 + Kamal, AI/RAG Vector DBs, MERN + MongoDB, Go/Rust Microservices, n8n, and Web3.',
+      desc: 'No more writing verbose 200-line docker-compose files for every test project. OmaStack ships with 15 carefully tuned, alpine-based multi-service environments for Laravel, Supabase, Next.js, Rails 8 + Kamal, Django + Celery, AI/RAG Vector DBs, MERN + MongoDB, Go/Rust Microservices, Grafana Observability, ClickHouse, Keycloak IAM, Directus CMS, WordPress, n8n, and Web3.',
       icon: Boxes,
       badge: 'Zero Boilerplate',
     },

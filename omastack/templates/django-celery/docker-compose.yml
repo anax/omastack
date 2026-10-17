@@ -1,0 +1,57 @@
+version: '3.8'
+
+networks:
+  omastack-net:
+    external: true
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: omastack-django-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: djangodb
+      POSTGRES_USER: django
+      POSTGRES_PASSWORD: djangopassword
+    ports:
+      - "127.0.0.1:${PORT_POSTGRES:-5432}:5432"
+    networks:
+      - omastack-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U django -d djangodb"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:alpine
+    container_name: omastack-django-redis
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${PORT_REDIS:-6379}:6379"
+    networks:
+      - omastack-net
+
+  flower:
+    image: mher/flower:latest
+    container_name: omastack-django-flower
+    restart: unless-stopped
+    environment:
+      CELERY_BROKER_URL: "redis://redis:6379/0"
+      FLOWER_PORT: 5555
+    ports:
+      - "127.0.0.1:${PORT_FLOWER:-5555}:5555"
+    depends_on:
+      - redis
+    networks:
+      - omastack-net
+
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: omastack-django-mailpit
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${PORT_MAILPIT_HTTP:-8025}:8025"
+      - "127.0.0.1:${PORT_MAILPIT_SMTP:-1025}:1025"
+    networks:
+      - omastack-net

@@ -96,6 +96,60 @@ OTEL_EXPORTER_OTLP_ENDPOINT=http://127.0.0.1:${PORT_JAEGER_OTLP:-4317}
 JAEGER_UI_URL=http://127.0.0.1:${PORT_JAEGER_UI:-16686}
 REDIS_URL=redis://127.0.0.1:${PORT_REDIS:-6379}"
             ;;
+        django-celery)
+            snippet="${snippet}
+DATABASE_URL=postgres://django:djangopassword@127.0.0.1:${PORT_POSTGRES:-5432}/djangodb
+CELERY_BROKER_URL=redis://127.0.0.1:${PORT_REDIS:-6379}/0
+CELERY_RESULT_BACKEND=redis://127.0.0.1:${PORT_REDIS:-6379}/0
+FLOWER_URL=http://127.0.0.1:${PORT_FLOWER:-5555}
+EMAIL_HOST=127.0.0.1
+EMAIL_PORT=${PORT_MAILPIT_SMTP:-1025}"
+            ;;
+        observability-lgtm)
+            snippet="${snippet}
+GRAFANA_URL=http://127.0.0.1:${PORT_GRAFANA:-3001}
+PROMETHEUS_URL=http://127.0.0.1:${PORT_PROMETHEUS:-9090}
+LOKI_URL=http://127.0.0.1:${PORT_LOKI:-3100}
+REDIS_URL=redis://127.0.0.1:${PORT_REDIS:-6379}"
+            ;;
+        clickhouse-analytics)
+            snippet="${snippet}
+CLICKHOUSE_URL=http://127.0.0.1:${PORT_CLICKHOUSE_HTTP:-8123}
+CLICKHOUSE_HOST=127.0.0.1
+CLICKHOUSE_PORT=${PORT_CLICKHOUSE_NATIVE:-9009}
+CLICKHOUSE_DB=analytics
+REDPANDA_CONSOLE_URL=http://127.0.0.1:${PORT_REDPANDA_UI:-8082}
+REDIS_URL=redis://127.0.0.1:${PORT_REDIS:-6379}"
+            ;;
+        keycloak-iam)
+            snippet="${snippet}
+KEYCLOAK_ISSUER_URL=http://127.0.0.1:${PORT_KEYCLOAK:-8084}/realms/master
+KEYCLOAK_ADMIN_URL=http://127.0.0.1:${PORT_KEYCLOAK:-8084}/admin
+KEYCLOAK_ADMIN=admin
+KEYCLOAK_ADMIN_PASSWORD=adminpassword
+DATABASE_URL=postgresql://keycloak:keycloakpassword@127.0.0.1:${PORT_POSTGRES:-5432}/keycloak
+SMTP_URL=smtp://127.0.0.1:${PORT_MAILPIT_SMTP:-1025}"
+            ;;
+        directus-cms)
+            snippet="${snippet}
+DIRECTUS_URL=http://127.0.0.1:${PORT_DIRECTUS:-8055}
+DIRECTUS_ADMIN_EMAIL=admin@omastack.local
+DIRECTUS_ADMIN_PASSWORD=adminpassword
+DATABASE_URL=postgresql://directus:directuspassword@127.0.0.1:${PORT_POSTGRES:-5432}/directus
+REDIS_URL=redis://127.0.0.1:${PORT_REDIS:-6379}"
+            ;;
+        wordpress-mariadb)
+            snippet="${snippet}
+DB_NAME=wordpress
+DB_USER=wpuser
+DB_PASSWORD=wppassword
+DB_HOST=127.0.0.1:${PORT_MARIADB:-3306}
+WP_REDIS_HOST=127.0.0.1
+WP_REDIS_PORT=${PORT_REDIS:-6379}
+PHPMYADMIN_URL=http://127.0.0.1:${PORT_PMA:-8083}
+SMTP_HOST=127.0.0.1
+SMTP_PORT=${PORT_MAILPIT_SMTP:-1025}"
+            ;;
         *)
             snippet="${snippet}
 # Generic Stack Config

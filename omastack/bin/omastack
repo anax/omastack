@@ -281,9 +281,15 @@ cmd_init() {
     local detected=""
     local conf_out=".omastack.conf"
 
-    if [ -f "composer.json" ] || [ -f "artisan" ]; then
+    if [ -f "wp-config.php" ] || [ -f "wp-config-sample.php" ]; then
+        detected="wordpress-mariadb"
+        log_success "Detected WordPress / WooCommerce project signature (wp-config.php)."
+    elif [ -f "composer.json" ] || [ -f "artisan" ]; then
         detected="laravel-stack"
         log_success "Detected PHP / Laravel project signature (composer.json / artisan)."
+    elif [ -f "manage.py" ]; then
+        detected="django-celery"
+        log_success "Detected Python Django / Celery project signature (manage.py)."
     elif [ -f "Gemfile" ] || [ -f "config/deploy.yml" ]; then
         detected="rails-kamal"
         log_success "Detected Ruby on Rails / Kamal project signature (Gemfile)."
@@ -293,9 +299,17 @@ cmd_init() {
     elif [ -f "foundry.toml" ] || [ -f "hardhat.config.js" ] || [ -f "hardhat.config.ts" ]; then
         detected="web3-node"
         log_success "Detected Web3 / Ethereum / EVM contract project signature."
+    elif [ -f "prometheus.yml" ] || [ -d "grafana" ]; then
+        detected="observability-lgtm"
+        log_success "Detected Grafana / Prometheus observability configuration."
     elif [ -f "requirements.txt" ] || [ -f "pyproject.toml" ]; then
-        detected="ai-rag-stack"
-        log_success "Detected Python AI / RAG / Vector application signature."
+        if grep -qi "django\|celery\|fastapi" "requirements.txt" "pyproject.toml" 2>/dev/null; then
+            detected="django-celery"
+            log_success "Detected Python Django / FastAPI / Celery dependencies."
+        else
+            detected="ai-rag-stack"
+            log_success "Detected Python AI / RAG / Vector application signature."
+        fi
     elif [ -f "next.config.js" ] || [ -f "next.config.ts" ] || [ -f "next.config.mjs" ]; then
         detected="nextjs-postgres"
         log_success "Detected Next.js full-stack application signature."
@@ -303,6 +317,15 @@ cmd_init() {
         if grep -q "supabase" "package.json" 2>/dev/null; then
             detected="supabase-lite"
             log_success "Detected Supabase client dependency in package.json."
+        elif grep -q "@directus" "package.json" 2>/dev/null || grep -q "directus" "package.json" 2>/dev/null; then
+            detected="directus-cms"
+            log_success "Detected Directus Headless CMS dependency in package.json."
+        elif grep -q "clickhouse" "package.json" 2>/dev/null || grep -q "kafkajs" "package.json" 2>/dev/null; then
+            detected="clickhouse-analytics"
+            log_success "Detected ClickHouse / Kafka event streaming dependency in package.json."
+        elif grep -q "keycloak" "package.json" 2>/dev/null; then
+            detected="keycloak-iam"
+            log_success "Detected Keycloak OIDC/IAM dependency in package.json."
         elif grep -q "mongoose" "package.json" 2>/dev/null || grep -q "mongodb" "package.json" 2>/dev/null; then
             detected="mern-mongo"
             log_success "Detected MongoDB / Mongoose dependency in package.json."
