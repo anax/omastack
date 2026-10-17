@@ -201,8 +201,10 @@ cmd_up() {
         docker compose --env-file "${secrets_file}" -f "${compose_dest}" -p "omastack-${template}" up -d
         wait_for_stack_healthy "${compose_dest}"
     else
-        log_info "Docker daemon offline; initialized ephemeral sandbox state in localized mode."
-        log_success "Generated target Compose spec at ${compose_dest} with resolved ports."
+        log_warn "Docker daemon is offline or inaccessible!"
+        echo -e "${COLOR_YELLOW}➜ To launch containers, start Docker with:${COLOR_RESET} ${COLOR_BOLD}sudo systemctl enable --now docker${COLOR_RESET}"
+        echo -e "${COLOR_YELLOW}➜ Ensure user has docker permissions:${COLOR_RESET} ${COLOR_BOLD}sudo usermod -aG docker \$USER${COLOR_RESET}"
+        notify_desktop "OmaStack: Docker Offline" "Start Docker with: sudo systemctl start docker" "critical"
     fi
 
     # Setup Proxy Domains if defined in stack.conf
@@ -262,6 +264,29 @@ cmd_up() {
 
     notify_desktop "OmaStack Sandbox Ready!" "🚀 ${template} is up! Connection variables copied to clipboard." "normal"
     log_success "Sandbox '${template}' successfully running! Connection string snippet copied via wl-copy."
+
+    echo -e "\n${COLOR_BOLD}${COLOR_GREEN}✔ Ephemeral sandbox '${template}' is UP & READY!${COLOR_RESET}"
+    echo -e "${COLOR_CYAN}Active Endpoints:${COLOR_RESET}"
+    if [ -f "${conf_file}" ]; then
+        while IFS='=' read -r port_var default_port; do
+            [[ "${port_var}" =~ ^PORT_ ]] || continue
+            local svc="${port_var#PORT_}"
+            local p_val="${!port_var:-${default_port}}"
+            p_val=$(echo "${p_val}" | tr -d ' "\r')
+            if [ "${svc}" = "ADMINER" ] || [ "${svc}" = "STUDIO" ] || [ "${svc}" = "N8N" ] || [ "${svc}" = "GRAFANA" ] || [ "${svc}" = "DIRECTUS" ] || [ "${svc}" = "KEYCLOAK" ] || [ "${svc}" = "MAILPIT_HTTP" ] || [ "${svc}" = "MONGO_EXPRESS" ] || [ "${svc}" = "PMA" ]; then
+                echo -e "  ➜ Web UI (${svc}):   ${COLOR_BOLD}http://localhost:${p_val}${COLOR_RESET}"
+            else
+                echo -e "  ➜ Service (${svc}):  localhost:${p_val}"
+            fi
+        done < "${conf_file}"
+    fi
+
+    if [ "${template}" = "nextjs-postgres" ]; then
+        echo -e "\n${COLOR_YELLOW}ℹ Next.js Note: OmaStack runs the backend (Postgres + Redis + Adminer on :8080).${COLOR_RESET}"
+        echo -e "  To access your Next.js app on ${COLOR_BOLD}http://localhost:3000${COLOR_RESET}:"
+        echo -e "  1. In your Next.js project directory, run: ${COLOR_CYAN}omastack inject${COLOR_RESET}"
+        echo -e "  2. Start your dev server: ${COLOR_CYAN}npm run dev${COLOR_RESET}"
+    fi
 }
 
 cmd_down() {
