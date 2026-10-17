@@ -12,8 +12,8 @@ services:
     environment:
       MARIADB_DATABASE: wordpress
       MARIADB_USER: wpuser
-      MARIADB_PASSWORD: wppassword
-      MARIADB_ROOT_PASSWORD: wppassword
+      MARIADB_PASSWORD: ${OMASTACK_DB_PASS:-wppassword}
+      MARIADB_ROOT_PASSWORD: ${OMASTACK_DB_PASS:-wppassword}
     ports:
       - "127.0.0.1:${PORT_MARIADB:-3306}:3306"
     networks:
@@ -41,7 +41,7 @@ services:
       PMA_HOST: mariadb
       PMA_PORT: 3306
       PMA_USER: wpuser
-      PMA_PASSWORD: wppassword
+      PMA_PASSWORD: ${OMASTACK_DB_PASS:-wppassword}
     ports:
       - "127.0.0.1:${PORT_PMA:-8083}:80"
     depends_on:

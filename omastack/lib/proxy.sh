@@ -12,22 +12,30 @@ ensure_local_ssl() {
     local cert_file="${OMASTACK_CERTS_DIR}/oma.local.pem"
     local key_file="${OMASTACK_CERTS_DIR}/oma.local-key.pem"
 
+    chmod 700 "${OMASTACK_CERTS_DIR}" 2>/dev/null || true
+
     if [ ! -f "${cert_file}" ] || [ ! -f "${key_file}" ]; then
         if command -v mkcert >/dev/null 2>&1; then
             log_info "Installing mkcert local CA & issuing certificate for *.oma.local..."
             mkcert -install >/dev/null 2>&1 || true
-            (cd "${OMASTACK_CERTS_DIR}" && mkcert "*.oma.local" "oma.local" 127.0.0.1 ::1) >/dev/null 2>&1 || true
+            (umask 077 && cd "${OMASTACK_CERTS_DIR}" && mkcert -cert-file "${cert_file}" -key-file "${key_file}" "*.oma.local" "oma.local" 127.0.0.1 ::1) >/dev/null 2>&1 || true
+            chmod 600 "${key_file}" 2>/dev/null || true
+            chmod 644 "${cert_file}" 2>/dev/null || true
             log_success "Created trusted SSL certificate for *.oma.local"
         else
             log_warn "mkcert not found. Caddy will use self-signed certificates for *.oma.local"
         fi
+    else
+        chmod 600 "${key_file}" 2>/dev/null || true
     fi
 }
 
 # Generate baseline Caddyfile
 init_caddyfile() {
     if [ ! -f "${CADDYFILE_PATH}" ]; then
-        cat << 'EOF' > "${CADDYFILE_PATH}"
+        (
+            umask 077
+            cat << 'EOF' > "${CADDYFILE_PATH}"
 {
     admin off
     auto_https off
@@ -36,6 +44,23 @@ init_caddyfile() {
 # OmaStack Dynamic Local Proxy Rules
 # Generated automatically by omastack
 EOF
+        )
+        chmod 600 "${CADDYFILE_PATH}" 2>/dev/null || true
+    fi
+}
+
+# Portable helper to remove a domain block from Caddyfile without GNU/BSD sed -i differences
+remove_caddy_domain_block() {
+    local domain="$1"
+    if [ -f "${CADDYFILE_PATH}" ]; then
+        local tmp_file="${CADDYFILE_PATH}.tmp"
+        awk -v dom="${domain}" '
+            $1 == dom && $2 == "{" { skip = 1; next }
+            skip && $1 == "}" { skip = 0; next }
+            !skip { print }
+        ' "${CADDYFILE_PATH}" > "${tmp_file}"
+        mv "${tmp_file}" "${CADDYFILE_PATH}"
+        chmod 600 "${CADDYFILE_PATH}" 2>/dev/null || true
     fi
 }
 
@@ -44,14 +69,21 @@ register_proxy_domain() {
     local domain="$1"      # e.g., mail.oma.local
     local target_port="$2" # e.g., 8025
 
+    if [[ ! "${domain}" =~ ^[a-zA-Z0-9.-]+\.oma\.local$ ]]; then
+        log_error "Invalid proxy domain '${domain}' (must match *.oma.local)"
+        return 1
+    fi
+    if [[ ! "${target_port}" =~ ^[0-9]{1,5}$ ]] || [ "${target_port}" -lt 1 ] || [ "${target_port}" -gt 65535 ]; then
+        log_error "Invalid proxy target port '${target_port}'"
+        return 1
+    fi
+
     ensure_omastack_network
     ensure_local_ssl
     init_caddyfile
 
     # Remove existing block if present
-    if grep -q "${domain}" "${CADDYFILE_PATH}" 2>/dev/null; then
-        sed -i "/${domain}/,/}/d" "${CADDYFILE_PATH}"
-    fi
+    remove_caddy_domain_block "${domain}"
 
     # Append new Caddy rule
     cat << EOF >> "${CADDYFILE_PATH}"
@@ -61,6 +93,7 @@ ${domain} {
     reverse_proxy host.docker.internal:${target_port}
 }
 EOF
+    chmod 600 "${CADDYFILE_PATH}" 2>/dev/null || true
 
     # Reload or restart proxy container
     sync_caddy_proxy
@@ -70,26 +103,30 @@ EOF
 # Remove dynamic domain mapping
 unregister_proxy_domain() {
     local domain="$1"
-    if [ -f "${CADDYFILE_PATH}" ] && grep -q "${domain}" "${CADDYFILE_PATH}"; then
-        sed -i "/${domain}/,/}/d" "${CADDYFILE_PATH}"
+    if [[ ! "${domain}" =~ ^[a-zA-Z0-9.-]+\.oma\.local$ ]]; then
+        log_error "Invalid proxy domain '${domain}'"
+        return 1
+    fi
+    if [ -f "${CADDYFILE_PATH}" ]; then
+        remove_caddy_domain_block "${domain}"
         sync_caddy_proxy
         log_info "Removed proxy mapping for ${domain}"
     fi
 }
 
-# Ensure Caddy reverse proxy container is running
+# Ensure Caddy reverse proxy container is running (bound strictly to 127.0.0.1)
 sync_caddy_proxy() {
     init_caddyfile
     
     if is_docker_available; then
         if ! docker ps --format '{{.Names}}' | grep -q "^${PROXY_CONTAINER_NAME}$"; then
-            log_info "Spinning up OmaStack HTTPS reverse proxy container (Caddy)..."
+            log_info "Spinning up OmaStack HTTPS reverse proxy container (Caddy on 127.0.0.1)..."
             docker run -d \
                 --name "${PROXY_CONTAINER_NAME}" \
                 --network omastack-net \
                 --add-host=host.docker.internal:host-gateway \
-                -p 80:80 \
-                -p 443:443 \
+                -p 127.0.0.1:80:80 \
+                -p 127.0.0.1:443:443 \
                 -v "${CADDYFILE_PATH}:/etc/caddy/Caddyfile:ro" \
                 -v "${OMASTACK_CERTS_DIR}:/certs:ro" \
                 --restart unless-stopped \

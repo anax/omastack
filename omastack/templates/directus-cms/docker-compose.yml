@@ -12,7 +12,7 @@ services:
     environment:
       POSTGRES_DB: directus
       POSTGRES_USER: directus
-      POSTGRES_PASSWORD: directuspassword
+      POSTGRES_PASSWORD: ${OMASTACK_DB_PASS:-directuspassword}
     ports:
       - "127.0.0.1:${PORT_POSTGRES:-5432}:5432"
     networks:
@@ -37,18 +37,18 @@ services:
     container_name: omastack-directus-cms
     restart: unless-stopped
     environment:
-      SECRET: "omastack-directus-local-secret-key-2026"
+      SECRET: "${OMASTACK_SECRET_KEY:-omastack-directus-local-secret-key-2026}"
       DB_CLIENT: "pg"
       DB_HOST: "postgres"
       DB_PORT: "5432"
       DB_DATABASE: "directus"
       DB_USER: "directus"
-      DB_PASSWORD: "directuspassword"
+      DB_PASSWORD: "${OMASTACK_DB_PASS:-directuspassword}"
       CACHE_ENABLED: "true"
       CACHE_STORE: "redis"
       REDIS: "redis://redis:6379"
       ADMIN_EMAIL: "admin@omastack.local"
-      ADMIN_PASSWORD: "adminpassword"
+      ADMIN_PASSWORD: "${OMASTACK_DB_PASS:-adminpassword}"
     ports:
       - "127.0.0.1:${PORT_DIRECTUS:-8055}:8055"
     depends_on:

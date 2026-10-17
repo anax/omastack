@@ -11,7 +11,7 @@ services:
     restart: unless-stopped
     environment:
       GF_SECURITY_ADMIN_USER: admin
-      GF_SECURITY_ADMIN_PASSWORD: adminpassword
+      GF_SECURITY_ADMIN_PASSWORD: ${OMASTACK_DB_PASS:-adminpassword}
       GF_AUTH_ANONYMOUS_ENABLED: "true"
       GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
     ports:

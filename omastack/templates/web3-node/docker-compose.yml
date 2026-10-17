@@ -21,7 +21,7 @@ services:
     environment:
       POSTGRES_DB: web3db
       POSTGRES_USER: web3
-      POSTGRES_PASSWORD: web3secret
+      POSTGRES_PASSWORD: '${OMASTACK_DB_PASS:-web3secret}'
     ports:
       - "127.0.0.1:${PORT_POSTGRES:-5432}:5432"
     networks:

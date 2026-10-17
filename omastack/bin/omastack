@@ -103,12 +103,17 @@ cmd_up() {
         done < "${conf_file}"
     fi
 
-    # Render compose file with resolved ports
+    # Ensure per-sandbox random secrets exist before starting containers
+    ensure_stack_secrets "${template}"
+    local secrets_file="${OMASTACK_STATE_DIR}/${template}.secrets.env"
+
+    # Render compose file with resolved ports (0600 permissions)
     cp "${compose_src}" "${compose_dest}"
+    chmod 600 "${compose_dest}" 2>/dev/null || true
 
     if is_docker_available; then
         log_info "Launching Docker Compose containers..."
-        docker compose -f "${compose_dest}" -p "omastack-${template}" up -d
+        docker compose --env-file "${secrets_file}" -f "${compose_dest}" -p "omastack-${template}" up -d
         wait_for_stack_healthy "${compose_dest}"
     else
         log_info "Docker daemon offline; initialized ephemeral sandbox state in localized mode."
@@ -409,8 +414,13 @@ main() {
             ;;
         logs)
             local stack="${1:-}"
+            local follow_flag="${2:-}"
             if [[ "${stack}" =~ ^[a-zA-Z0-9_-]+$ ]] && [ -f "${OMASTACK_STATE_DIR}/${stack}-compose.yml" ]; then
-                docker compose -f "${OMASTACK_STATE_DIR}/${stack}-compose.yml" logs -f
+                if [ -t 1 ] && { [ "${follow_flag}" = "-f" ] || [ "${follow_flag}" = "--follow" ]; }; then
+                    docker compose -f "${OMASTACK_STATE_DIR}/${stack}-compose.yml" logs -f --tail=100
+                else
+                    docker compose -f "${OMASTACK_STATE_DIR}/${stack}-compose.yml" logs --tail=100
+                fi
             else
                 log_error "Please specify a valid active stack (e.g. omastack logs laravel-stack)"
             fi

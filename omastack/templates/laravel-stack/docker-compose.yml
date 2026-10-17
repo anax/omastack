@@ -12,8 +12,8 @@ services:
     environment:
       MYSQL_DATABASE: '${DB_DATABASE:-laravel}'
       MYSQL_USER: '${DB_USERNAME:-laravel}'
-      MYSQL_PASSWORD: '${DB_PASSWORD:-secret}'
-      MYSQL_ROOT_PASSWORD: '${DB_PASSWORD:-secret}'
+      MYSQL_PASSWORD: '${OMASTACK_DB_PASS:-secret}'
+      MYSQL_ROOT_PASSWORD: '${OMASTACK_DB_PASS:-secret}'
     ports:
       - "127.0.0.1:${PORT_MYSQL:-3306}:3306"
     networks:
@@ -53,7 +53,7 @@ services:
     container_name: omastack-laravel-meilisearch
     restart: unless-stopped
     environment:
-      MEILI_MASTER_KEY: '${MEILISEARCH_KEY:-masterKey123}'
+      MEILI_MASTER_KEY: '${OMASTACK_SECRET_KEY:-masterKey123}'
       MEILI_ENV: 'development'
     ports:
       - "127.0.0.1:${PORT_MEILI:-7700}:7700"

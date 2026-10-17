@@ -16,10 +16,17 @@ const STATE_DIR = path.join(HOME_DIR, '.local', 'share', 'omastack', 'state');
 const CADDYFILE_PATH = path.join(HOME_DIR, '.local', 'share', 'omastack', 'Caddyfile');
 const TEMPLATES_DIR = path.join(process.cwd(), 'omastack', 'templates');
 
+const EXEC_OPTIONS = {
+  cwd: process.cwd(),
+  env: process.env,
+  timeout: 30_000,
+  maxBuffer: 1024 * 1024,
+};
+
 // Safe argv-based execution helper
 function runCli(args: string[]): Promise<{ stdout: string; stderr: string; code: number }> {
   return new Promise((resolve) => {
-    execFile('bash', [OMASTACK_BIN, ...args], { cwd: process.cwd(), env: process.env }, (error, stdout, stderr) => {
+    execFile('bash', [OMASTACK_BIN, ...args], EXEC_OPTIONS, (error, stdout, stderr) => {
       resolve({
         stdout: stdout || '',
         stderr: stderr || '',
@@ -32,7 +39,7 @@ function runCli(args: string[]): Promise<{ stdout: string; stderr: string; code:
 // Fallback helper for internal fixed scripts
 function runShell(cmd: string): Promise<{ stdout: string; stderr: string; code: number }> {
   return new Promise((resolve) => {
-    exec(cmd, { cwd: process.cwd(), env: process.env }, (error, stdout, stderr) => {
+    exec(cmd, EXEC_OPTIONS, (error, stdout, stderr) => {
       resolve({
         stdout: stdout || '',
         stderr: stderr || '',
@@ -95,9 +102,25 @@ function redactEnvContent(raw: string): string {
     .join('\n');
 }
 
+const ALLOWED_HOSTS = new Set(['127.0.0.1', 'localhost', '[::1]', 'omastack.local']);
+
 async function startServer() {
   const app = express();
   app.use(express.json());
+
+  // Global Host header validation to prevent DNS rebinding attacks
+  app.use((req, res, next) => {
+    const rawHost = (req.headers.host || '').trim().toLowerCase();
+    if (rawHost) {
+      const hostname = rawHost.startsWith('[')
+        ? rawHost.slice(0, rawHost.indexOf(']') + 1)
+        : rawHost.split(':')[0];
+      if (!ALLOWED_HOSTS.has(hostname)) {
+        return res.status(403).json({ error: 'Forbidden: Invalid Host header' });
+      }
+    }
+    next();
+  });
 
   let effectiveStateDir = STATE_DIR;
   try {
@@ -126,6 +149,22 @@ async function startServer() {
     return generated;
   })();
 
+  const isOwnerAuthenticated = (req: express.Request): boolean => {
+    if (!verifyLocalSocketOwner(req)) return false;
+    const secFetchSite = req.headers['sec-fetch-site'];
+    if (secFetchSite && secFetchSite === 'cross-site') return false;
+
+    const authHeader = req.headers.authorization || '';
+    const bearerToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : '';
+    const headerToken = typeof req.headers['x-omastack-token'] === 'string' ? req.headers['x-omastack-token'].trim() : '';
+    const providedToken = headerToken || bearerToken;
+    if (!providedToken) return false;
+
+    const providedBuf = Buffer.from(providedToken, 'utf-8');
+    const expectedBuf = Buffer.from(ownerApiToken, 'utf-8');
+    return providedBuf.length === expectedBuf.length && crypto.timingSafeEqual(providedBuf, expectedBuf);
+  };
+
   // Owner authentication middleware for sensitive & mutating endpoints
   const requireOwnerAuth: express.RequestHandler = (req, res, next) => {
     if (!verifyLocalSocketOwner(req)) {
@@ -137,21 +176,10 @@ async function startServer() {
       return res.status(403).json({ error: 'Forbidden: Cross-site requests are not allowed' });
     }
 
-    const authHeader = req.headers.authorization || '';
-    const bearerToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : '';
-    const headerToken = typeof req.headers['x-omastack-token'] === 'string' ? req.headers['x-omastack-token'].trim() : '';
-    const providedToken = headerToken || bearerToken;
-
-    if (!providedToken) {
+    if (!isOwnerAuthenticated(req)) {
       return res.status(401).json({
-        error: 'Unauthorized: Owner API token required (stored in ~/.local/share/omastack/state/api.token with 0600 permissions)',
+        error: 'Unauthorized: Valid owner API token required (stored in ~/.local/share/omastack/state/api.token with 0600 permissions)',
       });
-    }
-
-    const providedBuf = Buffer.from(providedToken, 'utf-8');
-    const expectedBuf = Buffer.from(ownerApiToken, 'utf-8');
-    if (providedBuf.length !== expectedBuf.length || !crypto.timingSafeEqual(providedBuf, expectedBuf)) {
-      return res.status(401).json({ error: 'Unauthorized: Invalid owner API token' });
     }
 
     next();
@@ -299,6 +327,7 @@ async function startServer() {
   // API: Get REAL active stacks from state directory
   app.get('/api/stacks', (req, res) => {
     const stacks: any[] = [];
+    const authed = isOwnerAuthenticated(req);
     try {
       const targetDir = fs.existsSync(STATE_DIR) ? STATE_DIR : effectiveStateDir;
       if (fs.existsSync(targetDir)) {
@@ -310,11 +339,12 @@ async function startServer() {
               const data = JSON.parse(content);
               const templateId = file.replace('.json', '');
 
-              // Check if compose exists
+              // Only expose rendered compose file content to authenticated owner
               const composeFile = path.join(targetDir, `${templateId}-compose.yml`);
-              const composeContent = fs.existsSync(composeFile)
-                ? fs.readFileSync(composeFile, 'utf-8')
-                : '';
+              const composeContent =
+                authed && fs.existsSync(composeFile)
+                  ? fs.readFileSync(composeFile, 'utf-8')
+                  : '';
 
               stacks.push({
                 id: templateId,
@@ -450,7 +480,25 @@ async function startServer() {
     }
   });
 
-  // API: Execute real omastack CLI command from terminal (Owner-authenticated)
+  const ALLOWED_OMASTACK_SUBCOMMANDS = new Set([
+    'up',
+    'down',
+    'restart',
+    'init',
+    'list',
+    'ls',
+    'status',
+    'widget',
+    'panel',
+    'proxy',
+    'logs',
+    'version',
+    '--version',
+    '-v',
+  ]);
+  const ALLOWED_OMARCHY_SUBCOMMANDS = new Set(['version', '--version', '-v', 'list', 'status']);
+
+  // API: Execute real omastack CLI command from terminal (Owner-authenticated, allowlisted)
   app.post('/api/cli', requireOwnerAuth, async (req, res) => {
     const { command } = req.body;
     if (!command || typeof command !== 'string') {
@@ -473,21 +521,43 @@ async function startServer() {
     const mainBin = tokens[0];
     const subArgs = tokens.slice(1);
 
-    // Block volume-purging flags via the web API
-    if (subArgs.some((arg) => arg === '--purge' || arg === '-v' || arg === '--volumes')) {
+    // Block volume-purging and blocking-stream flags via the web API
+    if (subArgs.some((arg) => arg === '--purge' || arg === '--volumes' || arg === '-f' || arg === '--follow' || (subArgs[0] === 'down' && arg === '-v'))) {
       return res.status(400).json({
-        error: 'Volume deletion flags (--purge, -v, --volumes) are disabled over the web API for data safety.',
+        error: 'Volume deletion and blocking stream flags (--purge, --volumes, -f, --follow) are disabled over the web API.',
+        code: 1,
+      });
+    }
+
+    // Validate all argument tokens contain only safe characters
+    if (subArgs.some((arg) => !/^[a-zA-Z0-9_.-]+$/.test(arg))) {
+      return res.status(400).json({
+        error: 'Invalid argument characters detected.',
         code: 1,
       });
     }
 
     if (mainBin === 'omastack') {
+      const subCmd = subArgs[0] || 'list';
+      if (!ALLOWED_OMASTACK_SUBCOMMANDS.has(subCmd)) {
+        return res.status(400).json({
+          error: `Subcommand '${subCmd}' is not allowed in the web CLI. Allowed: ${Array.from(ALLOWED_OMASTACK_SUBCOMMANDS).join(', ')}`,
+          code: 1,
+        });
+      }
       const { stdout, stderr, code } = await runCli(subArgs);
       return res.json({ stdout, stderr, code });
     } else if (mainBin === 'omarchy') {
+      const subCmd = subArgs[0] || 'version';
+      if (!ALLOWED_OMARCHY_SUBCOMMANDS.has(subCmd)) {
+        return res.status(400).json({
+          error: `Subcommand '${subCmd}' is not allowed over the web CLI.`,
+          code: 1,
+        });
+      }
       const omarchyBin = path.join(process.cwd(), 'omastack', 'bin', 'omarchy');
       const { stdout, stderr, code } = await new Promise<{ stdout: string; stderr: string; code: number }>((resolve) => {
-        execFile('bash', [omarchyBin, ...subArgs], { cwd: process.cwd(), env: process.env }, (err, stdout, stderr) => {
+        execFile('bash', [omarchyBin, ...subArgs], EXEC_OPTIONS, (err, stdout, stderr) => {
           resolve({ stdout: stdout || '', stderr: stderr || '', code: err ? (typeof err.code === 'number' ? err.code : 1) : 0 });
         });
       });
@@ -502,6 +572,7 @@ async function startServer() {
 
   // API: Real system open port scan
   app.get('/api/system/ports', async (req, res) => {
+    const authed = isOwnerAuthenticated(req);
     const { stdout } = await runShell('ss -tuln 2>/dev/null || netstat -tuln 2>/dev/null || true');
     const lines = stdout.split('\n');
     const openPorts: Array<{ protocol: string; port: number; address: string }> = [];
@@ -522,7 +593,7 @@ async function startServer() {
     }
 
     res.json({
-      raw: stdout,
+      raw: authed ? stdout : '',
       openPorts,
     });
   });
@@ -626,7 +697,11 @@ async function startServer() {
   // Vite integration
   if (!isProd) {
     const vite = await createViteServer({
-      server: { middlewareMode: true, hmr: process.env.DISABLE_HMR !== 'true' },
+      server: {
+        middlewareMode: true,
+        hmr: process.env.DISABLE_HMR !== 'true',
+        allowedHosts: ['localhost', '127.0.0.1', 'omastack.local'],
+      },
       appType: 'custom',
     });
 

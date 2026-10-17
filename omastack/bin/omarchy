@@ -21,8 +21,11 @@ log_success() { echo -e "${COLOR_GREEN}✔ [Omarchy PM]${COLOR_RESET} $1"; }
 log_warn() { echo -e "${COLOR_YELLOW}⚠ [Omarchy PM]${COLOR_RESET} $1"; }
 
 init_plugins_db() {
+    mkdir -p -m 700 "${OMARCHY_CONFIG_DIR}"
+    chmod 700 "${OMARCHY_CONFIG_DIR}" 2>/dev/null || true
     if [ ! -f "${OMARCHY_PLUGINS_FILE}" ]; then
-        echo '{"plugins":[]}' > "${OMARCHY_PLUGINS_FILE}"
+        (umask 077 && echo '{"plugins":[]}' > "${OMARCHY_PLUGINS_FILE}")
+        chmod 600 "${OMARCHY_PLUGINS_FILE}" 2>/dev/null || true
     fi
 }
 
@@ -30,6 +33,11 @@ cmd_plugin_add() {
     local repo_url="${1:-}"
     if [ -z "${repo_url}" ]; then
         echo "Usage: omarchy plugin add <git-repo-url-or-path>"
+        exit 1
+    fi
+
+    if [[ ! "${repo_url}" =~ ^[a-zA-Z0-9_./:@-]+$ ]]; then
+        echo "Error: Invalid repository URL or path '${repo_url}'"
         exit 1
     fi
 
@@ -49,7 +57,7 @@ cmd_plugin_add() {
     # Install binaries and libs
     log_info "Installing ${plugin_name} to ~/.local/share/${plugin_name}..."
     local dest_share="${HOME}/.local/share/${plugin_name}"
-    mkdir -p "${dest_share}"
+    mkdir -p -m 700 "${dest_share}"
 
     if [ -d "${SCRIPT_DIR}/lib" ]; then
         cp -r "${SCRIPT_DIR}/lib" "${dest_share}/"
@@ -95,7 +103,11 @@ cmd_plugin_add() {
 
     # Register in plugins.json
     local timestamp=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
-    echo "{\"plugins\":[{\"id\":\"omastack\",\"name\":\"OmaStack\",\"version\":\"1.0.0\",\"repo\":\"${repo_url}\",\"installed_at\":\"${timestamp}\"}]}" > "${OMARCHY_PLUGINS_FILE}"
+    (
+        umask 077
+        echo "{\"plugins\":[{\"id\":\"omastack\",\"name\":\"OmaStack\",\"version\":\"1.0.0\",\"repo\":\"${repo_url}\",\"installed_at\":\"${timestamp}\"}]}" > "${OMARCHY_PLUGINS_FILE}"
+    )
+    chmod 600 "${OMARCHY_PLUGINS_FILE}" 2>/dev/null || true
 
     log_success "Plugin 'omastack' successfully installed and activated!"
     echo -e "${COLOR_GREEN}${COLOR_BOLD}➜ Ready to launch:${COLOR_RESET} Run ${COLOR_CYAN}omastack up laravel-stack${COLOR_RESET} or press ${COLOR_CYAN}Super + Alt + Space${COLOR_RESET}\n"

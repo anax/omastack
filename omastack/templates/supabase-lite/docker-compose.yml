@@ -12,7 +12,7 @@ services:
     environment:
       POSTGRES_DB: postgres
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgrespassword
+      POSTGRES_PASSWORD: '${OMASTACK_DB_PASS:-postgrespassword}'
     ports:
       - "127.0.0.1:${PORT_POSTGRES:-5432}:5432"
     networks:
@@ -28,7 +28,7 @@ services:
     container_name: omastack-supabase-rest
     restart: unless-stopped
     environment:
-      PGRST_DB_URI: "postgres://postgres:postgrespassword@postgres:5432/postgres"
+      PGRST_DB_URI: "postgres://postgres:${OMASTACK_DB_PASS:-postgrespassword}@postgres:5432/postgres"
       PGRST_DB_SCHEMA: "public"
       PGRST_DB_ANON_ROLE: "postgres"
     ports:
@@ -45,7 +45,7 @@ services:
     restart: unless-stopped
     environment:
       PGADMIN_DEFAULT_EMAIL: "admin@omastack.local"
-      PGADMIN_DEFAULT_PASSWORD: "admin"
+      PGADMIN_DEFAULT_PASSWORD: '${OMASTACK_SECRET_KEY:-admin}'
     ports:
       - "127.0.0.1:${PORT_PGADMIN:-5051}:80"
     networks:
