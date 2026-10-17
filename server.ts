@@ -2,6 +2,7 @@ import express from 'express';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
+import crypto from 'crypto';
 import { exec, execFile } from 'child_process';
 import JSZip from 'jszip';
 import { createServer as createViteServer } from 'vite';
@@ -41,19 +42,120 @@ function runShell(cmd: string): Promise<{ stdout: string; stderr: string; code: 
   });
 }
 
+// Verify on Linux that a loopback TCP connection originates from the same OS user UID
+function verifyLocalSocketOwner(req: express.Request): boolean {
+  if (typeof process.getuid !== 'function') return true;
+  const remotePort = req.socket?.remotePort;
+  if (!remotePort) return true;
+
+  const myUid = process.getuid();
+  const portHex = remotePort.toString(16).toUpperCase().padStart(4, '0');
+
+  for (const procFile of ['/proc/net/tcp', '/proc/net/tcp6']) {
+    try {
+      if (!fs.existsSync(procFile)) continue;
+      const lines = fs.readFileSync(procFile, 'utf-8').split('\n');
+      for (const line of lines) {
+        const parts = line.trim().split(/\s+/);
+        // Format: sl local_address rem_address st tx_queue:rx_queue tr:tm->when retrnsmt uid ...
+        if (parts.length >= 8 && parts[3] === '01' && parts[1].toUpperCase().endsWith(`:${portHex}`)) {
+          const socketUid = parseInt(parts[7], 10);
+          if (!isNaN(socketUid) && socketUid !== myUid) {
+            return false;
+          }
+        }
+      }
+    } catch (_) {
+      // Ignore if /proc/net/tcp is unavailable
+    }
+  }
+  return true;
+}
+
+// Redact sensitive values from .env content so secrets are never exposed over HTTP
+function redactEnvContent(raw: string): string {
+  if (!raw) return '';
+  const SAFE_KEY_RE = /^(?:PORT_[A-Z0-9_]+|[A-Z0-9_]+_PORT|[A-Z0-9_]+_HOST|DB_CONNECTION|MAIL_MAILER|OMASTACK_ACTIVE)$/;
+  const SAFE_VAL_RE = /^(?:\d{1,5}|127\.0\.0\.1|localhost|mysql|pgsql|postgres|smtp|true|false)$/;
+
+  return raw
+    .split('\n')
+    .map((line) => {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith('#')) return line;
+      const eqIdx = trimmed.indexOf('=');
+      if (eqIdx === -1) return '# [redacted line]';
+      const key = trimmed.slice(0, eqIdx).trim();
+      const val = trimmed.slice(eqIdx + 1).trim().replace(/^["']|["']$/g, '');
+      if (SAFE_KEY_RE.test(key) && SAFE_VAL_RE.test(val)) {
+        return `${key}=${val}`;
+      }
+      return `${key}=<redacted>`;
+    })
+    .join('\n');
+}
+
 async function startServer() {
   const app = express();
   app.use(express.json());
 
-let effectiveStateDir = STATE_DIR;
-try {
-  fs.mkdirSync(STATE_DIR, { recursive: true });
-} catch (e) {
-  effectiveStateDir = path.join(process.cwd(), '.omastack', 'state');
+  let effectiveStateDir = STATE_DIR;
   try {
-    fs.mkdirSync(effectiveStateDir, { recursive: true });
-  } catch (_) {}
-}
+    fs.mkdirSync(STATE_DIR, { recursive: true, mode: 0o700 });
+    fs.chmodSync(STATE_DIR, 0o700);
+  } catch (e) {
+    effectiveStateDir = path.join(process.cwd(), '.omastack', 'state');
+    try {
+      fs.mkdirSync(effectiveStateDir, { recursive: true, mode: 0o700 });
+      fs.chmodSync(effectiveStateDir, 0o700);
+    } catch (_) {}
+  }
+
+  // Generate or load owner-only API token stored with 0600 permissions
+  const tokenFilePath = path.join(effectiveStateDir, 'api.token');
+  const ownerApiToken = (() => {
+    const envToken = process.env.OMASTACK_API_TOKEN?.trim();
+    if (envToken && envToken.length >= 32) {
+      return envToken;
+    }
+    const generated = crypto.randomBytes(32).toString('hex');
+    try {
+      fs.writeFileSync(tokenFilePath, `${generated}\n`, { mode: 0o600 });
+      fs.chmodSync(tokenFilePath, 0o600);
+    } catch (_) {}
+    return generated;
+  })();
+
+  // Owner authentication middleware for sensitive & mutating endpoints
+  const requireOwnerAuth: express.RequestHandler = (req, res, next) => {
+    if (!verifyLocalSocketOwner(req)) {
+      return res.status(403).json({ error: 'Forbidden: Connection originates from a different local OS user' });
+    }
+
+    const secFetchSite = req.headers['sec-fetch-site'];
+    if (secFetchSite && secFetchSite === 'cross-site') {
+      return res.status(403).json({ error: 'Forbidden: Cross-site requests are not allowed' });
+    }
+
+    const authHeader = req.headers.authorization || '';
+    const bearerToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : '';
+    const headerToken = typeof req.headers['x-omastack-token'] === 'string' ? req.headers['x-omastack-token'].trim() : '';
+    const providedToken = headerToken || bearerToken;
+
+    if (!providedToken) {
+      return res.status(401).json({
+        error: 'Unauthorized: Owner API token required (stored in ~/.local/share/omastack/state/api.token with 0600 permissions)',
+      });
+    }
+
+    const providedBuf = Buffer.from(providedToken, 'utf-8');
+    const expectedBuf = Buffer.from(ownerApiToken, 'utf-8');
+    if (providedBuf.length !== expectedBuf.length || !crypto.timingSafeEqual(providedBuf, expectedBuf)) {
+      return res.status(401).json({ error: 'Unauthorized: Invalid owner API token' });
+    }
+
+    next();
+  };
 
   // Serve raw install script
   app.get('/install.sh', (req, res) => {
@@ -236,8 +338,8 @@ try {
     res.json(stacks);
   });
 
-  // API: Launch stack with real CLI execution
-  app.post('/api/stacks/up', async (req, res) => {
+  // API: Launch stack with real CLI execution (Owner-authenticated)
+  app.post('/api/stacks/up', requireOwnerAuth, async (req, res) => {
     const { templateId } = req.body;
     if (!templateId || typeof templateId !== 'string' || !/^[a-zA-Z0-9_-]+$/.test(templateId)) {
       return res.status(400).json({ error: 'Valid alphanumeric templateId required' });
@@ -252,8 +354,8 @@ try {
     });
   });
 
-  // API: Teardown stack with real CLI execution
-  app.post('/api/stacks/down', async (req, res) => {
+  // API: Teardown stack with real CLI execution (Owner-authenticated, preserves volumes)
+  app.post('/api/stacks/down', requireOwnerAuth, async (req, res) => {
     const { templateId } = req.body;
     if (templateId && (typeof templateId !== 'string' || !/^[a-zA-Z0-9_-]+$/.test(templateId))) {
       return res.status(400).json({ error: 'Invalid templateId format' });
@@ -269,8 +371,8 @@ try {
     });
   });
 
-  // API: Restart stack with real CLI execution
-  app.post('/api/stacks/restart', async (req, res) => {
+  // API: Restart stack with real CLI execution (Owner-authenticated)
+  app.post('/api/stacks/restart', requireOwnerAuth, async (req, res) => {
     const { templateId } = req.body;
     if (!templateId || typeof templateId !== 'string' || !/^[a-zA-Z0-9_-]+$/.test(templateId)) {
       return res.status(400).json({ error: 'Valid alphanumeric templateId required' });
@@ -285,8 +387,8 @@ try {
     });
   });
 
-  // API: Init project stack configuration
-  app.post('/api/stacks/init', async (req, res) => {
+  // API: Init project stack configuration (Owner-authenticated)
+  app.post('/api/stacks/init', requireOwnerAuth, async (req, res) => {
     const { stdout, stderr, code } = await runCli(['init']);
     res.json({
       success: code === 0,
@@ -323,7 +425,17 @@ try {
         total_ram: '0MB',
         status_class: 'idle',
         active_stacks: [],
-        templates: ['automation-hub', 'laravel-stack', 'nextjs-postgres', 'supabase-lite', 'web3-node'],
+        templates: [
+          'ai-rag-stack',
+          'automation-hub',
+          'golang-microservices',
+          'laravel-stack',
+          'mern-mongo',
+          'nextjs-postgres',
+          'rails-kamal',
+          'supabase-lite',
+          'web3-node',
+        ],
         shortcuts: {
           menu: 'SUPER + ALT + SPACE',
           widget_panel: 'SUPER + ALT + W',
@@ -332,8 +444,8 @@ try {
     }
   });
 
-  // API: Execute real omastack CLI command from terminal
-  app.post('/api/cli', async (req, res) => {
+  // API: Execute real omastack CLI command from terminal (Owner-authenticated)
+  app.post('/api/cli', requireOwnerAuth, async (req, res) => {
     const { command } = req.body;
     if (!command || typeof command !== 'string') {
       return res.status(400).json({ error: 'Command string required' });
@@ -354,6 +466,14 @@ try {
 
     const mainBin = tokens[0];
     const subArgs = tokens.slice(1);
+
+    // Block volume-purging flags via the web API
+    if (subArgs.some((arg) => arg === '--purge' || arg === '-v' || arg === '--volumes')) {
+      return res.status(400).json({
+        error: 'Volume deletion flags (--purge, -v, --volumes) are disabled over the web API for data safety.',
+        code: 1,
+      });
+    }
 
     if (mainBin === 'omastack') {
       const { stdout, stderr, code } = await runCli(subArgs);
@@ -420,8 +540,8 @@ try {
     });
   });
 
-  // API: Get real Caddyfile content
-  app.get('/api/caddyfile', (req, res) => {
+  // API: Get real Caddyfile content (Owner-authenticated)
+  app.get('/api/caddyfile', requireOwnerAuth, (req, res) => {
     try {
       if (fs.existsSync(CADDYFILE_PATH)) {
         return res.json({ content: fs.readFileSync(CADDYFILE_PATH, 'utf-8') });
@@ -432,20 +552,32 @@ try {
     res.json({ content: '# Caddyfile has not been generated yet. Launch a stack to initialize.' });
   });
 
-  // API: Real .env inspection & injection
-  app.get('/api/env', (req, res) => {
+  // API: Redacted .env inspection & injection (Owner-authenticated, secrets redacted)
+  app.get('/api/env', requireOwnerAuth, (req, res) => {
     const envPath = path.join(process.cwd(), '.env');
     const bakPath = path.join(process.cwd(), '.env.omastack.bak');
 
+    let currentRaw = '';
+    let backupRaw = '';
+    try {
+      if (fs.existsSync(envPath)) {
+        currentRaw = fs.readFileSync(envPath, 'utf-8');
+      }
+      if (fs.existsSync(bakPath)) {
+        backupRaw = fs.readFileSync(bakPath, 'utf-8');
+      }
+    } catch (_) {}
+
     res.json({
-      currentEnv: fs.existsSync(envPath) ? fs.readFileSync(envPath, 'utf-8') : '',
-      backupEnv: fs.existsSync(bakPath) ? fs.readFileSync(bakPath, 'utf-8') : '',
+      currentEnv: redactEnvContent(currentRaw),
+      backupEnv: redactEnvContent(backupRaw),
       exists: fs.existsSync(envPath),
+      redacted: true,
     });
   });
 
-  app.post('/api/env/inject', async (req, res) => {
-    const { stdout, stderr, code } = await runShell(`bash "${OMASTACK_BIN}" inject`);
+  app.post('/api/env/inject', requireOwnerAuth, async (req, res) => {
+    const { stdout, stderr, code } = await runCli(['inject']);
     res.json({
       success: code === 0,
       stdout,

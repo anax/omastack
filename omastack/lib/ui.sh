@@ -77,7 +77,7 @@ launch_walker_menu() {
 
 # Template selection menu
 launch_template_picker() {
-    local templates=("laravel-stack" "supabase-lite" "nextjs-postgres" "automation-hub" "web3-node")
+    local templates=("laravel-stack" "supabase-lite" "nextjs-postgres" "automation-hub" "web3-node" "rails-kamal" "ai-rag-stack" "mern-mongo" "golang-microservices")
     local selected=""
 
     if command -v gum >/dev/null 2>&1; then
@@ -153,7 +153,7 @@ output_widget_json() {
   "total_ram": "${total_ram}MB",
   "status_class": "${class_name}",
   "active_stacks": ${stacks_json},
-  "templates": ["automation-hub", "laravel-stack", "nextjs-postgres", "supabase-lite", "web3-node"],
+  "templates": ["ai-rag-stack", "automation-hub", "golang-microservices", "laravel-stack", "mern-mongo", "nextjs-postgres", "rails-kamal", "supabase-lite", "web3-node"],
   "shortcuts": {
     "menu": "SUPER + ALT + SPACE",
     "widget_panel": "SUPER + ALT + W"
@@ -186,11 +186,15 @@ render_widget_panel_box() {
     fi
     echo -e "${COLOR_CYAN}${COLOR_BOLD}├─────────────────────────────────────────────────────────────┤${COLOR_RESET}"
     echo -e "${COLOR_CYAN}│${COLOR_RESET}  Available Stack Templates:                                 ${COLOR_CYAN}│${COLOR_RESET}"
-    echo -e "${COLOR_CYAN}│${COLOR_RESET}   1. laravel-stack    (MySQL 8.0, Redis, Mailpit, Meili)     ${COLOR_CYAN}│${COLOR_RESET}"
-    echo -e "${COLOR_CYAN}│${COLOR_RESET}   2. supabase-lite    (PostgreSQL 16, PostgREST, PgAdmin)    ${COLOR_CYAN}│${COLOR_RESET}"
-    echo -e "${COLOR_CYAN}│${COLOR_RESET}   3. nextjs-postgres  (PostgreSQL 16, Redis, Adminer)        ${COLOR_CYAN}│${COLOR_RESET}"
-    echo -e "${COLOR_CYAN}│${COLOR_RESET}   4. automation-hub   (n8n, PostgreSQL 16, Redis)            ${COLOR_CYAN}│${COLOR_RESET}"
-    echo -e "${COLOR_CYAN}│${COLOR_RESET}   5. web3-node        (Anvil RPC, PostgreSQL 16, Redis)      ${COLOR_CYAN}│${COLOR_RESET}"
+    echo -e "${COLOR_CYAN}│${COLOR_RESET}   1. laravel-stack        (MySQL 8.0, Redis, Mailpit, Meili) ${COLOR_CYAN}│${COLOR_RESET}"
+    echo -e "${COLOR_CYAN}│${COLOR_RESET}   2. supabase-lite        (PostgreSQL 16, PostgREST, PgAdmin)${COLOR_CYAN}│${COLOR_RESET}"
+    echo -e "${COLOR_CYAN}│${COLOR_RESET}   3. nextjs-postgres      (PostgreSQL 16, Redis, Adminer)    ${COLOR_CYAN}│${COLOR_RESET}"
+    echo -e "${COLOR_CYAN}│${COLOR_RESET}   4. automation-hub       (n8n, PostgreSQL 16, Redis)        ${COLOR_CYAN}│${COLOR_RESET}"
+    echo -e "${COLOR_CYAN}│${COLOR_RESET}   5. web3-node            (Anvil RPC, PostgreSQL 16, Redis)  ${COLOR_CYAN}│${COLOR_RESET}"
+    echo -e "${COLOR_CYAN}│${COLOR_RESET}   6. rails-kamal          (PostgreSQL 16, Redis, Mail, MinIO)${COLOR_CYAN}│${COLOR_RESET}"
+    echo -e "${COLOR_CYAN}│${COLOR_RESET}   7. ai-rag-stack         (Qdrant Vector, pgvector, Redis)   ${COLOR_CYAN}│${COLOR_RESET}"
+    echo -e "${COLOR_CYAN}│${COLOR_RESET}   8. mern-mongo           (MongoDB 7, Mongo Express, Redis)  ${COLOR_CYAN}│${COLOR_RESET}"
+    echo -e "${COLOR_CYAN}│${COLOR_RESET}   9. golang-microservices (RabbitMQ, Jaeger, Postgres, Redis)${COLOR_CYAN}│${COLOR_RESET}"
     echo -e "${COLOR_CYAN}${COLOR_BOLD}├─────────────────────────────────────────────────────────────┤${COLOR_RESET}"
     echo -e "${COLOR_CYAN}│${COLOR_RESET}  Keybindings: ${COLOR_BOLD}Super+Alt+W${COLOR_RESET} (Widget Panel) | ${COLOR_BOLD}Super+Alt+Space${COLOR_RESET} (Menu) ${COLOR_CYAN}│${COLOR_RESET}"
     echo -e "${COLOR_CYAN}${COLOR_BOLD}╰─────────────────────────────────────────────────────────────╯${COLOR_RESET}"

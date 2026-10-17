@@ -1,0 +1,43 @@
+version: '3.8'
+
+networks:
+  omastack-net:
+    external: true
+
+services:
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: omastack-ai-qdrant
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${PORT_QDRANT_HTTP:-6333}:6333"
+      - "127.0.0.1:${PORT_QDRANT_GRPC:-6334}:6334"
+    networks:
+      - omastack-net
+
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: omastack-ai-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ai_vectors
+      POSTGRES_USER: aiuser
+      POSTGRES_PASSWORD: aipassword
+    ports:
+      - "127.0.0.1:${PORT_POSTGRES:-5432}:5432"
+    networks:
+      - omastack-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aiuser -d ai_vectors"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:alpine
+    container_name: omastack-ai-redis
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${PORT_REDIS:-6379}:6379"
+    networks:
+      - omastack-net

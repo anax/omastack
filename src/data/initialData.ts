@@ -324,4 +324,283 @@ services:
     networks:
       - omastack-net`,
   },
+  {
+    id: 'rails-kamal',
+    name: 'Rails 8 + Kamal Stack',
+    description: 'PostgreSQL 16, Redis/SolidQueue, Mailpit SMTP catcher & MinIO S3 object storage.',
+    services: [
+      { name: 'postgres', image: 'postgres:16-alpine', defaultPort: 5432, assignedPort: 5432, status: 'healthy' },
+      { name: 'redis', image: 'redis:alpine', defaultPort: 6379, assignedPort: 6379, status: 'healthy' },
+      { name: 'mailpit', image: 'axllent/mailpit:latest', defaultPort: 8025, assignedPort: 8025, status: 'healthy' },
+      { name: 'minio', image: 'minio/minio:latest', defaultPort: 9000, assignedPort: 9000, status: 'healthy' },
+    ],
+    domains: [
+      { domain: 'rails-mail.oma.local', portVar: 'PORT_MAILPIT_HTTP' },
+      { domain: 's3.oma.local', portVar: 'PORT_MINIO_CONSOLE' },
+    ],
+    confContent: `# stack.conf - Metadata and Default Ports for rails-kamal
+STACK_NAME="rails-kamal"
+STACK_DESCRIPTION="Ruby on Rails 8 & Kamal Stack: PostgreSQL 16, Redis/SolidQueue, Mailpit SMTP & MinIO S3"
+PORT_POSTGRES=5432
+PORT_REDIS=6379
+PORT_MAILPIT_HTTP=8025
+PORT_MAILPIT_SMTP=1025
+PORT_MINIO_API=9000
+PORT_MINIO_CONSOLE=9001
+
+DOMAIN_MAIL="rails-mail.oma.local:PORT_MAILPIT_HTTP"
+DOMAIN_S3="s3.oma.local:PORT_MINIO_CONSOLE"`,
+    composeContent: `version: '3.8'
+
+networks:
+  omastack-net:
+    external: true
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: omastack-rails-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: rails_development
+      POSTGRES_USER: rails
+      POSTGRES_PASSWORD: railspassword
+    ports:
+      - "127.0.0.1:\${PORT_POSTGRES:-5432}:5432"
+    networks:
+      - omastack-net
+
+  redis:
+    image: redis:alpine
+    container_name: omastack-rails-redis
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:\${PORT_REDIS:-6379}:6379"
+    networks:
+      - omastack-net
+
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: omastack-rails-mailpit
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:\${PORT_MAILPIT_HTTP:-8025}:8025"
+      - "127.0.0.1:\${PORT_MAILPIT_SMTP:-1025}:1025"
+    networks:
+      - omastack-net
+
+  minio:
+    image: minio/minio:latest
+    container_name: omastack-rails-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadminpassword
+    ports:
+      - "127.0.0.1:\${PORT_MINIO_API:-9000}:9000"
+      - "127.0.0.1:\${PORT_MINIO_CONSOLE:-9001}:9001"
+    networks:
+      - omastack-net`,
+  },
+  {
+    id: 'ai-rag-stack',
+    name: 'AI Vector & RAG Sandbox',
+    description: 'Qdrant Vector Database, PostgreSQL 16 with pgvector extension & Redis Semantic Cache.',
+    services: [
+      { name: 'qdrant', image: 'qdrant/qdrant:latest', defaultPort: 6333, assignedPort: 6333, status: 'healthy' },
+      { name: 'postgres', image: 'pgvector/pgvector:pg16', defaultPort: 5432, assignedPort: 5432, status: 'healthy' },
+      { name: 'redis', image: 'redis:alpine', defaultPort: 6379, assignedPort: 6379, status: 'healthy' },
+    ],
+    domains: [{ domain: 'qdrant.oma.local', portVar: 'PORT_QDRANT_HTTP' }],
+    confContent: `# stack.conf - Metadata and Default Ports for ai-rag-stack
+STACK_NAME="ai-rag-stack"
+STACK_DESCRIPTION="AI & RAG Vector Sandbox: Qdrant Vector DB, PostgreSQL 16 pgvector & Redis Cache"
+PORT_QDRANT_HTTP=6333
+PORT_QDRANT_GRPC=6334
+PORT_POSTGRES=5432
+PORT_REDIS=6379
+
+DOMAIN_QDRANT="qdrant.oma.local:PORT_QDRANT_HTTP"`,
+    composeContent: `version: '3.8'
+
+networks:
+  omastack-net:
+    external: true
+
+services:
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: omastack-ai-qdrant
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:\${PORT_QDRANT_HTTP:-6333}:6333"
+      - "127.0.0.1:\${PORT_QDRANT_GRPC:-6334}:6334"
+    networks:
+      - omastack-net
+
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: omastack-ai-pgvector
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ragdb
+      POSTGRES_USER: aiuser
+      POSTGRES_PASSWORD: aipassword
+    ports:
+      - "127.0.0.1:\${PORT_POSTGRES:-5432}:5432"
+    networks:
+      - omastack-net
+
+  redis:
+    image: redis:alpine
+    container_name: omastack-ai-redis
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:\${PORT_REDIS:-6379}:6379"
+    networks:
+      - omastack-net`,
+  },
+  {
+    id: 'mern-mongo',
+    name: 'MERN + MongoDB 7',
+    description: 'MongoDB 7 document database, Mongo Express Web UI & Redis Alpine session store.',
+    services: [
+      { name: 'mongodb', image: 'mongo:7', defaultPort: 27017, assignedPort: 27017, status: 'healthy' },
+      { name: 'mongo-express', image: 'mongo-express:latest', defaultPort: 8081, assignedPort: 8081, status: 'healthy' },
+      { name: 'redis', image: 'redis:alpine', defaultPort: 6379, assignedPort: 6379, status: 'healthy' },
+    ],
+    domains: [{ domain: 'mongo.oma.local', portVar: 'PORT_MONGO_EXPRESS' }],
+    confContent: `# stack.conf - Metadata and Default Ports for mern-mongo
+STACK_NAME="mern-mongo"
+STACK_DESCRIPTION="MERN & Document Stack: MongoDB 7, Mongo Express Web UI & Redis Alpine"
+PORT_MONGO=27017
+PORT_MONGO_EXPRESS=8081
+PORT_REDIS=6379
+
+DOMAIN_MONGO="mongo.oma.local:PORT_MONGO_EXPRESS"`,
+    composeContent: `version: '3.8'
+
+networks:
+  omastack-net:
+    external: true
+
+services:
+  mongodb:
+    image: mongo:7
+    container_name: omastack-mern-mongodb
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: mongopassword
+      MONGO_INITDB_DATABASE: merndb
+    ports:
+      - "127.0.0.1:\${PORT_MONGO:-27017}:27017"
+    networks:
+      - omastack-net
+
+  mongo-express:
+    image: mongo-express:latest
+    container_name: omastack-mern-mongo-express
+    restart: unless-stopped
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: admin
+      ME_CONFIG_MONGODB_ADMINPASSWORD: mongopassword
+      ME_CONFIG_MONGODB_URL: "mongodb://admin:mongopassword@mongodb:27017/"
+      ME_CONFIG_BASICAUTH: "false"
+    ports:
+      - "127.0.0.1:\${PORT_MONGO_EXPRESS:-8081}:8081"
+    networks:
+      - omastack-net
+
+  redis:
+    image: redis:alpine
+    container_name: omastack-mern-redis
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:\${PORT_REDIS:-6379}:6379"
+    networks:
+      - omastack-net`,
+  },
+  {
+    id: 'golang-microservices',
+    name: 'Go & Rust Microservices',
+    description: 'RabbitMQ 3 Management Broker, Jaeger OpenTelemetry Tracing, PostgreSQL 16 & Redis.',
+    services: [
+      { name: 'rabbitmq', image: 'rabbitmq:3-management-alpine', defaultPort: 5672, assignedPort: 5672, status: 'healthy' },
+      { name: 'jaeger', image: 'jaegertracing/all-in-one:latest', defaultPort: 16686, assignedPort: 16686, status: 'healthy' },
+      { name: 'postgres', image: 'postgres:16-alpine', defaultPort: 5432, assignedPort: 5432, status: 'healthy' },
+      { name: 'redis', image: 'redis:alpine', defaultPort: 6379, assignedPort: 6379, status: 'healthy' },
+    ],
+    domains: [
+      { domain: 'amqp.oma.local', portVar: 'PORT_RABBITMQ_UI' },
+      { domain: 'trace.oma.local', portVar: 'PORT_JAEGER_UI' },
+    ],
+    confContent: `# stack.conf - Metadata and Default Ports for golang-microservices
+STACK_NAME="golang-microservices"
+STACK_DESCRIPTION="Distributed Go/Rust Microservices: RabbitMQ Management, Jaeger Tracing, PostgreSQL 16 & Redis"
+PORT_RABBITMQ_AMQP=5672
+PORT_RABBITMQ_UI=15672
+PORT_JAEGER_UI=16686
+PORT_JAEGER_OTLP=4318
+PORT_POSTGRES=5432
+PORT_REDIS=6379
+
+DOMAIN_RABBITMQ="amqp.oma.local:PORT_RABBITMQ_UI"
+DOMAIN_JAEGER="trace.oma.local:PORT_JAEGER_UI"`,
+    composeContent: `version: '3.8'
+
+networks:
+  omastack-net:
+    external: true
+
+services:
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: omastack-go-rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    ports:
+      - "127.0.0.1:\${PORT_RABBITMQ_AMQP:-5672}:5672"
+      - "127.0.0.1:\${PORT_RABBITMQ_UI:-15672}:15672"
+    networks:
+      - omastack-net
+
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: omastack-go-jaeger
+    restart: unless-stopped
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+    ports:
+      - "127.0.0.1:\${PORT_JAEGER_UI:-16686}:16686"
+      - "127.0.0.1:\${PORT_JAEGER_OTLP:-4318}:4318"
+    networks:
+      - omastack-net
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: omastack-go-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: microdb
+      POSTGRES_USER: micro
+      POSTGRES_PASSWORD: micropassword
+    ports:
+      - "127.0.0.1:\${PORT_POSTGRES:-5432}:5432"
+    networks:
+      - omastack-net
+
+  redis:
+    image: redis:alpine
+    container_name: omastack-go-redis
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:\${PORT_REDIS:-6379}:6379"
+    networks:
+      - omastack-net`,
+  },
 ];
+

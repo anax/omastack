@@ -238,6 +238,26 @@ Panel {
                 }
                 Button {
                     Layout.fillWidth: true
+                    text: "💎 rails-kamal"
+                    onClicked: root.executeCli(["omastack", "up", "rails-kamal"])
+                }
+                Button {
+                    Layout.fillWidth: true
+                    text: "🧠 ai-rag-stack"
+                    onClicked: root.executeCli(["omastack", "up", "ai-rag-stack"])
+                }
+                Button {
+                    Layout.fillWidth: true
+                    text: "🍃 mern-mongo"
+                    onClicked: root.executeCli(["omastack", "up", "mern-mongo"])
+                }
+                Button {
+                    Layout.fillWidth: true
+                    text: "🐹 golang-microservices"
+                    onClicked: root.executeCli(["omastack", "up", "golang-microservices"])
+                }
+                Button {
+                    Layout.fillWidth: true
                     text: "🤖 automation-hub"
                     onClicked: root.executeCli(["omastack", "up", "automation-hub"])
                 }

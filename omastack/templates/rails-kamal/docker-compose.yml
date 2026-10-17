@@ -1,0 +1,57 @@
+version: '3.8'
+
+networks:
+  omastack-net:
+    external: true
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: omastack-rails-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: rails_development
+      POSTGRES_USER: rails
+      POSTGRES_PASSWORD: railspassword
+    ports:
+      - "127.0.0.1:${PORT_POSTGRES:-5432}:5432"
+    networks:
+      - omastack-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rails -d rails_development"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:alpine
+    container_name: omastack-rails-redis
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${PORT_REDIS:-6379}:6379"
+    networks:
+      - omastack-net
+
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: omastack-rails-mailpit
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${PORT_MAILPIT_HTTP:-8025}:8025"
+      - "127.0.0.1:${PORT_MAILPIT_SMTP:-1025}:1025"
+    networks:
+      - omastack-net
+
+  minio:
+    image: minio/minio:latest
+    container_name: omastack-rails-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: miniopassword
+    ports:
+      - "127.0.0.1:${PORT_MINIO_API:-9000}:9000"
+      - "127.0.0.1:${PORT_MINIO_CONSOLE:-9001}:9001"
+    networks:
+      - omastack-net

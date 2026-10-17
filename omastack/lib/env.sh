@@ -64,6 +64,38 @@ ETH_RPC_URL=http://127.0.0.1:${PORT_RPC:-8545}
 REDIS_URL=redis://127.0.0.1:${PORT_REDIS:-6379}
 DATABASE_URL=postgres://web3:web3secret@127.0.0.1:${PORT_POSTGRES:-5432}/web3db"
             ;;
+        rails-kamal)
+            snippet="${snippet}
+DATABASE_URL=postgres://rails:railspassword@127.0.0.1:${PORT_POSTGRES:-5432}/rails_development
+REDIS_URL=redis://127.0.0.1:${PORT_REDIS:-6379}/0
+SMTP_ADDRESS=127.0.0.1
+SMTP_PORT=${PORT_MAILPIT_SMTP:-1025}
+AWS_ENDPOINT_URL=http://127.0.0.1:${PORT_MINIO_API:-9000}
+AWS_ACCESS_KEY_ID=minioadmin
+AWS_SECRET_ACCESS_KEY=miniopassword"
+            ;;
+        ai-rag-stack)
+            snippet="${snippet}
+QDRANT_URL=http://127.0.0.1:${PORT_QDRANT_HTTP:-6333}
+QDRANT_GRPC_PORT=${PORT_QDRANT_GRPC:-6334}
+DATABASE_URL=postgresql://aiuser:aipassword@127.0.0.1:${PORT_POSTGRES:-5432}/ai_vectors
+REDIS_URL=redis://127.0.0.1:${PORT_REDIS:-6379}"
+            ;;
+        mern-mongo)
+            snippet="${snippet}
+MONGODB_URI=mongodb://admin:mongopassword@127.0.0.1:${PORT_MONGO:-27017}/app?authSource=admin
+MONGO_EXPRESS_URL=http://127.0.0.1:${PORT_MONGO_EXPRESS:-8081}
+REDIS_URL=redis://127.0.0.1:${PORT_REDIS:-6379}"
+            ;;
+        golang-microservices)
+            snippet="${snippet}
+DATABASE_URL=postgres://gouser:gopassword@127.0.0.1:${PORT_POSTGRES:-5432}/microservice_db?sslmode=disable
+AMQP_URL=amqp://guest:guest@127.0.0.1:${PORT_RABBITMQ_AMQP:-5672}/
+RABBITMQ_MANAGEMENT_URL=http://127.0.0.1:${PORT_RABBITMQ_UI:-15672}
+OTEL_EXPORTER_OTLP_ENDPOINT=http://127.0.0.1:${PORT_JAEGER_OTLP:-4317}
+JAEGER_UI_URL=http://127.0.0.1:${PORT_JAEGER_UI:-16686}
+REDIS_URL=redis://127.0.0.1:${PORT_REDIS:-6379}"
+            ;;
         *)
             snippet="${snippet}
 # Generic Stack Config
@@ -93,14 +125,20 @@ copy_to_clipboard() {
 inject_local_env() {
     local env_snippet="$1"
     local target_env="${2:-.env}"
+    local old_umask
+    old_umask=$(umask)
+    umask 077
 
     if [ -f "${target_env}" ]; then
         log_info "Backing up existing ${target_env} to ${target_env}.omastack.bak"
-        cp "${target_env}" "${target_env}.omastack.bak"
+        cp -p "${target_env}" "${target_env}.omastack.bak"
+        chmod 600 "${target_env}.omastack.bak" 2>/dev/null || true
     fi
 
     log_info "Injecting OmaStack variables into ${target_env}..."
     echo "" >> "${target_env}"
     echo "${env_snippet}" >> "${target_env}"
+    chmod 600 "${target_env}" 2>/dev/null || true
+    umask "${old_umask}"
     log_success "Successfully updated ${target_env}!"
 }

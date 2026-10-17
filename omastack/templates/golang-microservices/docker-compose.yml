@@ -1,0 +1,58 @@
+version: '3.8'
+
+networks:
+  omastack-net:
+    external: true
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: omastack-go-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: microservice_db
+      POSTGRES_USER: gouser
+      POSTGRES_PASSWORD: gopassword
+    ports:
+      - "127.0.0.1:${PORT_POSTGRES:-5432}:5432"
+    networks:
+      - omastack-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gouser -d microservice_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: omastack-go-rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    ports:
+      - "127.0.0.1:${PORT_RABBITMQ_AMQP:-5672}:5672"
+      - "127.0.0.1:${PORT_RABBITMQ_UI:-15672}:15672"
+    networks:
+      - omastack-net
+
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: omastack-go-jaeger
+    restart: unless-stopped
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+    ports:
+      - "127.0.0.1:${PORT_JAEGER_UI:-16686}:16686"
+      - "127.0.0.1:${PORT_JAEGER_OTLP:-4317}:4317"
+    networks:
+      - omastack-net
+
+  redis:
+    image: redis:alpine
+    container_name: omastack-go-redis
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${PORT_REDIS:-6379}:6379"
+    networks:
+      - omastack-net

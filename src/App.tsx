@@ -141,18 +141,52 @@ export default function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  // Helper for owner-authenticated API requests
+  const fetchWithOwnerAuth = async (url: string, init: RequestInit = {}): Promise<Response> => {
+    const getHeaders = (token: string | null): Record<string, string> => {
+      const base: Record<string, string> = {
+        ...(init.headers as Record<string, string>),
+      };
+      if (token) {
+        base['X-OmaStack-Token'] = token;
+      }
+      return base;
+    };
+
+    let token = sessionStorage.getItem('omastack_api_token');
+    let res = await fetch(url, { ...init, headers: getHeaders(token) });
+
+    if (res.status === 401) {
+      const entered = window.prompt(
+        'Enter Owner API Token (from ~/.local/share/omastack/state/api.token):'
+      );
+      if (entered && entered.trim()) {
+        token = entered.trim();
+        sessionStorage.setItem('omastack_api_token', token);
+        res = await fetch(url, { ...init, headers: getHeaders(token) });
+      }
+    }
+    return res;
+  };
+
   // Launch stack with real CLI execution on backend
   const handleLaunchStack = async (templateId: string) => {
     addLog('cmd', `omastack up ${templateId}`);
     addLog('info', `⚡ [OmaStack] Launching ${templateId}...`);
 
     try {
-      const res = await fetch('/api/stacks/up', {
+      const res = await fetchWithOwnerAuth('/api/stacks/up', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ templateId }),
       });
       const data = await res.json();
+
+      if (!res.ok) {
+        addLog('error', `✖ ${data.error || 'Unauthorized'}`);
+        addNotification('Authentication Required', data.error || 'Valid owner token required.', 'warn');
+        return;
+      }
 
       if (data.stdout) {
         addLog('raw', data.stdout);
@@ -177,17 +211,23 @@ export default function App() {
   const handleStopStack = async (stackId: string) => {
     addLog('cmd', `omastack down ${stackId}`);
     try {
-      const res = await fetch('/api/stacks/down', {
+      const res = await fetchWithOwnerAuth('/api/stacks/down', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ templateId: stackId }),
       });
       const data = await res.json();
 
+      if (!res.ok) {
+        addLog('error', `✖ ${data.error || 'Unauthorized'}`);
+        addNotification('Authentication Required', data.error || 'Valid owner token required.', 'warn');
+        return;
+      }
+
       if (data.stdout) addLog('raw', data.stdout);
       if (data.stderr) addLog('warn', data.stderr);
 
-      addNotification('OmaStack Teardown', `Stopped ${stackId}.`);
+      addNotification('OmaStack Teardown', `Stopped ${stackId} (volumes preserved).`);
       await fetchLiveState();
     } catch (err: any) {
       addLog('error', `✖ Failed to stop: ${err.message}`);
@@ -198,17 +238,23 @@ export default function App() {
   const handleStopAllStacks = async () => {
     addLog('cmd', `omastack down --all`);
     try {
-      const res = await fetch('/api/stacks/down', {
+      const res = await fetchWithOwnerAuth('/api/stacks/down', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({}),
       });
       const data = await res.json();
 
+      if (!res.ok) {
+        addLog('error', `✖ ${data.error || 'Unauthorized'}`);
+        addNotification('Authentication Required', data.error || 'Valid owner token required.', 'warn');
+        return;
+      }
+
       if (data.stdout) addLog('raw', data.stdout);
       if (data.stderr) addLog('warn', data.stderr);
 
-      addNotification('OmaStack Cleared', 'All active sandboxes stopped and RAM freed.');
+      addNotification('OmaStack Cleared', 'All active sandboxes stopped (volumes preserved).');
       await fetchLiveState();
     } catch (err: any) {
       addLog('error', `✖ Failed to stop all: ${err.message}`);
@@ -219,12 +265,16 @@ export default function App() {
   const handleRestartStack = async (stackId: string) => {
     addLog('cmd', `omastack restart ${stackId}`);
     try {
-      const res = await fetch('/api/stacks/restart', {
+      const res = await fetchWithOwnerAuth('/api/stacks/restart', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ templateId: stackId }),
       });
       const data = await res.json();
+      if (!res.ok) {
+        addLog('error', `✖ ${data.error || 'Unauthorized'}`);
+        return;
+      }
       if (data.stdout) addLog('raw', data.stdout);
       if (data.stderr) addLog('warn', data.stderr);
       addNotification('OmaStack Restarted', `Restarted ${stackId} sandbox.`, 'success');
@@ -238,8 +288,12 @@ export default function App() {
   const handleInitProject = async () => {
     addLog('cmd', 'omastack init');
     try {
-      const res = await fetch('/api/stacks/init', { method: 'POST' });
+      const res = await fetchWithOwnerAuth('/api/stacks/init', { method: 'POST' });
       const data = await res.json();
+      if (!res.ok) {
+        addLog('error', `✖ ${data.error || 'Unauthorized'}`);
+        return;
+      }
       if (data.stdout) addLog('raw', data.stdout);
       if (data.stderr) addLog('warn', data.stderr);
       addNotification('OmaStack Init', 'Generated local .omastack.conf configuration.', 'success');
@@ -253,8 +307,12 @@ export default function App() {
   const handleInjectEnv = async () => {
     addLog('cmd', `omastack inject`);
     try {
-      const res = await fetch('/api/env/inject', { method: 'POST' });
+      const res = await fetchWithOwnerAuth('/api/env/inject', { method: 'POST' });
       const data = await res.json();
+      if (!res.ok) {
+        addLog('error', `✖ ${data.error || 'Unauthorized'}`);
+        return;
+      }
       if (data.stdout) addLog('raw', data.stdout);
       if (data.stderr) addLog('warn', data.stderr);
       addNotification('OmaStack .env Injected', 'Injected connection strings into .env.');
@@ -281,12 +339,17 @@ export default function App() {
     }
 
     try {
-      const res = await fetch('/api/cli', {
+      const res = await fetchWithOwnerAuth('/api/cli', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ command: trimmed }),
       });
       const data = await res.json();
+
+      if (!res.ok) {
+        addLog('error', `✖ ${data.error || 'Unauthorized'}`);
+        return;
+      }
 
       if (data.stdout) {
         addLog('raw', data.stdout);

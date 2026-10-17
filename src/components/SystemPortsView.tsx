@@ -27,12 +27,31 @@ export const SystemPortsView: React.FC<SystemPortsViewProps> = ({
   const loadData = async () => {
     setLoading(true);
     try {
-      const [caddyRes, envRes] = await Promise.all([
-        fetch('/api/caddyfile').then((r) => r.json()),
-        fetch('/api/env').then((r) => r.json()),
+      const token = sessionStorage.getItem('omastack_api_token');
+      const headers: Record<string, string> = token ? { 'X-OmaStack-Token': token } : {};
+
+      const [caddyResp, envResp] = await Promise.all([
+        fetch('/api/caddyfile', { headers }),
+        fetch('/api/env', { headers }),
       ]);
-      setCaddyfile(caddyRes.content || '');
-      setEnvData(envRes);
+
+      if (caddyResp.ok) {
+        const caddyRes = await caddyResp.json();
+        setCaddyfile(caddyRes.content || '');
+      } else {
+        setCaddyfile('# Protected endpoint: Owner API token required (~/.local/share/omastack/state/api.token)');
+      }
+
+      if (envResp.ok) {
+        const envRes = await envResp.json();
+        setEnvData(envRes);
+      } else {
+        setEnvData({
+          currentEnv: '# Protected endpoint: Owner API token required (~/.local/share/omastack/state/api.token)\n# Secrets are always redacted (<redacted>) over HTTP.',
+          backupEnv: '# Protected endpoint: Owner API token required (~/.local/share/omastack/state/api.token)\n# Secrets are always redacted (<redacted>) over HTTP.',
+          exists: false,
+        });
+      }
     } catch (e) {
       console.error(e);
     } finally {

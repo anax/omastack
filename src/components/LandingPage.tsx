@@ -75,9 +75,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({
     setTimeout(() => setCopiedInstallCmd(null), 2500);
   };
 
-  const curlCmd = 'curl -fsSL https://raw.githubusercontent.com/anax/omastack/main/install.sh | bash';
   const pluginCmd = 'omarchy plugin add https://github.com/anax/omastack';
-  const uninstallCmd = 'curl -fsSL https://raw.githubusercontent.com/anax/omastack/main/install.sh | bash -s -- --uninstall';
+  const localInstallCmd = './install.sh --test && ./install.sh';
+  const uninstallCmd = 'omarchy plugin remove io.github.anax.omastack';
   const gitCmd = `git clone https://github.com/anax/omastack.git ~/.local/share/omastack
 mkdir -p ~/.local/bin
 ln -sf ~/.local/share/omastack/bin/omastack ~/.local/bin/omastack
@@ -89,7 +89,7 @@ chmod +x ~/.local/bin/omastack`;
       number: '01',
       title: 'Curated OmaStack Sandboxes',
       subtitle: 'We pick the tools and tune the details, so you can get straight to work.',
-      desc: 'No more writing verbose 200-line docker-compose files for every test project. OmaStack ships with carefully tuned, alpine-based multi-service environments for Laravel, Supabase, Next.js, n8n, and Web3. But this is your computer: you are free to customize and extend everything.',
+      desc: 'No more writing verbose 200-line docker-compose files for every test project. OmaStack ships with 9 carefully tuned, alpine-based multi-service environments for Laravel, Supabase, Next.js, Rails 8 + Kamal, AI/RAG Vector DBs, MERN + MongoDB, Go/Rust Microservices, n8n, and Web3.',
       icon: Boxes,
       badge: 'Zero Boilerplate',
     },
@@ -296,19 +296,19 @@ chmod +x ~/.local/bin/omastack`;
           >
             <div className="flex items-center gap-2 overflow-x-auto text-[11px] font-mono text-left pl-3 text-white/90">
               <span style={{ color: currentTheme.primary }}>$</span>
-              <span className="truncate">{curlCmd}</span>
+              <span className="truncate">{pluginCmd}</span>
             </div>
             <button
-              onClick={() => copyText(curlCmd, 'curl')}
+              onClick={() => copyText(pluginCmd, 'plugin')}
               className="px-3.5 py-1.5 rounded-lg flex items-center gap-1.5 transition-all text-[11px] font-bold shrink-0 hover:brightness-125 cursor-pointer"
               style={{
-                backgroundColor: copiedInstallCmd === 'curl' ? '#10b981' : currentTheme.cardBg,
-                color: copiedInstallCmd === 'curl' ? '#ffffff' : currentTheme.accent,
+                backgroundColor: copiedInstallCmd === 'plugin' ? '#10b981' : currentTheme.cardBg,
+                color: copiedInstallCmd === 'plugin' ? '#ffffff' : currentTheme.accent,
                 border: `1px solid ${currentTheme.border}`,
               }}
             >
-              {copiedInstallCmd === 'curl' ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-              <span>{copiedInstallCmd === 'curl' ? 'Copied!' : 'Copy'}</span>
+              {copiedInstallCmd === 'plugin' ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+              <span>{copiedInstallCmd === 'plugin' ? 'Copied!' : 'Copy'}</span>
             </button>
           </div>
         </div>
@@ -978,17 +978,17 @@ chmod +x ~/.local/bin/omastack`;
           {activeInstallTab === 'curl' && (
             <div className="space-y-3">
               <p className="text-xs opacity-80">
-                Independent self-contained curl installer with self-testing suite and path resolution:
+                Local verified installer with 31-point self-testing suite and path resolution:
               </p>
               <div
                 className="p-3.5 rounded-xl border bg-black/60 flex items-center justify-between gap-3"
                 style={{ borderColor: currentTheme.border }}
               >
                 <code className="text-cyan-300 font-mono text-[11px] overflow-x-auto">
-                  {curlCmd}
+                  {localInstallCmd}
                 </code>
                 <button
-                  onClick={() => copyText(curlCmd, 'curl-tab')}
+                  onClick={() => copyText(localInstallCmd, 'curl-tab')}
                   className="px-3.5 py-1.5 rounded-lg flex items-center gap-1.5 text-[11px] font-bold shrink-0 transition-all cursor-pointer font-mono"
                   style={{
                     backgroundColor: copiedInstallCmd === 'curl-tab' ? '#10b981' : currentTheme.cardBg,

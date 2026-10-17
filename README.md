@@ -70,6 +70,10 @@ Templates are stored in `~/.local/share/omastack/templates/`:
 | **`laravel-stack`** | MySQL 8.0, Redis Alpine, Mailpit (SMTP), Meilisearch | `3306`, `6379`, `8025`, `7700` | `https://mail.oma.local`<br>`https://search.oma.local` |
 | **`supabase-lite`** | PostgreSQL 16 (`pgvector`), PostgREST, PgAdmin | `5432`, `3000`, `5051` | `https://supabase.oma.local`<br>`https://api.supabase.oma.local` |
 | **`nextjs-postgres`** | PostgreSQL 16, Redis Alpine, Adminer UI | `5432`, `6379`, `8080` | `https://db.oma.local` |
+| **`rails-kamal`** | PostgreSQL 16, Redis/SolidQueue, Mailpit, MinIO S3 | `5432`, `6379`, `8025`, `9000`, `9001` | `https://rails-mail.oma.local`<br>`https://s3.oma.local` |
+| **`ai-rag-stack`** | Qdrant Vector DB, PostgreSQL 16 (`pgvector`), Redis | `6333`, `6334`, `5432`, `6379` | `https://qdrant.oma.local` |
+| **`mern-mongo`** | MongoDB 7, Mongo Express Web UI, Redis Alpine | `27017`, `8081`, `6379` | `https://mongo.oma.local` |
+| **`golang-microservices`** | RabbitMQ 3 Management, Jaeger Tracing, PostgreSQL 16, Redis | `5672`, `15672`, `16686`, `4318`, `5432`, `6379` | `https://amqp.oma.local`<br>`https://trace.oma.local` |
 | **`automation-hub`** | n8n Workflow Automation, PostgreSQL 16, Redis Queue | `5678`, `5432`, `6379` | `https://n8n.oma.local` |
 | **`web3-node`** | EVM RPC Proxy (Anvil/Hardhat), PostgreSQL 16, Redis | `8545`, `5432`, `6379` | `https://rpc.oma.local` |
 

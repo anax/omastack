@@ -176,6 +176,15 @@ cmd_up() {
 
 cmd_down() {
     local target="${1:-}"
+    local purge_flag="${2:-}"
+    local compose_down_args=("down" "--remove-orphans")
+
+    if [ "${target}" = "--purge" ]; then
+        target="--all"
+        compose_down_args=("down" "-v" "--remove-orphans")
+    elif [ "${purge_flag}" = "--purge" ]; then
+        compose_down_args=("down" "-v" "--remove-orphans")
+    fi
 
     if [ "${target}" = "--all" ] || [ -z "${target}" ]; then
         local active_stacks
@@ -185,12 +194,15 @@ cmd_down() {
             return
         fi
 
-        log_info "Tearing down all active OmaStack sandboxes..."
+        log_info "Tearing down all active OmaStack sandboxes (volumes preserved by default)..."
         for stack in ${active_stacks}; do
+            if [[ ! "${stack}" =~ ^[a-zA-Z0-9_-]+$ ]]; then
+                continue
+            fi
             local compose_file="${OMASTACK_STATE_DIR}/${stack}-compose.yml"
             if [ -f "${compose_file}" ]; then
                 if is_docker_available; then
-                    docker compose -f "${compose_file}" -p "omastack-${stack}" down -v --remove-orphans || true
+                    docker compose -f "${compose_file}" -p "omastack-${stack}" "${compose_down_args[@]}" || true
                 fi
                 remove_stack_state "${stack}"
             fi
@@ -198,11 +210,15 @@ cmd_down() {
         notify_desktop "OmaStack Cleared" "All active Docker sandboxes stopped and RAM freed." "normal"
         log_success "All sandboxes successfully stopped and cleaned up!"
     else
+        if [[ ! "${target}" =~ ^[a-zA-Z0-9_-]+$ ]]; then
+            log_error "Invalid sandbox name '${target}'."
+            exit 1
+        fi
         local compose_file="${OMASTACK_STATE_DIR}/${target}-compose.yml"
         if [ -f "${compose_file}" ]; then
-            log_info "Stopping sandbox '${target}'..."
+            log_info "Stopping sandbox '${target}' (volumes preserved)..."
             if is_docker_available; then
-                docker compose -f "${compose_file}" -p "omastack-${target}" down -v --remove-orphans || true
+                docker compose -f "${compose_file}" -p "omastack-${target}" "${compose_down_args[@]}" || true
             fi
             remove_stack_state "${target}"
             notify_desktop "OmaStack" "Stopped ${target} sandbox." "normal"
@@ -242,6 +258,10 @@ cmd_restart() {
         log_error "Please specify a stack to restart (e.g. omastack restart laravel-stack)"
         exit 1
     fi
+    if [[ ! "${target}" =~ ^[a-zA-Z0-9_-]+$ ]]; then
+        log_error "Invalid stack name '${target}'."
+        exit 1
+    fi
     local compose_file="${OMASTACK_STATE_DIR}/${target}-compose.yml"
     if [ -f "${compose_file}" ]; then
         log_info "Restarting sandbox '${target}'..."
@@ -264,9 +284,18 @@ cmd_init() {
     if [ -f "composer.json" ] || [ -f "artisan" ]; then
         detected="laravel-stack"
         log_success "Detected PHP / Laravel project signature (composer.json / artisan)."
+    elif [ -f "Gemfile" ] || [ -f "config/deploy.yml" ]; then
+        detected="rails-kamal"
+        log_success "Detected Ruby on Rails / Kamal project signature (Gemfile)."
+    elif [ -f "go.mod" ] || [ -f "Cargo.toml" ]; then
+        detected="golang-microservices"
+        log_success "Detected Go / Rust backend microservice signature (go.mod / Cargo.toml)."
     elif [ -f "foundry.toml" ] || [ -f "hardhat.config.js" ] || [ -f "hardhat.config.ts" ]; then
         detected="web3-node"
         log_success "Detected Web3 / Ethereum / EVM contract project signature."
+    elif [ -f "requirements.txt" ] || [ -f "pyproject.toml" ]; then
+        detected="ai-rag-stack"
+        log_success "Detected Python AI / RAG / Vector application signature."
     elif [ -f "next.config.js" ] || [ -f "next.config.ts" ] || [ -f "next.config.mjs" ]; then
         detected="nextjs-postgres"
         log_success "Detected Next.js full-stack application signature."
@@ -274,6 +303,12 @@ cmd_init() {
         if grep -q "supabase" "package.json" 2>/dev/null; then
             detected="supabase-lite"
             log_success "Detected Supabase client dependency in package.json."
+        elif grep -q "mongoose" "package.json" 2>/dev/null || grep -q "mongodb" "package.json" 2>/dev/null; then
+            detected="mern-mongo"
+            log_success "Detected MongoDB / Mongoose dependency in package.json."
+        elif grep -q "qdrant" "package.json" 2>/dev/null || grep -q "langchain" "package.json" 2>/dev/null; then
+            detected="ai-rag-stack"
+            log_success "Detected AI / Vector RAG dependency in package.json."
         elif grep -q "pg" "package.json" 2>/dev/null || grep -q "prisma" "package.json" 2>/dev/null; then
             detected="nextjs-postgres"
             log_success "Detected Postgres / Prisma dependency in package.json."
@@ -311,7 +346,7 @@ main() {
             cmd_up "${1:-}"
             ;;
         down)
-            cmd_down "${1:-}"
+            cmd_down "${1:-}" "${2:-}"
             ;;
         restart)
             cmd_restart "${1:-}"
@@ -344,17 +379,17 @@ main() {
         inject)
             local snippet
             snippet=$(generate_env_snippet "generic" "")
-            inject_local_env "${snippet}" "${1:-.env}"
+            inject_local_env "${snippet}" ".env"
             ;;
         proxy)
             sync_caddy_proxy
             ;;
         logs)
             local stack="${1:-}"
-            if [ -n "${stack}" ] && [ -f "${OMASTACK_STATE_DIR}/${stack}-compose.yml" ]; then
+            if [[ "${stack}" =~ ^[a-zA-Z0-9_-]+$ ]] && [ -f "${OMASTACK_STATE_DIR}/${stack}-compose.yml" ]; then
                 docker compose -f "${OMASTACK_STATE_DIR}/${stack}-compose.yml" logs -f
             else
-                log_error "Please specify an active stack (e.g. omastack logs laravel-stack)"
+                log_error "Please specify a valid active stack (e.g. omastack logs laravel-stack)"
             fi
             ;;
         version|-v|--version)
