@@ -13,12 +13,37 @@ BarWidget {
     readonly property bool popoutSwitchClosing: panelLoader.item ? panelLoader.item.popoutSwitchClosing === true : false
 
     readonly property string pluginDir: {
-        var u = Qt.resolvedUrl(".").toString()
+        var u = Qt.resolvedUrl("BarWidget.qml").toString()
         if (u.indexOf("file://") === 0) u = u.substring(7)
-        while (u.length > 0 && u.charAt(u.length - 1) === '/') {
-            u = u.substring(0, u.length - 1)
+        var slash = u.lastIndexOf('/')
+        if (slash !== -1) {
+            u = u.substring(0, slash)
         }
         return u
+    }
+
+    Component.onCompleted: {
+        bootstrapProcess.running = true
+    }
+
+    // Auto-bootstrap Process: ensures omastack CLI is installed into ~/.local/bin/omastack immediately on widget load
+    Process {
+        id: bootstrapProcess
+        command: [
+            "sh", "-c",
+            'PDIR="' + root.pluginDir + '"; ' +
+            'mkdir -p "$HOME/.local/bin" "$HOME/.local/share/omastack"; ' +
+            'BIN=""; ' +
+            'if [ -f "$PDIR/bin/omastack" ]; then BIN="$PDIR/bin/omastack"; ' +
+            'elif [ -f "$PDIR/omastack/bin/omastack" ]; then BIN="$PDIR/omastack/bin/omastack"; fi; ' +
+            'if [ -n "$BIN" ]; then cp "$BIN" "$HOME/.local/bin/omastack"; chmod +x "$HOME/.local/bin/omastack"; fi; ' +
+            'if [ -d "$PDIR/omastack/lib" ]; then cp -r "$PDIR/omastack/lib" "$HOME/.local/share/omastack/" 2>/dev/null; cp -r "$PDIR/omastack/templates" "$HOME/.local/share/omastack/" 2>/dev/null; ' +
+            'elif [ -d "$PDIR/lib" ]; then cp -r "$PDIR/lib" "$HOME/.local/share/omastack/" 2>/dev/null; cp -r "$PDIR/templates" "$HOME/.local/share/omastack/" 2>/dev/null; fi; ' +
+            'if [ -f "$HOME/.bashrc" ] && ! grep -q "\.local/bin" "$HOME/.bashrc"; then echo \'export PATH="$HOME/.local/bin:$PATH"\' >> "$HOME/.bashrc"; fi; ' +
+            'if [ -f "$HOME/.zshrc" ] && ! grep -q "\.local/bin" "$HOME/.zshrc"; then echo \'export PATH="$HOME/.local/bin:$PATH"\' >> "$HOME/.zshrc"; fi; ' +
+            'if command -v notify-send >/dev/null 2>&1; then notify-send -a "OmaStack" "OmaStack Ready" "CLI installed to ~/.local/bin/omastack" 2>/dev/null || true; fi'
+        ]
+        running: false
     }
 
     function open() {
@@ -82,15 +107,15 @@ BarWidget {
             'PDIR="' + root.pluginDir + '"; ' +
             'BIN=""; ' +
             'if command -v omastack >/dev/null 2>&1; then BIN="$(command -v omastack)"; ' +
-            'elif [ -x "$HOME/.local/bin/omastack" ]; then BIN="$HOME/.local/bin/omastack"; ' +
-            'elif [ -x "$PDIR/runner.sh" ]; then BIN="$PDIR/runner.sh"; ' +
-            'elif [ -x "$PDIR/omastack/runner.sh" ]; then BIN="$PDIR/omastack/runner.sh"; ' +
-            'elif [ -x "$PDIR/omastack/bin/omastack" ]; then BIN="$PDIR/omastack/bin/omastack"; ' +
-            'elif [ -x "$PDIR/bin/omastack" ]; then BIN="$PDIR/bin/omastack"; ' +
-            'elif [ -x "/usr/share/omastack/bin/omastack" ]; then BIN="/usr/share/omastack/bin/omastack"; ' +
-            'elif [ -x "/usr/local/share/omastack/bin/omastack" ]; then BIN="/usr/local/share/omastack/bin/omastack"; ' +
+            'elif [ -f "$HOME/.local/bin/omastack" ]; then BIN="$HOME/.local/bin/omastack"; ' +
+            'elif [ -f "$PDIR/runner.sh" ]; then BIN="$PDIR/runner.sh"; ' +
+            'elif [ -f "$PDIR/omastack/runner.sh" ]; then BIN="$PDIR/omastack/runner.sh"; ' +
+            'elif [ -f "$PDIR/bin/omastack" ]; then BIN="$PDIR/bin/omastack"; ' +
+            'elif [ -f "$PDIR/omastack/bin/omastack" ]; then BIN="$PDIR/omastack/bin/omastack"; ' +
+            'elif [ -f "/usr/share/omastack/bin/omastack" ]; then BIN="/usr/share/omastack/bin/omastack"; ' +
+            'elif [ -f "/usr/local/share/omastack/bin/omastack" ]; then BIN="/usr/local/share/omastack/bin/omastack"; ' +
             'fi; ' +
-            'if [ -n "$BIN" ]; then exec "$BIN" status --widget; ' +
+            'if [ -n "$BIN" ]; then exec bash "$BIN" status --widget; ' +
             'else exit 1; fi'
         ]
         running: false
@@ -118,15 +143,15 @@ BarWidget {
             'PDIR="' + root.pluginDir + '"; ' +
             'BIN=""; ' +
             'if command -v omastack >/dev/null 2>&1; then BIN="$(command -v omastack)"; ' +
-            'elif [ -x "$HOME/.local/bin/omastack" ]; then BIN="$HOME/.local/bin/omastack"; ' +
-            'elif [ -x "$PDIR/runner.sh" ]; then BIN="$PDIR/runner.sh"; ' +
-            'elif [ -x "$PDIR/omastack/runner.sh" ]; then BIN="$PDIR/omastack/runner.sh"; ' +
-            'elif [ -x "$PDIR/omastack/bin/omastack" ]; then BIN="$PDIR/omastack/bin/omastack"; ' +
-            'elif [ -x "$PDIR/bin/omastack" ]; then BIN="$PDIR/bin/omastack"; ' +
-            'elif [ -x "/usr/share/omastack/bin/omastack" ]; then BIN="/usr/share/omastack/bin/omastack"; ' +
-            'elif [ -x "/usr/local/share/omastack/bin/omastack" ]; then BIN="/usr/local/share/omastack/bin/omastack"; ' +
+            'elif [ -f "$HOME/.local/bin/omastack" ]; then BIN="$HOME/.local/bin/omastack"; ' +
+            'elif [ -f "$PDIR/runner.sh" ]; then BIN="$PDIR/runner.sh"; ' +
+            'elif [ -f "$PDIR/omastack/runner.sh" ]; then BIN="$PDIR/omastack/runner.sh"; ' +
+            'elif [ -f "$PDIR/bin/omastack" ]; then BIN="$PDIR/bin/omastack"; ' +
+            'elif [ -f "$PDIR/omastack/bin/omastack" ]; then BIN="$PDIR/omastack/bin/omastack"; ' +
+            'elif [ -f "/usr/share/omastack/bin/omastack" ]; then BIN="/usr/share/omastack/bin/omastack"; ' +
+            'elif [ -f "/usr/local/share/omastack/bin/omastack" ]; then BIN="/usr/local/share/omastack/bin/omastack"; ' +
             'fi; ' +
-            'if [ -n "$BIN" ]; then exec "$BIN" menu; ' +
+            'if [ -n "$BIN" ]; then exec bash "$BIN" menu; ' +
             'else exit 1; fi'
         ]
         running: false
@@ -241,7 +266,11 @@ BarWidget {
                 root.toggle()
             } else if (buttonCode === Qt.MiddleButton) {
                 try {
-                    if (typeof Quickshell !== "undefined" && typeof Quickshell.execDetached === "function") {
+                    if (typeof Util !== "undefined" && typeof Util.execDetached === "function") {
+                        Util.execDetached("omastack menu")
+                    } else if (root.bar && typeof root.bar.run === "function") {
+                        root.bar.run("omastack menu")
+                    } else if (typeof Quickshell !== "undefined" && typeof Quickshell.execDetached === "function") {
                         Quickshell.execDetached(menuProcess.command)
                     } else {
                         menuProcess.running = false

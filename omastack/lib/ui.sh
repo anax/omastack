@@ -42,12 +42,24 @@ launch_walker_menu() {
         selected=$(echo -e "${options}" | walker --dmenu --placeholder "OmaStack Sandbox Launcher...")
     elif command -v rofi >/dev/null 2>&1; then
         selected=$(echo -e "${options}" | rofi -dmenu -p "OmaStack")
-    elif command -v fzf >/dev/null 2>&1; then
-        local fzf_opts
-        fzf_opts=$(get_fzf_colors)
-        selected=$(echo -e "${options}" | fzf ${fzf_opts} --prompt="OmaStack > ")
-    elif command -v gum >/dev/null 2>&1; then
-        selected=$(echo -e "${options}" | gum choose --header="OmaStack Sandbox Launcher")
+    elif [ -t 0 ]; then
+        if command -v fzf >/dev/null 2>&1; then
+            local fzf_opts
+            fzf_opts=$(get_fzf_colors)
+            selected=$(echo -e "${options}" | fzf ${fzf_opts} --prompt="OmaStack > ")
+        elif command -v gum >/dev/null 2>&1; then
+            selected=$(echo -e "${options}" | gum choose --header="OmaStack Sandbox Launcher")
+        fi
+    else
+        # Not running in a terminal: launch an interactive terminal with omastack menu
+        for term in foot kitty alacritty wezterm ghostty gnome-terminal xterm; do
+            if command -v "${term}" >/dev/null 2>&1; then
+                exec "${term}" -e bash -c 'omastack menu' &
+                return 0
+            fi
+        done
+        notify_desktop "OmaStack Menu" "Please install walker or rofi for graphical launcher menu." "critical"
+        return 1
     fi
 
     case "${selected}" in

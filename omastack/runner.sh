@@ -12,17 +12,17 @@ BIN=""
 # 2. Locate omastack binary with extensive fallback order
 if command -v omastack >/dev/null 2>&1; then
     BIN="$(command -v omastack)"
-elif [ -x "${HOME}/.local/bin/omastack" ]; then
+elif [ -f "${HOME}/.local/bin/omastack" ]; then
     BIN="${HOME}/.local/bin/omastack"
-elif [ -x "${SCRIPT_DIR}/omastack/bin/omastack" ]; then
+elif [ -f "${SCRIPT_DIR}/omastack/bin/omastack" ]; then
     BIN="${SCRIPT_DIR}/omastack/bin/omastack"
-elif [ -x "${SCRIPT_DIR}/bin/omastack" ]; then
+elif [ -f "${SCRIPT_DIR}/bin/omastack" ]; then
     BIN="${SCRIPT_DIR}/bin/omastack"
-elif [ -x "${SCRIPT_DIR}/../bin/omastack" ]; then
+elif [ -f "${SCRIPT_DIR}/../bin/omastack" ]; then
     BIN="${SCRIPT_DIR}/../bin/omastack"
-elif [ -x "/usr/share/omastack/bin/omastack" ]; then
+elif [ -f "/usr/share/omastack/bin/omastack" ]; then
     BIN="/usr/share/omastack/bin/omastack"
-elif [ -x "/usr/local/share/omastack/bin/omastack" ]; then
+elif [ -f "/usr/local/share/omastack/bin/omastack" ]; then
     BIN="/usr/local/share/omastack/bin/omastack"
 fi
 
@@ -34,8 +34,11 @@ if [ -z "${BIN}" ]; then
     exit 127
 fi
 
+# Ensure executable permissions
+chmod +x "${BIN}" 2>/dev/null || true
+
 # 3. Auto-bootstrap CLI binary into ~/.local/bin/omastack if missing
-if [ ! -x "${HOME}/.local/bin/omastack" ]; then
+if [ ! -f "${HOME}/.local/bin/omastack" ]; then
     mkdir -p "${HOME}/.local/bin" 2>/dev/null || true
     cp "${BIN}" "${HOME}/.local/bin/omastack" 2>/dev/null || true
     chmod +x "${HOME}/.local/bin/omastack" 2>/dev/null || true
@@ -78,5 +81,5 @@ elif [ "${CMD}" = "down" ] && [ -n "${SUB}" ]; then
     fi
 fi
 
-# 7. Execute omastack
-exec "${BIN}" "$@"
+# 7. Execute omastack directly via bash
+exec bash "${BIN}" "$@"

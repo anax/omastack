@@ -12,10 +12,11 @@ Panel {
     property var hostWidget: null
 
     readonly property string pluginDir: {
-        var u = Qt.resolvedUrl(".").toString()
+        var u = Qt.resolvedUrl("Panel.qml").toString()
         if (u.indexOf("file://") === 0) u = u.substring(7)
-        while (u.length > 0 && u.charAt(u.length - 1) === '/') {
-            u = u.substring(0, u.length - 1)
+        var slash = u.lastIndexOf('/')
+        if (slash !== -1) {
+            u = u.substring(0, slash)
         }
         return u
     }
@@ -82,21 +83,23 @@ Panel {
             + 'PDIR="' + pdir + '"; '
             + 'BIN=""; '
             + 'if command -v omastack >/dev/null 2>&1; then BIN="$(command -v omastack)"; '
-            + 'elif [ -x "$HOME/.local/bin/omastack" ]; then BIN="$HOME/.local/bin/omastack"; '
-            + 'elif [ -x "$PDIR/runner.sh" ]; then BIN="$PDIR/runner.sh"; '
-            + 'elif [ -x "$PDIR/omastack/runner.sh" ]; then BIN="$PDIR/omastack/runner.sh"; '
-            + 'elif [ -x "$PDIR/omastack/bin/omastack" ]; then BIN="$PDIR/omastack/bin/omastack"; '
-            + 'elif [ -x "$PDIR/bin/omastack" ]; then BIN="$PDIR/bin/omastack"; '
-            + 'elif [ -x "/usr/share/omastack/bin/omastack" ]; then BIN="/usr/share/omastack/bin/omastack"; '
-            + 'elif [ -x "/usr/local/share/omastack/bin/omastack" ]; then BIN="/usr/local/share/omastack/bin/omastack"; '
+            + 'elif [ -f "$HOME/.local/bin/omastack" ]; then BIN="$HOME/.local/bin/omastack"; '
+            + 'elif [ -f "$PDIR/runner.sh" ]; then BIN="$PDIR/runner.sh"; '
+            + 'elif [ -f "$PDIR/omastack/runner.sh" ]; then BIN="$PDIR/omastack/runner.sh"; '
+            + 'elif [ -f "$PDIR/bin/omastack" ]; then BIN="$PDIR/bin/omastack"; '
+            + 'elif [ -f "$PDIR/omastack/bin/omastack" ]; then BIN="$PDIR/omastack/bin/omastack"; '
+            + 'elif [ -f "/usr/share/omastack/bin/omastack" ]; then BIN="/usr/share/omastack/bin/omastack"; '
+            + 'elif [ -f "/usr/local/share/omastack/bin/omastack" ]; then BIN="/usr/local/share/omastack/bin/omastack"; '
             + 'fi; '
-            + 'if [ -n "$BIN" ]; then exec "$BIN" ' + argsEscaped + '; '
+            + 'if [ -n "$BIN" ]; then exec bash "$BIN" ' + argsEscaped + '; '
             + 'else if command -v notify-send >/dev/null 2>&1; then notify-send -u critical -a "OmaStack" "Binary Not Found" "Cannot find omastack executable."; fi; exit 127; fi'
     }
 
     function showNotification(title, msg) {
         try {
-            if (typeof Quickshell !== "undefined" && typeof Quickshell.execDetached === "function") {
+            if (typeof Util !== "undefined" && typeof Util.execDetached === "function") {
+                Util.execDetached("notify-send -a 'OmaStack' -u normal '" + title + "' '" + msg + "'")
+            } else if (typeof Quickshell !== "undefined" && typeof Quickshell.execDetached === "function") {
                 Quickshell.execDetached(["notify-send", "-a", "OmaStack", "-u", "normal", title, msg])
             }
         } catch(e) {}
@@ -140,18 +143,29 @@ Panel {
 
         var shellCmd = root.buildShellCommand(subArgs)
 
-        // Try execDetached first for asynchronous non-blocking launch
+        // Dispatch via Omarchy native Util.execDetached, bar.run, Quickshell.execDetached, or cliProcess
         var launched = false
         try {
-            if (typeof Quickshell !== "undefined" && typeof Quickshell.execDetached === "function") {
-                Quickshell.execDetached(["sh", "-c", shellCmd])
+            if (typeof Util !== "undefined" && typeof Util.execDetached === "function") {
+                Util.execDetached(shellCmd)
                 launched = true
             }
-        } catch(e) {
-            launched = false
+        } catch(e) {}
+
+        if (!launched && root.bar && typeof root.bar.run === "function") {
+            try {
+                root.bar.run(shellCmd)
+                launched = true
+            } catch(e) {}
         }
 
-        // Fallback to cliProcess if execDetached is not available
+        if (!launched && typeof Quickshell !== "undefined" && typeof Quickshell.execDetached === "function") {
+            try {
+                Quickshell.execDetached(["sh", "-c", shellCmd])
+                launched = true
+            } catch(e) {}
+        }
+
         if (!launched) {
             cliProcess.running = false
             cliProcess.command = ["sh", "-c", shellCmd]
