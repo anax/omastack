@@ -9,7 +9,6 @@ const PG_PORT = parseInt(process.env.POSTGRES_PORT || '5432', 10);
 const REDIS_HOST = process.env.REDIS_HOST || 'redis';
 const REDIS_PORT = parseInt(process.env.REDIS_PORT || '6379', 10);
 const ADMINER_PORT = process.env.PORT_ADMINER || '8080';
-const DB_PASS = process.env.OMASTACK_DB_PASS || 'apppassword';
 
 function checkTcp(host, port, timeoutMs = 1500) {
   return new Promise((resolve) => {
@@ -459,11 +458,12 @@ function getHtmlPage(pgStatus, redisStatus) {
         <button class="btn btn-primary" onclick="copySnippet()">Copy .env</button>
       </div>
       <div class="card-body">
-        These variables are automatically exported and copied to your clipboard when running <code>omastack up nextjs-postgres</code>:
+        Live database secrets are stored with <code>0600</code> permissions in <code>~/.local/share/omastack/state/</code> and automatically copied to your clipboard on launch:
       </div>
-      <pre class="code-box" id="envSnippet"># OmaStack nextjs-postgres Environment Variables
+      <pre class="code-box" id="envSnippet"># OmaStack nextjs-postgres Environment Variables (Credentials Redacted Over HTTP)
+# Run 'omastack inject' in your project root to securely append live credentials to .env.local
 NEXT_PUBLIC_APP_URL=http://localhost:` + PORT + `
-DATABASE_URL=postgresql://appuser:` + DB_PASS + `@127.0.0.1:5432/appdb?schema=public
+DATABASE_URL=postgresql://appuser:<omastack-secret-redacted>@127.0.0.1:5432/appdb?schema=public
 REDIS_URL=redis://127.0.0.1:6379
 ADMINER_URL=http://localhost:` + ADMINER_PORT + `</pre>
     </div>
@@ -510,6 +510,7 @@ npm run dev</div>
       const text = document.getElementById('envSnippet').innerText;
       navigator.clipboard.writeText(text).then(() => {
         const toast = document.getElementById('toast');
+        toast.textContent = 'Copied template! Run "omastack inject" to inject live secrets.';
         toast.classList.add('show');
         setTimeout(() => toast.classList.remove('show'), 2500);
       });
