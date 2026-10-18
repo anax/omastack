@@ -26,9 +26,7 @@ PORT_MEILI=7700
 
 DOMAIN_MAIL="mail.oma.local:PORT_MAILPIT_HTTP"
 DOMAIN_MEILI="search.oma.local:PORT_MEILI"`,
-    composeContent: `version: '3.8'
-
-networks:
+    composeContent: `networks:
   omastack-net:
     external: true
 
@@ -105,9 +103,7 @@ PORT_PGADMIN=5051
 
 DOMAIN_STUDIO="supabase.oma.local:PORT_PGADMIN"
 DOMAIN_API="api.supabase.oma.local:PORT_POSTGREST"`,
-    composeContent: `version: '3.8'
-
-networks:
+    composeContent: `networks:
   omastack-net:
     external: true
 
@@ -179,9 +175,7 @@ PORT_ADMINER=8080
 
 DOMAIN_APP="next.oma.local:PORT_NEXTJS"
 DOMAIN_ADMINER="db.oma.local:PORT_ADMINER"`,
-    composeContent: `version: '3.8'
-
-networks:
+    composeContent: `networks:
   omastack-net:
     external: true
 
@@ -244,9 +238,7 @@ PORT_POSTGRES=5432
 PORT_REDIS=6379
 
 DOMAIN_N8N="n8n.oma.local:PORT_N8N"`,
-    composeContent: `version: '3.8'
-
-networks:
+    composeContent: `networks:
   omastack-net:
     external: true
 
@@ -305,9 +297,7 @@ PORT_POSTGRES=5432
 PORT_REDIS=6379
 
 DOMAIN_RPC="rpc.oma.local:PORT_RPC"`,
-    composeContent: `version: '3.8'
-
-networks:
+    composeContent: `networks:
   omastack-net:
     external: true
 
@@ -365,9 +355,7 @@ PORT_MINIO_CONSOLE=9001
 
 DOMAIN_MAIL="rails-mail.oma.local:PORT_MAILPIT_HTTP"
 DOMAIN_S3="s3.oma.local:PORT_MINIO_CONSOLE"`,
-    composeContent: `version: '3.8'
-
-networks:
+    composeContent: `networks:
   omastack-net:
     external: true
 
@@ -437,9 +425,7 @@ PORT_POSTGRES=5432
 PORT_REDIS=6379
 
 DOMAIN_QDRANT="qdrant.oma.local:PORT_QDRANT_HTTP"`,
-    composeContent: `version: '3.8'
-
-networks:
+    composeContent: `networks:
   omastack-net:
     external: true
 
@@ -494,9 +480,7 @@ PORT_MONGO_EXPRESS=8081
 PORT_REDIS=6379
 
 DOMAIN_MONGO="mongo.oma.local:PORT_MONGO_EXPRESS"`,
-    composeContent: `version: '3.8'
-
-networks:
+    composeContent: `networks:
   omastack-net:
     external: true
 
@@ -563,9 +547,7 @@ PORT_REDIS=6379
 
 DOMAIN_RABBITMQ="amqp.oma.local:PORT_RABBITMQ_UI"
 DOMAIN_JAEGER="trace.oma.local:PORT_JAEGER_UI"`,
-    composeContent: `version: '3.8'
-
-networks:
+    composeContent: `networks:
   omastack-net:
     external: true
 
@@ -642,9 +624,7 @@ PORT_MAILPIT_SMTP=1025
 
 DOMAIN_FLOWER="flower.oma.local:PORT_FLOWER"
 DOMAIN_MAIL="django-mail.oma.local:PORT_MAILPIT_HTTP"`,
-    composeContent: `version: '3.8'
-
-networks:
+    composeContent: `networks:
   omastack-net:
     external: true
 
@@ -717,9 +697,7 @@ PORT_REDIS=6379
 
 DOMAIN_GRAFANA="grafana.oma.local:PORT_GRAFANA"
 DOMAIN_PROMETHEUS="prometheus.oma.local:PORT_PROMETHEUS"`,
-    composeContent: `version: '3.8'
-
-networks:
+    composeContent: `networks:
   omastack-net:
     external: true
 
@@ -788,9 +766,7 @@ PORT_REDIS=6379
 
 DOMAIN_CLICKHOUSE="clickhouse.oma.local:PORT_CLICKHOUSE_HTTP"
 DOMAIN_KAFKA="kafka.oma.local:PORT_REDPANDA_UI"`,
-    composeContent: `version: '3.8'
-
-networks:
+    composeContent: `networks:
   omastack-net:
     external: true
 
@@ -850,9 +826,7 @@ PORT_MAILPIT_SMTP=1025
 
 DOMAIN_AUTH="auth.oma.local:PORT_KEYCLOAK"
 DOMAIN_MAIL="auth-mail.oma.local:PORT_MAILPIT_HTTP"`,
-    composeContent: `version: '3.8'
-
-networks:
+    composeContent: `networks:
   omastack-net:
     external: true
 
@@ -916,9 +890,7 @@ PORT_POSTGRES=5432
 PORT_REDIS=6379
 
 DOMAIN_CMS="cms.oma.local:PORT_DIRECTUS"`,
-    composeContent: `version: '3.8'
-
-networks:
+    composeContent: `networks:
   omastack-net:
     external: true
 
@@ -992,9 +964,7 @@ PORT_MAILPIT_SMTP=1025
 
 DOMAIN_PMA="pma.oma.local:PORT_PMA"
 DOMAIN_MAIL="wp-mail.oma.local:PORT_MAILPIT_HTTP"`,
-    composeContent: `version: '3.8'
-
-networks:
+    composeContent: `networks:
   omastack-net:
     external: true
 

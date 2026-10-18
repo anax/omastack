@@ -14,15 +14,105 @@
 
 ## ⚡ Quick Start & Installation for Omarchy Linux
 
-### Option 1: Native Arch Linux Package (`pacman -U`)
+```text
+╭─ anas@omarchy: ~ ─────────────────────────────────────────────────────────────────╮
+│                                                                                   │
+│  # 1. Install OmaStack via Omarchy Plugin Manager                                 │
+│  ~ ❯ omarchy plugin add https://github.com/anax/omastack                          │
+│  ✔ Added io.github.anax.omastack into ~/.config/omarchy/plugins/                  │
+│  ✔ Enabled and loaded OmaStack top bar widget & CLI                               │
+│                                                                                   │
+│  # 2. First-time setup: Enable Docker daemon & user container permissions         │
+│  ~ ❯ sudo systemctl enable --now docker                                           │
+│  ~ ❯ sudo usermod -aG docker $USER && newgrp docker                               │
+│                                                                                   │
+│  # 3. Launch a full Next.js 14 + Postgres + Redis sandbox in 1 command!           │
+│  ~ ❯ omastack up nextjs-postgres                                                  │
+│  ⚡ [OmaStack] Initializing ephemeral sandbox: nextjs-postgres...                  │
+│  ⚡ [OmaStack] Creating shared Docker network 'omastack-net'...                   │
+│  ⚡ [OmaStack] Scanning local network ports with ss...                            │
+│  ⚡ [OmaStack] Launching Docker Compose containers...                             │
+│  ✔ [OmaStack] Connection variables copied to Wayland clipboard (wl-copy)!         │
+│                                                                                   │
+│  ✔ Ephemeral sandbox 'nextjs-postgres' is UP & READY!                             │
+│  Active Endpoints:                                                                │
+│    ➜ Web UI (NEXTJS):    http://localhost:3000                                    │
+│    ➜ Web UI (ADMINER):   http://localhost:8080                                    │
+│    ➜ Service (POSTGRES): localhost:5432                                           │
+│    ➜ Service (REDIS):    localhost:6379                                           │
+│                                                                                   │
+│  🚀 Next.js App is live at:  http://localhost:3000                                │
+│  🛠 Adminer DB UI is live at: http://localhost:8080                                │
+│    ➜ To connect your local project: run omastack inject in your project root.     │
+│                                                                                   │
+╰───────────────────────────────────────────────────────────────────────────────────╯
+```
+
+### 📋 1. Prerequisites (First-Time Docker Setup)
+
+OmaStack uses Docker to orchestrate ephemeral sandboxes. On Arch Linux and Omarchy, make sure the Docker daemon is enabled and your user account has container permissions:
+
+```bash
+# Start and enable the Docker background service
+sudo systemctl enable --now docker
+
+# Add your user to the docker group (allows running containers without sudo)
+sudo usermod -aG docker $USER
+newgrp docker   # Or log out and log back in
+```
+
+> [!TIP]
+> If you see the desktop notification **"OmaStack: Docker Offline"**, simply run `sudo systemctl enable --now docker` to start the daemon.
+
+---
+
+### 🚀 2. 10-Second Quick Start (First Sandbox Launch)
+
+Spin up a full Next.js 14 App Router + PostgreSQL 16 + Redis sandbox with one simple command:
+
+```bash
+omastack up nextjs-postgres
+```
+
+Open your browser immediately to access your running services:
+* **Next.js Full-Stack App:** [http://localhost:3000](http://localhost:3000)
+* **Adminer Database GUI:** [http://localhost:8080](http://localhost:8080)
+* **PostgreSQL:** `localhost:5432` (`appuser` / `appdb`)
+* **Redis:** `localhost:6379`
+
+Connection credentials (`DATABASE_URL`, `REDIS_URL`) are automatically copied to your Wayland clipboard via `wl-copy`.
+
+#### Connecting an existing project on your machine:
+If you already have a Next.js or Laravel project in another directory:
+```bash
+cd ~/my-project
+omastack inject   # Automatically appends database connection strings to .env
+npm run dev
+```
+
+#### Stopping sandboxes:
+```bash
+omastack down nextjs-postgres    # Stop specific sandbox
+omastack down --all              # Stop all sandboxes and immediately free system RAM
+```
+
+---
+
+### 📥 3. Installation Methods for Omarchy Linux
+
+#### Option 1: Omarchy Plugin Manager (Recommended)
+```bash
+omarchy plugin add https://github.com/anax/omastack
+```
+
+#### Option 2: Native Arch Linux Package (`pacman -U`)
 Install the native pre-built package directly using `pacman`:
 
 ```bash
-# Install pre-built package
 sudo pacman -U omastack-1.0.0-1-any.pkg.tar.zst
 ```
 
-### Option 2: Self-Extracting Offline Installer (`.run`)
+#### Option 3: Self-Extracting Offline Installer (`.run`)
 Single standalone executable containing all 15 stack templates, CLI, and Quickshell widgets with zero network dependency:
 
 ```bash
@@ -30,21 +120,16 @@ chmod +x omastack-installer.run
 ./omastack-installer.run
 
 # Optional flags:
-./omastack-installer.run --test         # Run 37-step test suite
+./omastack-installer.run --test         # Run 40-step test suite
 ./omastack-installer.run --system       # Install system-wide to /usr/local
 ./omastack-installer.run --uninstall    # Cleanly remove
 ```
 
-### Option 3: Build from Source via `PKGBUILD` (`makepkg`)
+#### Option 4: Build from Source via `PKGBUILD` (`makepkg`)
 ```bash
 git clone https://github.com/anax/omastack.git
 cd omastack
 makepkg -si
-```
-
-### Option 4: Omarchy Plugin Manager
-```bash
-omarchy plugin add https://github.com/anax/omastack
 ```
 
 ---
@@ -196,6 +281,52 @@ Add styling to your `~/.config/waybar/style.css`:
     color: #565f89;
 }
 ```
+
+---
+
+## 🔧 Troubleshooting & Frequently Asked Questions (FAQ)
+
+### ❓ 1. Why do I see the "OmaStack: Docker Offline" notification?
+* **Cause:** The Docker daemon background service (`docker.service`) is not running or your user account lacks container execution permissions.
+* **Fix:** Run the following commands in your terminal:
+  ```bash
+  sudo systemctl enable --now docker
+  sudo usermod -aG docker $USER
+  newgrp docker
+  ```
+  *(OmaStack will also attempt to auto-start Docker using systemctl or Polkit desktop elevation)*.
+
+### ❓ 2. How do I access localhost services after running `omastack up`?
+* When you launch a stack (e.g., `omastack up nextjs-postgres`), services bind directly to your host machine:
+  * **Web Applications:** Open `http://localhost:3000` (Next.js), `http://localhost:8080` (Adminer DB GUI), `http://localhost:8025` (Mailpit).
+  * **Database Sockets:** Connect directly via `127.0.0.1:5432` (Postgres), `127.0.0.1:3306` (MySQL), or `127.0.0.1:6379` (Redis).
+  * **Active Endpoints:** Run `omastack list` to view all active endpoints and ports at any time.
+
+### ❓ 3. How do I open the graphical panel in Omarchy?
+* **Top Bar Icon:** Click the ⚡ lightning bolt icon in the Omarchy Quattro top bar.
+* **Shortcut:** Press <kbd>Super</kbd> + <kbd>Alt</kbd> + <kbd>W</kbd> anywhere on your desktop.
+* **Walker Searchable Menu:** Press <kbd>Super</kbd> + <kbd>Alt</kbd> + <kbd>Space</kbd> to launch, restart, or inspect sandboxes from a fuzzy finder.
+
+### ❓ 4. What happens if a port (e.g., 5432 or 3000) is already in use?
+* OmaStack includes an automatic socket scanner (`ss -tuln`). If a port is occupied by another local service, OmaStack **automatically detects the collision, rebinds to an available port, and updates your connection string**. You will never see a hard Docker Compose port collision crash.
+
+### ❓ 5. How do I connect my existing project on my machine?
+* You don't need to manually configure passwords or hostnames. Just navigate to your local codebase and run:
+  ```bash
+  cd ~/dev/my-project
+  omastack inject
+  ```
+  OmaStack safely backs up your existing `.env` to `.env.omastack.bak` and appends the live credentials (`DATABASE_URL`, `REDIS_URL`, etc.).
+
+### ❓ 6. How do I completely stop sandboxes and reclaim system RAM?
+```bash
+# Stop a single sandbox
+omastack down nextjs-postgres
+
+# Stop all active sandboxes and reclaim 100% of container memory
+omastack down --all
+```
+*(Or simply right-click the OmaStack Waybar module).*
 
 ---
 
