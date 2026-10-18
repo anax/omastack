@@ -11,6 +11,7 @@ services:
     environment:
       CLICKHOUSE_DB: analytics
       CLICKHOUSE_USER: default
+      CLICKHOUSE_PASSWORD: '${OMASTACK_DB_PASS:-analyticspassword}'
       CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
     ports:
       - "127.0.0.1:${PORT_CLICKHOUSE_HTTP:-8123}:8123"

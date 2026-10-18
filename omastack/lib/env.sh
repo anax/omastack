@@ -117,6 +117,7 @@ AWS_SECRET_ACCESS_KEY=${secret_key}"
         ai-rag-stack)
             snippet="${snippet}
 QDRANT_URL=http://127.0.0.1:${PORT_QDRANT_HTTP:-6333}
+QDRANT_API_KEY=${secret_key}
 QDRANT_GRPC_PORT=${PORT_QDRANT_GRPC:-6334}
 DATABASE_URL=postgresql://aiuser:${db_pass}@127.0.0.1:${PORT_POSTGRES:-5432}/ai_vectors
 REDIS_URL=redis://127.0.0.1:${PORT_REDIS:-6379}"
@@ -154,9 +155,11 @@ REDIS_URL=redis://127.0.0.1:${PORT_REDIS:-6379}"
             ;;
         clickhouse-analytics)
             snippet="${snippet}
-CLICKHOUSE_URL=http://127.0.0.1:${PORT_CLICKHOUSE_HTTP:-8123}
+CLICKHOUSE_URL=http://default:${db_pass}@127.0.0.1:${PORT_CLICKHOUSE_HTTP:-8123}
 CLICKHOUSE_HOST=127.0.0.1
 CLICKHOUSE_PORT=${PORT_CLICKHOUSE_NATIVE:-9009}
+CLICKHOUSE_USER=default
+CLICKHOUSE_PASSWORD=${db_pass}
 CLICKHOUSE_DB=analytics
 REDPANDA_CONSOLE_URL=http://127.0.0.1:${PORT_REDPANDA_UI:-8082}
 REDIS_URL=redis://127.0.0.1:${PORT_REDIS:-6379}"

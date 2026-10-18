@@ -434,6 +434,8 @@ services:
     image: qdrant/qdrant:latest
     container_name: omastack-ai-qdrant
     restart: unless-stopped
+    environment:
+      QDRANT__SERVICE__API_KEY: \${OMASTACK_SECRET_KEY:-secretKey}
     ports:
       - "127.0.0.1:\${PORT_QDRANT_HTTP:-6333}:6333"
       - "127.0.0.1:\${PORT_QDRANT_GRPC:-6334}:6334"
