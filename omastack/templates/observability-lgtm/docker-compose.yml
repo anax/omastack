@@ -11,8 +11,7 @@ services:
     environment:
       GF_SECURITY_ADMIN_USER: admin
       GF_SECURITY_ADMIN_PASSWORD: ${OMASTACK_DB_PASS:-adminpassword}
-      GF_AUTH_ANONYMOUS_ENABLED: "true"
-      GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
     ports:
       - "127.0.0.1:${PORT_GRAFANA:-3001}:3000"
     networks:
@@ -40,6 +39,7 @@ services:
     image: redis:alpine
     container_name: omastack-obs-redis
     restart: unless-stopped
+    command: redis-server --requirepass '${OMASTACK_SECRET_KEY:-adminpassword}'
     ports:
       - "127.0.0.1:${PORT_REDIS:-6379}:6379"
     networks:

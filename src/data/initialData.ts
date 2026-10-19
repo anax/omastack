@@ -54,6 +54,9 @@ services:
     image: redis:alpine
     container_name: omastack-laravel-redis
     restart: unless-stopped
+    command: redis-server --requirepass \${OMASTACK_SECRET_KEY:-secret}
+    environment:
+      - REDISCLI_AUTH=\${OMASTACK_SECRET_KEY:-secret}
     ports:
       - "\${PORT_REDIS:-6379}:6379"
     networks:
@@ -206,6 +209,7 @@ services:
     image: redis:alpine
     container_name: omastack-nextjs-redis
     restart: unless-stopped
+    command: redis-server --requirepass \${OMASTACK_SECRET_KEY:-apppassword}
     ports:
       - "\${PORT_REDIS:-6379}:6379"
     networks:
@@ -258,6 +262,7 @@ services:
       - DB_POSTGRESDB_PASSWORD=n8npassword
       - EXECUTIONS_MODE=queue
       - QUEUE_BULL_REDIS_HOST=redis
+      - QUEUE_BULL_REDIS_PASSWORD=\${OMASTACK_SECRET_KEY:-n8nsecret}
     networks:
       - omastack-net
 
@@ -274,6 +279,7 @@ services:
     image: redis:alpine
     container_name: omastack-automation-redis
     restart: unless-stopped
+    command: redis-server --requirepass \${OMASTACK_SECRET_KEY:-n8nsecret}
     ports:
       - "\${PORT_REDIS:-6379}:6379"
     networks:
@@ -324,6 +330,7 @@ services:
     image: redis:alpine
     container_name: omastack-web3-redis
     restart: unless-stopped
+    command: redis-server --requirepass \${OMASTACK_SECRET_KEY:-web3secret}
     ports:
       - "\${PORT_REDIS:-6379}:6379"
     networks:
@@ -377,6 +384,7 @@ services:
     image: redis:alpine
     container_name: omastack-rails-redis
     restart: unless-stopped
+    command: redis-server --requirepass \${OMASTACK_SECRET_KEY:-railspassword}
     ports:
       - "127.0.0.1:\${PORT_REDIS:-6379}:6379"
     networks:
@@ -519,6 +527,7 @@ services:
     image: redis:alpine
     container_name: omastack-mern-redis
     restart: unless-stopped
+    command: redis-server --requirepass \${OMASTACK_SECRET_KEY:-mongopassword}
     ports:
       - "127.0.0.1:\${PORT_REDIS:-6379}:6379"
     networks:
@@ -597,6 +606,7 @@ services:
     image: redis:alpine
     container_name: omastack-go-redis
     restart: unless-stopped
+    command: redis-server --requirepass \${OMASTACK_SECRET_KEY:-gopassword}
     ports:
       - "127.0.0.1:\${PORT_REDIS:-6379}:6379"
     networks:
@@ -649,6 +659,7 @@ services:
     image: redis:alpine
     container_name: omastack-django-redis
     restart: unless-stopped
+    command: redis-server --requirepass \${OMASTACK_SECRET_KEY:-djangopassword}
     ports:
       - "127.0.0.1:\${PORT_REDIS:-6379}:6379"
     networks:
@@ -659,7 +670,7 @@ services:
     container_name: omastack-django-flower
     restart: unless-stopped
     environment:
-      CELERY_BROKER_URL: "redis://redis:6379/0"
+      CELERY_BROKER_URL: "redis://default:\${OMASTACK_SECRET_KEY:-djangopassword}@redis:6379/0"
       FLOWER_PORT: 5555
     ports:
       - "127.0.0.1:\${PORT_FLOWER:-5555}:5555"
@@ -712,8 +723,7 @@ services:
     environment:
       GF_SECURITY_ADMIN_USER: admin
       GF_SECURITY_ADMIN_PASSWORD: adminpassword
-      GF_AUTH_ANONYMOUS_ENABLED: "true"
-      GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
     ports:
       - "127.0.0.1:\${PORT_GRAFANA:-3001}:3000"
     networks:
@@ -741,6 +751,7 @@ services:
     image: redis:alpine
     container_name: omastack-obs-redis
     restart: unless-stopped
+    command: redis-server --requirepass \${OMASTACK_SECRET_KEY:-adminpassword}
     ports:
       - "127.0.0.1:\${PORT_REDIS:-6379}:6379"
     networks:
@@ -801,6 +812,7 @@ services:
     image: redis:alpine
     container_name: omastack-analytics-redis
     restart: unless-stopped
+    command: redis-server --requirepass \${OMASTACK_SECRET_KEY:-analyticspassword}
     ports:
       - "127.0.0.1:\${PORT_REDIS:-6379}:6379"
     networks:
@@ -915,6 +927,7 @@ services:
     image: redis:alpine
     container_name: omastack-directus-redis
     restart: unless-stopped
+    command: redis-server --requirepass \${OMASTACK_SECRET_KEY:-directuspassword}
     ports:
       - "127.0.0.1:\${PORT_REDIS:-6379}:6379"
     networks:
@@ -934,7 +947,7 @@ services:
       DB_PASSWORD: "directuspassword"
       CACHE_ENABLED: "true"
       CACHE_STORE: "redis"
-      REDIS: "redis://redis:6379"
+      REDIS: "redis://default:\${OMASTACK_SECRET_KEY:-directuspassword}@redis:6379"
       ADMIN_EMAIL: "admin@omastack.local"
       ADMIN_PASSWORD: "adminpassword"
     ports:
@@ -990,6 +1003,7 @@ services:
     image: redis:alpine
     container_name: omastack-wp-redis
     restart: unless-stopped
+    command: redis-server --requirepass \${OMASTACK_SECRET_KEY:-wppassword}
     ports:
       - "127.0.0.1:\${PORT_REDIS:-6379}:6379"
     networks:

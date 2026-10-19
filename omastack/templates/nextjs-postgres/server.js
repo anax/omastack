@@ -8,6 +8,7 @@ const PG_HOST = process.env.POSTGRES_HOST || 'postgres';
 const PG_PORT = parseInt(process.env.POSTGRES_PORT || '5432', 10);
 const REDIS_HOST = process.env.REDIS_HOST || 'redis';
 const REDIS_PORT = parseInt(process.env.REDIS_PORT || '6379', 10);
+const REDIS_PASSWORD = process.env.REDIS_PASSWORD || '';
 const ADMINER_PORT = process.env.PORT_ADMINER || '8080';
 
 function checkTcp(host, port, timeoutMs = 1500) {
@@ -38,7 +39,11 @@ function checkRedis(host, port, timeoutMs = 1500) {
     let received = '';
     socket.setTimeout(timeoutMs);
     socket.connect(port, host, () => {
-      socket.write("*1\r\n$4\r\nPING\r\n");
+      if (REDIS_PASSWORD) {
+        socket.write('*2\r\n$4\r\nAUTH\r\n$' + Buffer.byteLength(REDIS_PASSWORD) + '\r\n' + REDIS_PASSWORD + '\r\n*1\r\n$4\r\nPING\r\n');
+      } else {
+        socket.write("*1\r\n$4\r\nPING\r\n");
+      }
     });
     socket.on('data', (chunk) => {
       received += chunk.toString();
@@ -464,7 +469,7 @@ function getHtmlPage(pgStatus, redisStatus) {
 # Run 'omastack inject' in your project root to securely append live credentials to .env.local
 NEXT_PUBLIC_APP_URL=http://localhost:` + PORT + `
 DATABASE_URL=postgresql://appuser:<omastack-secret-redacted>@127.0.0.1:5432/appdb?schema=public
-REDIS_URL=redis://127.0.0.1:6379
+REDIS_URL=redis://default:<omastack-secret-redacted>@127.0.0.1:6379
 ADMINER_URL=http://localhost:` + ADMINER_PORT + `</pre>
     </div>
 

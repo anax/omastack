@@ -51,6 +51,7 @@ services:
     image: redis:alpine
     container_name: omastack-go-redis
     restart: unless-stopped
+    command: redis-server --requirepass '${OMASTACK_SECRET_KEY:-gopassword}'
     ports:
       - "127.0.0.1:${PORT_REDIS:-6379}:6379"
     networks:

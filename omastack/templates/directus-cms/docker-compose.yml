@@ -26,6 +26,7 @@ services:
     image: redis:alpine
     container_name: omastack-directus-redis
     restart: unless-stopped
+    command: redis-server --requirepass '${OMASTACK_SECRET_KEY:-directuspassword}'
     ports:
       - "127.0.0.1:${PORT_REDIS:-6379}:6379"
     networks:
@@ -45,9 +46,9 @@ services:
       DB_PASSWORD: "${OMASTACK_DB_PASS:-directuspassword}"
       CACHE_ENABLED: "true"
       CACHE_STORE: "redis"
-      REDIS: "redis://redis:6379"
+      REDIS: "redis://default:${OMASTACK_SECRET_KEY:-directuspassword}@redis:6379"
       ADMIN_EMAIL: "admin@omastack.local"
-      ADMIN_PASSWORD: "${OMASTACK_DB_PASS:-adminpassword}"
+      ADMIN_PASSWORD: "${OMASTACK_SECRET_KEY:-adminpassword}"
     ports:
       - "127.0.0.1:${PORT_DIRECTUS:-8055}:8055"
     depends_on:

@@ -19,6 +19,7 @@ services:
       - DB_POSTGRESDB_PASSWORD=${OMASTACK_DB_PASS:-n8npassword}
       - EXECUTIONS_MODE=queue
       - QUEUE_BULL_REDIS_HOST=redis
+      - QUEUE_BULL_REDIS_PASSWORD=${OMASTACK_SECRET_KEY:-n8nsecret}
     depends_on:
       postgres:
         condition: service_healthy
@@ -47,6 +48,7 @@ services:
     image: redis:alpine
     container_name: omastack-automation-redis
     restart: unless-stopped
+    command: redis-server --requirepass '${OMASTACK_SECRET_KEY:-n8nsecret}'
     ports:
       - "127.0.0.1:${PORT_REDIS:-6379}:6379"
     networks:
