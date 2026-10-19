@@ -90,7 +90,13 @@ get_active_stacks() {
             if [ -f "${state_file}" ]; then
                 local stack_name
                 stack_name=$(basename "${state_file}" .json)
-                if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
+                local docker_ok=false
+                if type is_docker_available >/dev/null 2>&1; then
+                    is_docker_available && docker_ok=true
+                elif command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
+                    docker_ok=true
+                fi
+                if [ "${docker_ok}" = "true" ]; then
                     if docker compose -f "${OMASTACK_STATE_DIR}/${stack_name}-compose.yml" ps --quiet 2>/dev/null | grep -q .; then
                         active+=("${stack_name}")
                     fi

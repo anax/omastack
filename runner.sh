@@ -6,6 +6,14 @@ set -euo pipefail
 # 1. Expand PATH to include user and system binary paths
 export PATH="${HOME}/.local/bin:/usr/local/bin:/usr/bin:/bin:${PATH}"
 
+# Source user profile to inherit DOCKER_HOST and desktop settings if present
+if [ -f "${HOME}/.profile" ]; then
+    . "${HOME}/.profile" >/dev/null 2>&1 || true
+fi
+if [ -f "${HOME}/.bashrc" ]; then
+    . "${HOME}/.bashrc" >/dev/null 2>&1 || true
+fi
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BIN=""
 

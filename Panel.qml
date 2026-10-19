@@ -98,11 +98,13 @@ Panel {
         }).join(" ")
 
         return 'export PATH="$HOME/.local/bin:/usr/local/bin:/usr/bin:/bin:$PATH"; '
+            + 'if [ -f "$HOME/.profile" ]; then . "$HOME/.profile" >/dev/null 2>&1 || true; fi; '
+            + 'if [ -f "$HOME/.bashrc" ]; then . "$HOME/.bashrc" >/dev/null 2>&1 || true; fi; '
             + 'PDIR="' + pdir + '"; '
             + 'BIN=""; '
-            + 'if [ -f "$PDIR/omastack/bin/omastack" ]; then BIN="$PDIR/omastack/bin/omastack"; '
+            + 'if [ -f "$PDIR/runner.sh" ]; then BIN="$PDIR/runner.sh"; '
+            + 'elif [ -f "$PDIR/omastack/bin/omastack" ]; then BIN="$PDIR/omastack/bin/omastack"; '
             + 'elif [ -f "$PDIR/bin/omastack" ]; then BIN="$PDIR/bin/omastack"; '
-            + 'elif [ -f "$PDIR/runner.sh" ]; then BIN="$PDIR/runner.sh"; '
             + 'elif [ -f "$HOME/.local/bin/omastack" ]; then BIN="$HOME/.local/bin/omastack"; '
             + 'elif [ -f "/usr/local/bin/omastack" ]; then BIN="/usr/local/bin/omastack"; '
             + 'elif [ -f "/usr/bin/omastack" ]; then BIN="/usr/bin/omastack"; '
@@ -183,11 +185,13 @@ Panel {
             } catch(e) {}
         }
 
-        try {
-            cliProcess.running = false
-            cliProcess.command = ["sh", "-c", shellCmd]
-            cliProcess.running = true
-        } catch(e) {}
+        if (!launched) {
+            try {
+                cliProcess.running = false
+                cliProcess.command = ["sh", "-c", shellCmd]
+                cliProcess.running = true
+            } catch(e) {}
+        }
     }
 
     Process {

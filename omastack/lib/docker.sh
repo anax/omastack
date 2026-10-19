@@ -4,12 +4,133 @@
 
 set -euo pipefail
 
+# Auto-detect Docker host socket and configure environment
+init_docker_env() {
+    # If DOCKER_HOST is already set and working, keep it
+    if [ -n "${DOCKER_HOST:-}" ] && command -v docker >/dev/null 2>&1 && command docker info >/dev/null 2>&1; then
+        return 0
+    fi
+
+    local user_uid
+    user_uid="$(id -u 2>/dev/null || echo 1000)"
+    local runtime_dir="${XDG_RUNTIME_DIR:-/run/user/${user_uid}}"
+
+    # Probe potential active Docker sockets (User/Rootless daemon first, then system)
+    local socket_candidates=(
+        "${runtime_dir}/docker.sock"
+        "/run/user/${user_uid}/docker.sock"
+        "${HOME}/.docker/run/docker.sock"
+        "${HOME}/.docker/desktop/docker.sock"
+        "/var/run/docker.sock"
+        "/run/docker.sock"
+    )
+
+    for sock in "${socket_candidates[@]}"; do
+        if [ -S "${sock}" ]; then
+            if [ "${sock}" = "/var/run/docker.sock" ] || [ "${sock}" = "/run/docker.sock" ]; then
+                local old_host="${DOCKER_HOST:-}"
+                unset DOCKER_HOST 2>/dev/null || true
+                if command -v docker >/dev/null 2>&1 && command docker info >/dev/null 2>&1; then
+                    return 0
+                fi
+                if [ -n "${old_host}" ]; then
+                    export DOCKER_HOST="${old_host}"
+                fi
+            else
+                export DOCKER_HOST="unix://${sock}"
+                if command -v docker >/dev/null 2>&1 && command docker info >/dev/null 2>&1; then
+                    return 0
+                fi
+            fi
+        fi
+    done
+
+    # Check user shell profile files for explicit DOCKER_HOST export
+    for profile_file in "${HOME}/.bashrc" "${HOME}/.zshrc" "${HOME}/.profile" "${HOME}/.bash_profile" "${HOME}/.config/environment.d"/*.conf; do
+        if [ -f "${profile_file}" ]; then
+            env_host=$(grep -E '^[[:space:]]*(export[[:space:]]+)?DOCKER_HOST=' "${profile_file}" 2>/dev/null | tail -n 1 | cut -d'=' -f2 | tr -d ' "\r'"'" || true)
+            if [ -n "${env_host}" ]; then
+                export DOCKER_HOST="${env_host}"
+                if command -v docker >/dev/null 2>&1 && command docker info >/dev/null 2>&1; then
+                    return 0
+                fi
+            fi
+        fi
+    done
+
+    # If user socket exists on filesystem but daemon is starting, retain DOCKER_HOST
+    if [ -z "${DOCKER_HOST:-}" ]; then
+        if [ -S "${runtime_dir}/docker.sock" ]; then
+            export DOCKER_HOST="unix://${runtime_dir}/docker.sock"
+        elif [ -S "/run/user/${user_uid}/docker.sock" ]; then
+            export DOCKER_HOST="unix:///run/user/${user_uid}/docker.sock"
+        fi
+    fi
+}
+
+OMASTACK_USE_SG_DOCKER=0
+OMASTACK_USE_SUDO_DOCKER=0
+
+# Transparent docker command wrapper to handle missing active GID in GUI sessions
+docker() {
+    if [ "${OMASTACK_USE_SG_DOCKER:-0}" = "1" ]; then
+        sg docker -c "command docker $(printf '%q ' "$@")"
+    elif [ "${OMASTACK_USE_SUDO_DOCKER:-0}" = "1" ]; then
+        sudo -n docker "$@"
+    else
+        command docker "$@"
+    fi
+}
+
+can_use_docker() {
+    init_docker_env
+    if ! command -v docker >/dev/null 2>&1; then
+        return 1
+    fi
+
+    if command docker info >/dev/null 2>&1; then
+        OMASTACK_USE_SG_DOCKER=0
+        return 0
+    fi
+
+    # Check if user is in docker group but current process doesn't have active GID
+    if command -v sg >/dev/null 2>&1; then
+        local in_docker_group=false
+        local cur_user="${USER:-$(whoami 2>/dev/null || id -un 2>/dev/null || echo '')}"
+        if [ -n "${cur_user}" ]; then
+            if id -Gn "${cur_user}" 2>/dev/null | grep -qw "docker"; then
+                in_docker_group=true
+            elif getent group docker 2>/dev/null | grep -qw "${cur_user}"; then
+                in_docker_group=true
+            elif grep -E '^docker:.*:\b'"${cur_user}"'\b' /etc/group >/dev/null 2>&1; then
+                in_docker_group=true
+            fi
+        fi
+
+        if [ "${in_docker_group}" = "true" ]; then
+            if sg docker -c "command docker info" >/dev/null 2>&1; then
+                export OMASTACK_USE_SG_DOCKER=1
+                return 0
+            fi
+        fi
+    fi
+
+    # Check if sudo without password works
+    if command -v sudo >/dev/null 2>&1 && sudo -n docker info >/dev/null 2>&1; then
+        export OMASTACK_USE_SUDO_DOCKER=1
+        return 0
+    fi
+
+    return 1
+}
+
 is_docker_available() {
-    command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1
+    can_use_docker
 }
 
 # Auto-start Docker daemon if installed but stopped
 ensure_docker_daemon() {
+    init_docker_env
     if is_docker_available; then
         return 0
     fi
@@ -18,17 +139,18 @@ ensure_docker_daemon() {
         return 1
     fi
 
-    log_info "Docker daemon is offline. Attempting to start Docker service..."
+    log_info "Docker daemon is offline or starting. Attempting to activate Docker service..."
 
-    # 1. Try systemctl start docker (sudoers NOPASSWD or rootless)
+    # 1. Try systemctl start (user rootless first, then system)
     if command -v systemctl >/dev/null 2>&1; then
-        systemctl start docker >/dev/null 2>&1 || true
         systemctl --user start docker >/dev/null 2>&1 || true
+        systemctl start docker >/dev/null 2>&1 || true
     fi
 
     # Wait up to 3 seconds to see if socket became available
     local count=0
     while [ "${count}" -lt 3 ]; do
+        init_docker_env
         if is_docker_available; then
             log_success "Docker daemon successfully started!"
             return 0
@@ -42,6 +164,7 @@ ensure_docker_daemon() {
         log_info "Prompting for authorization to start Docker via Polkit..."
         pkexec systemctl start docker >/dev/null 2>&1 || true
         sleep 1
+        init_docker_env
         if is_docker_available; then
             log_success "Docker daemon successfully started via Polkit!"
             return 0
@@ -52,6 +175,7 @@ ensure_docker_daemon() {
     if command -v sudo >/dev/null 2>&1; then
         sudo -n systemctl start docker >/dev/null 2>&1 || true
         sleep 1
+        init_docker_env
         if is_docker_available; then
             log_success "Docker daemon successfully started!"
             return 0
@@ -60,6 +184,9 @@ ensure_docker_daemon() {
 
     return 1
 }
+
+# Initialize Docker environment upon library sourcing
+init_docker_env
 
 # Ensure shared Docker network exists
 ensure_omastack_network() {
@@ -155,9 +282,9 @@ get_stack_ram_usage() {
                     local val="${BASH_REMATCH[1]}"
                     local unit="${BASH_REMATCH[2]}"
                     case "${unit}" in
-                        GiB|GB) total_bytes=$(echo "${total_bytes} + (${val} * 1024)" | bc 2>/dev/null || echo "${total_bytes}") ;;
+                        GiB|GB) total_bytes=$(echo "${total_bytes} + ${val} * 1024" | bc 2>/dev/null || echo "${total_bytes}") ;;
                         MiB|MB) total_bytes=$(echo "${total_bytes} + ${val}" | bc 2>/dev/null || echo "${total_bytes}") ;;
-                        KiB|kB) total_bytes=$(echo "${total_bytes} + (${val} / 1024)" | bc 2>/dev/null || echo "${total_bytes}") ;;
+                        KiB|kB) total_bytes=$(echo "${total_bytes} + ${val} / 1024" | bc 2>/dev/null || echo "${total_bytes}") ;;
                     esac
                 fi
             done
