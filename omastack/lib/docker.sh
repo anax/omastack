@@ -128,6 +128,45 @@ is_docker_available() {
     can_use_docker
 }
 
+# Auto-fix socket permissions if socket exists but is not accessible
+ensure_docker_permissions() {
+    local cur_user="${USER:-$(whoami 2>/dev/null || id -un 2>/dev/null || echo '')}"
+    if [ -z "${cur_user}" ] || [ "${cur_user}" = "root" ]; then
+        return 0
+    fi
+
+    local target_sock=""
+    if [ -S "/var/run/docker.sock" ]; then
+        target_sock="/var/run/docker.sock"
+    elif [ -S "/run/docker.sock" ]; then
+        target_sock="/run/docker.sock"
+    fi
+
+    if [ -n "${target_sock}" ] && ! [ -w "${target_sock}" ]; then
+        log_info "Detected Docker socket at ${target_sock} with restricted permissions."
+
+        # 1. Try sudo passwordless if available
+        if command -v sudo >/dev/null 2>&1; then
+            sudo -n sh -c "usermod -aG docker '${cur_user}' 2>/dev/null || true; setfacl -m u:'${cur_user}':rw '${target_sock}' 2>/dev/null || chmod 666 '${target_sock}'" >/dev/null 2>&1 || true
+            if [ -w "${target_sock}" ] && command docker info >/dev/null 2>&1; then
+                log_success "Docker socket permissions resolved via sudo."
+                return 0
+            fi
+        fi
+
+        # 2. Try Polkit elevation (pkexec) in desktop session
+        if command -v pkexec >/dev/null 2>&1 && [ -n "${WAYLAND_DISPLAY:-${DISPLAY:-}}" ]; then
+            log_info "Prompting via Polkit to grant Docker socket permissions to ${cur_user}..."
+            pkexec sh -c "usermod -aG docker '${cur_user}' 2>/dev/null || true; setfacl -m u:'${cur_user}':rw '${target_sock}' 2>/dev/null || chmod 666 '${target_sock}'" >/dev/null 2>&1 || true
+            if [ -w "${target_sock}" ] && command docker info >/dev/null 2>&1; then
+                log_success "Docker socket permissions granted via Polkit!"
+                return 0
+            fi
+        fi
+    fi
+    return 1
+}
+
 # Auto-start Docker daemon if installed but stopped
 ensure_docker_daemon() {
     init_docker_env
@@ -139,9 +178,18 @@ ensure_docker_daemon() {
         return 1
     fi
 
+    # 1. If socket exists but permission is denied, resolve permissions first
+    if [ -S "/var/run/docker.sock" ] || [ -S "/run/docker.sock" ]; then
+        ensure_docker_permissions || true
+        init_docker_env
+        if is_docker_available; then
+            return 0
+        fi
+    fi
+
     log_info "Docker daemon is offline or starting. Attempting to activate Docker service..."
 
-    # 1. Try systemctl start (user rootless first, then system)
+    # 2. Try systemctl start (user rootless first, then system)
     if command -v systemctl >/dev/null 2>&1; then
         systemctl --user start docker >/dev/null 2>&1 || true
         systemctl start docker >/dev/null 2>&1 || true
@@ -151,6 +199,7 @@ ensure_docker_daemon() {
     local count=0
     while [ "${count}" -lt 3 ]; do
         init_docker_env
+        ensure_docker_permissions || true
         if is_docker_available; then
             log_success "Docker daemon successfully started!"
             return 0
@@ -159,10 +208,11 @@ ensure_docker_daemon() {
         count=$((count + 1))
     done
 
-    # 2. Try pkexec (GUI / Polkit prompt for Wayland/X11 desktops)
+    # 3. Try pkexec (GUI / Polkit prompt for Wayland/X11 desktops)
     if command -v pkexec >/dev/null 2>&1 && [ -n "${WAYLAND_DISPLAY:-${DISPLAY:-}}" ]; then
-        log_info "Prompting for authorization to start Docker via Polkit..."
-        pkexec systemctl start docker >/dev/null 2>&1 || true
+        log_info "Prompting for authorization to activate Docker service and permissions via Polkit..."
+        local cur_user="${USER:-$(whoami 2>/dev/null || id -un 2>/dev/null || echo '')}"
+        pkexec sh -c "systemctl start docker >/dev/null 2>&1 || true; usermod -aG docker '${cur_user}' 2>/dev/null || true; for s in /var/run/docker.sock /run/docker.sock; do [ -S \"\$s\" ] && (setfacl -m u:'${cur_user}':rw \"\$s\" 2>/dev/null || chmod 666 \"\$s\"); done" >/dev/null 2>&1 || true
         sleep 1
         init_docker_env
         if is_docker_available; then
@@ -171,11 +221,12 @@ ensure_docker_daemon() {
         fi
     fi
 
-    # 3. Try sudo non-interactively
+    # 4. Try sudo non-interactively
     if command -v sudo >/dev/null 2>&1; then
         sudo -n systemctl start docker >/dev/null 2>&1 || true
         sleep 1
         init_docker_env
+        ensure_docker_permissions || true
         if is_docker_available; then
             log_success "Docker daemon successfully started!"
             return 0

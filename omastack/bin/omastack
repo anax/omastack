@@ -206,10 +206,9 @@ cmd_up() {
     if ! ensure_docker_daemon; then
         log_error "Docker daemon is offline or inaccessible!"
         echo -e "${COLOR_YELLOW}➜ To launch containers, start Docker with:${COLOR_RESET} ${COLOR_BOLD}sudo systemctl enable --now docker${COLOR_RESET}"
-        echo -e "${COLOR_YELLOW}➜ Or for rootless Docker:${COLOR_RESET} ${COLOR_BOLD}systemctl --user enable --now docker${COLOR_RESET}"
-        echo -e "${COLOR_YELLOW}➜ Ensure user has docker permissions:${COLOR_RESET} ${COLOR_BOLD}sudo usermod -aG docker \$USER && newgrp docker${COLOR_RESET}"
+        echo -e "${COLOR_YELLOW}➜ Ensure user has docker permissions:${COLOR_RESET} ${COLOR_BOLD}sudo usermod -aG docker \$USER && sudo setfacl -m u:\$USER:rw /var/run/docker.sock${COLOR_RESET}"
         if [ -S /var/run/docker.sock ] && ! docker info >/dev/null 2>&1; then
-            notify_desktop "OmaStack: Docker Permission Denied" "Add user to docker group: sudo usermod -aG docker \$USER (re-login required)" "critical"
+            notify_desktop "OmaStack: Docker Permission Denied" "Run: sudo usermod -aG docker \$USER && sudo setfacl -m u:\$USER:rw /var/run/docker.sock" "critical"
         else
             notify_desktop "OmaStack: Docker Offline" "Run: sudo systemctl enable --now docker" "critical"
         fi
