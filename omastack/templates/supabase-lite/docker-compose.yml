@@ -29,7 +29,7 @@ services:
     environment:
       PGRST_DB_URI: "postgres://postgres:${OMASTACK_DB_PASS:-postgrespassword}@postgres:5432/postgres"
       PGRST_DB_SCHEMA: "public"
-      PGRST_DB_ANON_ROLE: "postgres"
+      PGRST_JWT_SECRET: "${OMASTACK_SECRET_KEY:-omastack-supabase-lite-jwt-secret-2026}"
     ports:
       - "127.0.0.1:${PORT_POSTGREST:-3000}:3000"
     depends_on:

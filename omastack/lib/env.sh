@@ -82,8 +82,11 @@ REDIS_URL=redis://default:${secret_key}@127.0.0.1:${PORT_REDIS:-6379}"
 DATABASE_URL=postgres://postgres:${db_pass}@127.0.0.1:${PORT_POSTGRES:-5432}/postgres
 SUPABASE_URL=http://127.0.0.1:${PORT_STUDIO:-3000}
 SUPABASE_ANON_KEY=${secret_key}
+PGRST_JWT_SECRET=${secret_key}
 POSTGREST_URL=http://127.0.0.1:${PORT_POSTGREST:-3000}
-PGADMIN_URL=http://127.0.0.1:${PORT_PGADMIN:-5050}"
+PGADMIN_URL=http://127.0.0.1:${PORT_PGADMIN:-5051}
+PGADMIN_EMAIL=admin@omastack.local
+PGADMIN_PASSWORD=${secret_key}"
             ;;
         nextjs-postgres)
             snippet="${snippet}
@@ -132,6 +135,8 @@ REDIS_PASSWORD=${secret_key}"
             snippet="${snippet}
 MONGODB_URI=mongodb://admin:${db_pass}@127.0.0.1:${PORT_MONGO:-27017}/app?authSource=admin
 MONGO_EXPRESS_URL=http://127.0.0.1:${PORT_MONGO_EXPRESS:-8081}
+MONGO_EXPRESS_USER=admin
+MONGO_EXPRESS_PASSWORD=${db_pass}
 REDIS_URL=redis://default:${secret_key}@127.0.0.1:${PORT_REDIS:-6379}
 REDIS_PASSWORD=${secret_key}"
             ;;
@@ -153,6 +158,8 @@ CELERY_RESULT_BACKEND=redis://default:${secret_key}@127.0.0.1:${PORT_REDIS:-6379
 REDIS_URL=redis://default:${secret_key}@127.0.0.1:${PORT_REDIS:-6379}
 REDIS_PASSWORD=${secret_key}
 FLOWER_URL=http://127.0.0.1:${PORT_FLOWER:-5555}
+FLOWER_USER=admin
+FLOWER_PASSWORD=${db_pass}
 EMAIL_HOST=127.0.0.1
 EMAIL_PORT=${PORT_MAILPIT_SMTP:-1025}"
             ;;
@@ -208,6 +215,8 @@ WP_REDIS_PASSWORD=${secret_key}
 REDIS_URL=redis://default:${secret_key}@127.0.0.1:${PORT_REDIS:-6379}
 REDIS_PASSWORD=${secret_key}
 PHPMYADMIN_URL=http://127.0.0.1:${PORT_PMA:-8083}
+PHPMYADMIN_USER=wpuser
+PHPMYADMIN_PASSWORD=${db_pass}
 SMTP_HOST=127.0.0.1
 SMTP_PORT=${PORT_MAILPIT_SMTP:-1025}"
             ;;

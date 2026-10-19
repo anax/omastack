@@ -40,8 +40,6 @@ services:
     environment:
       PMA_HOST: mariadb
       PMA_PORT: 3306
-      PMA_USER: wpuser
-      PMA_PASSWORD: ${OMASTACK_DB_PASS:-wppassword}
     ports:
       - "127.0.0.1:${PORT_PMA:-8083}:80"
     depends_on:

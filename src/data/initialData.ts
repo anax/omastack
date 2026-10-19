@@ -136,7 +136,7 @@ services:
     environment:
       PGRST_DB_URI: "postgres://postgres:postgrespassword@postgres:5432/postgres"
       PGRST_DB_SCHEMA: "public"
-      PGRST_DB_ANON_ROLE: "postgres"
+      PGRST_JWT_SECRET: "\${OMASTACK_SECRET_KEY:-omastack-supabase-lite-jwt-secret-2026}"
     ports:
       - "\${PORT_POSTGREST:-3000}:3000"
     networks:
@@ -517,7 +517,9 @@ services:
       ME_CONFIG_MONGODB_ADMINUSERNAME: admin
       ME_CONFIG_MONGODB_ADMINPASSWORD: mongopassword
       ME_CONFIG_MONGODB_URL: "mongodb://admin:mongopassword@mongodb:27017/"
-      ME_CONFIG_BASICAUTH: "false"
+      ME_CONFIG_BASICAUTH: "true"
+      ME_CONFIG_BASICAUTH_USERNAME: admin
+      ME_CONFIG_BASICAUTH_PASSWORD: mongopassword
     ports:
       - "127.0.0.1:\${PORT_MONGO_EXPRESS:-8081}:8081"
     networks:
@@ -672,6 +674,7 @@ services:
     environment:
       CELERY_BROKER_URL: "redis://default:\${OMASTACK_SECRET_KEY:-djangopassword}@redis:6379/0"
       FLOWER_PORT: 5555
+      FLOWER_BASIC_AUTH: "admin:djangopassword"
     ports:
       - "127.0.0.1:\${PORT_FLOWER:-5555}:5555"
     networks:
@@ -1016,8 +1019,6 @@ services:
     environment:
       PMA_HOST: mariadb
       PMA_PORT: 3306
-      PMA_USER: wpuser
-      PMA_PASSWORD: wppassword
     ports:
       - "127.0.0.1:\${PORT_PMA:-8083}:80"
     networks:
