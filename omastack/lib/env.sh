@@ -120,7 +120,8 @@ QDRANT_URL=http://127.0.0.1:${PORT_QDRANT_HTTP:-6333}
 QDRANT_API_KEY=${secret_key}
 QDRANT_GRPC_PORT=${PORT_QDRANT_GRPC:-6334}
 DATABASE_URL=postgresql://aiuser:${db_pass}@127.0.0.1:${PORT_POSTGRES:-5432}/ai_vectors
-REDIS_URL=redis://127.0.0.1:${PORT_REDIS:-6379}"
+REDIS_URL=redis://default:${secret_key}@127.0.0.1:${PORT_REDIS:-6379}
+REDIS_PASSWORD=${secret_key}"
             ;;
         mern-mongo)
             snippet="${snippet}

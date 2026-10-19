@@ -459,6 +459,7 @@ services:
     image: redis:alpine
     container_name: omastack-ai-redis
     restart: unless-stopped
+    command: redis-server --requirepass \${OMASTACK_SECRET_KEY:-secretKey}
     ports:
       - "127.0.0.1:\${PORT_REDIS:-6379}:6379"
     networks:
