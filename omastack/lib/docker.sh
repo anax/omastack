@@ -147,7 +147,7 @@ ensure_docker_permissions() {
 
         # 1. Try sudo passwordless if available
         if command -v sudo >/dev/null 2>&1; then
-            sudo -n sh -c "usermod -aG docker '${cur_user}' 2>/dev/null || true; setfacl -m u:'${cur_user}':rw '${target_sock}' 2>/dev/null || chmod 666 '${target_sock}'" >/dev/null 2>&1 || true
+            sudo -n sh -c "usermod -aG docker '${cur_user}' 2>/dev/null || true; setfacl -m u:'${cur_user}':rw '${target_sock}' 2>/dev/null || true" >/dev/null 2>&1 || true
             if [ -w "${target_sock}" ] && command docker info >/dev/null 2>&1; then
                 log_success "Docker socket permissions resolved via sudo."
                 return 0
@@ -157,7 +157,7 @@ ensure_docker_permissions() {
         # 2. Try Polkit elevation (pkexec) in desktop session
         if command -v pkexec >/dev/null 2>&1 && [ -n "${WAYLAND_DISPLAY:-${DISPLAY:-}}" ]; then
             log_info "Prompting via Polkit to grant Docker socket permissions to ${cur_user}..."
-            pkexec sh -c "usermod -aG docker '${cur_user}' 2>/dev/null || true; setfacl -m u:'${cur_user}':rw '${target_sock}' 2>/dev/null || chmod 666 '${target_sock}'" >/dev/null 2>&1 || true
+            pkexec sh -c "usermod -aG docker '${cur_user}' 2>/dev/null || true; setfacl -m u:'${cur_user}':rw '${target_sock}' 2>/dev/null || true" >/dev/null 2>&1 || true
             if [ -w "${target_sock}" ] && command docker info >/dev/null 2>&1; then
                 log_success "Docker socket permissions granted via Polkit!"
                 return 0
@@ -212,7 +212,7 @@ ensure_docker_daemon() {
     if command -v pkexec >/dev/null 2>&1 && [ -n "${WAYLAND_DISPLAY:-${DISPLAY:-}}" ]; then
         log_info "Prompting for authorization to activate Docker service and permissions via Polkit..."
         local cur_user="${USER:-$(whoami 2>/dev/null || id -un 2>/dev/null || echo '')}"
-        pkexec sh -c "systemctl start docker >/dev/null 2>&1 || true; usermod -aG docker '${cur_user}' 2>/dev/null || true; for s in /var/run/docker.sock /run/docker.sock; do [ -S \"\$s\" ] && (setfacl -m u:'${cur_user}':rw \"\$s\" 2>/dev/null || chmod 666 \"\$s\"); done" >/dev/null 2>&1 || true
+        pkexec sh -c "systemctl start docker >/dev/null 2>&1 || true; usermod -aG docker '${cur_user}' 2>/dev/null || true; for s in /var/run/docker.sock /run/docker.sock; do [ -S \"\$s\" ] && setfacl -m u:'${cur_user}':rw \"\$s\" 2>/dev/null || true; done" >/dev/null 2>&1 || true
         sleep 1
         init_docker_env
         if is_docker_available; then

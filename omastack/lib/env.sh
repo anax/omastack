@@ -72,6 +72,9 @@ REDIS_PASSWORD=${secret_key}
 MAIL_MAILER=smtp
 MAIL_HOST=127.0.0.1
 MAIL_PORT=${PORT_MAILPIT_SMTP:-1025}
+MAILPIT_URL=http://127.0.0.1:${PORT_MAILPIT_HTTP:-8025}
+MAILPIT_USER=admin
+MAILPIT_PASSWORD=${db_pass}
 MEILISEARCH_HOST=http://127.0.0.1:${PORT_MEILI:-7700}
 MEILISEARCH_KEY=${secret_key}
 DATABASE_URL=mysql://laravel:${db_pass}@127.0.0.1:${PORT_MYSQL:-3306}/laravel
@@ -118,6 +121,9 @@ REDIS_URL=redis://default:${secret_key}@127.0.0.1:${PORT_REDIS:-6379}/0
 REDIS_PASSWORD=${secret_key}
 SMTP_ADDRESS=127.0.0.1
 SMTP_PORT=${PORT_MAILPIT_SMTP:-1025}
+MAILPIT_URL=http://127.0.0.1:${PORT_MAILPIT_HTTP:-8025}
+MAILPIT_USER=admin
+MAILPIT_PASSWORD=${db_pass}
 AWS_ENDPOINT_URL=http://127.0.0.1:${PORT_MINIO_API:-9000}
 AWS_ACCESS_KEY_ID=minioadmin
 AWS_SECRET_ACCESS_KEY=${secret_key}"
@@ -161,7 +167,10 @@ FLOWER_URL=http://127.0.0.1:${PORT_FLOWER:-5555}
 FLOWER_USER=admin
 FLOWER_PASSWORD=${db_pass}
 EMAIL_HOST=127.0.0.1
-EMAIL_PORT=${PORT_MAILPIT_SMTP:-1025}"
+EMAIL_PORT=${PORT_MAILPIT_SMTP:-1025}
+MAILPIT_URL=http://127.0.0.1:${PORT_MAILPIT_HTTP:-8025}
+MAILPIT_USER=admin
+MAILPIT_PASSWORD=${db_pass}"
             ;;
         observability-lgtm)
             snippet="${snippet}
@@ -192,7 +201,10 @@ KEYCLOAK_ADMIN_URL=http://127.0.0.1:${PORT_KEYCLOAK:-8084}/admin
 KEYCLOAK_ADMIN=admin
 KEYCLOAK_ADMIN_PASSWORD=${secret_key}
 DATABASE_URL=postgresql://keycloak:${db_pass}@127.0.0.1:${PORT_POSTGRES:-5432}/keycloak
-SMTP_URL=smtp://127.0.0.1:${PORT_MAILPIT_SMTP:-1025}"
+SMTP_URL=smtp://127.0.0.1:${PORT_MAILPIT_SMTP:-1025}
+MAILPIT_URL=http://127.0.0.1:${PORT_MAILPIT_HTTP:-8025}
+MAILPIT_USER=admin
+MAILPIT_PASSWORD=${db_pass}"
             ;;
         directus-cms)
             snippet="${snippet}
@@ -218,7 +230,10 @@ PHPMYADMIN_URL=http://127.0.0.1:${PORT_PMA:-8083}
 PHPMYADMIN_USER=wpuser
 PHPMYADMIN_PASSWORD=${db_pass}
 SMTP_HOST=127.0.0.1
-SMTP_PORT=${PORT_MAILPIT_SMTP:-1025}"
+SMTP_PORT=${PORT_MAILPIT_SMTP:-1025}
+MAILPIT_URL=http://127.0.0.1:${PORT_MAILPIT_HTTP:-8025}
+MAILPIT_USER=admin
+MAILPIT_PASSWORD=${db_pass}"
             ;;
         *)
             snippet="${snippet}

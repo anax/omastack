@@ -41,7 +41,7 @@ services:
       MYSQL_PASSWORD: '\${DB_PASSWORD:-secret}'
       MYSQL_ROOT_PASSWORD: '\${DB_PASSWORD:-secret}'
     ports:
-      - "\${PORT_MYSQL:-3306}:3306"
+      - "127.0.0.1:\${PORT_MYSQL:-3306}:3306"
     networks:
       - omastack-net
     healthcheck:
@@ -58,7 +58,7 @@ services:
     environment:
       - REDISCLI_AUTH=\${OMASTACK_SECRET_KEY:-secret}
     ports:
-      - "\${PORT_REDIS:-6379}:6379"
+      - "127.0.0.1:\${PORT_REDIS:-6379}:6379"
     networks:
       - omastack-net
 
@@ -66,9 +66,11 @@ services:
     image: axllent/mailpit:latest
     container_name: omastack-laravel-mailpit
     restart: unless-stopped
+    environment:
+      MP_UI_AUTH: "admin:\${OMASTACK_DB_PASS:-secret}"
     ports:
-      - "\${PORT_MAILPIT_HTTP:-8025}:8025"
-      - "\${PORT_MAILPIT_SMTP:-1025}:1025"
+      - "127.0.0.1:\${PORT_MAILPIT_HTTP:-8025}:8025"
+      - "127.0.0.1:\${PORT_MAILPIT_SMTP:-1025}:1025"
     networks:
       - omastack-net
 
@@ -80,7 +82,7 @@ services:
       MEILI_MASTER_KEY: '\${MEILISEARCH_KEY:-masterKey123}'
       MEILI_ENV: 'development'
     ports:
-      - "\${PORT_MEILI:-7700}:7700"
+      - "127.0.0.1:\${PORT_MEILI:-7700}:7700"
     networks:
       - omastack-net`,
   },
@@ -118,9 +120,9 @@ services:
     environment:
       POSTGRES_DB: postgres
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgrespassword
+      POSTGRES_PASSWORD: '\${OMASTACK_DB_PASS:-postgrespassword}'
     ports:
-      - "\${PORT_POSTGRES:-5432}:5432"
+      - "127.0.0.1:\${PORT_POSTGRES:-5432}:5432"
     networks:
       - omastack-net
     healthcheck:
@@ -134,11 +136,14 @@ services:
     container_name: omastack-supabase-rest
     restart: unless-stopped
     environment:
-      PGRST_DB_URI: "postgres://postgres:postgrespassword@postgres:5432/postgres"
+      PGRST_DB_URI: "postgres://postgres:\${OMASTACK_DB_PASS:-postgrespassword}@postgres:5432/postgres"
       PGRST_DB_SCHEMA: "public"
       PGRST_JWT_SECRET: "\${OMASTACK_SECRET_KEY:-omastack-supabase-lite-jwt-secret-2026}"
     ports:
-      - "\${PORT_POSTGREST:-3000}:3000"
+      - "127.0.0.1:\${PORT_POSTGREST:-3000}:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
     networks:
       - omastack-net
 
@@ -148,9 +153,9 @@ services:
     restart: unless-stopped
     environment:
       PGADMIN_DEFAULT_EMAIL: "admin@omastack.local"
-      PGADMIN_DEFAULT_PASSWORD: "admin"
+      PGADMIN_DEFAULT_PASSWORD: '\${OMASTACK_SECRET_KEY:-admin}'
     ports:
-      - "\${PORT_PGADMIN:-5051}:80"
+      - "127.0.0.1:\${PORT_PGADMIN:-5051}:80"
     networks:
       - omastack-net`,
   },
@@ -188,7 +193,7 @@ services:
     container_name: omastack-nextjs-app
     restart: unless-stopped
     ports:
-      - "\${PORT_NEXTJS:-3000}:3000"
+      - "127.0.0.1:\${PORT_NEXTJS:-3000}:3000"
     networks:
       - omastack-net
 
@@ -199,9 +204,9 @@ services:
     environment:
       POSTGRES_DB: appdb
       POSTGRES_USER: appuser
-      POSTGRES_PASSWORD: apppassword
+      POSTGRES_PASSWORD: '\${OMASTACK_DB_PASS:-apppassword}'
     ports:
-      - "\${PORT_POSTGRES:-5432}:5432"
+      - "127.0.0.1:\${PORT_POSTGRES:-5432}:5432"
     networks:
       - omastack-net
 
@@ -209,9 +214,9 @@ services:
     image: redis:alpine
     container_name: omastack-nextjs-redis
     restart: unless-stopped
-    command: redis-server --requirepass \${OMASTACK_SECRET_KEY:-apppassword}
+    command: redis-server --requirepass '\${OMASTACK_SECRET_KEY:-apppassword}'
     ports:
-      - "\${PORT_REDIS:-6379}:6379"
+      - "127.0.0.1:\${PORT_REDIS:-6379}:6379"
     networks:
       - omastack-net
 
@@ -220,7 +225,7 @@ services:
     container_name: omastack-nextjs-adminer
     restart: unless-stopped
     ports:
-      - "\${PORT_ADMINER:-8080}:8080"
+      - "127.0.0.1:\${PORT_ADMINER:-8080}:8080"
     networks:
       - omastack-net`,
   },
@@ -252,17 +257,20 @@ services:
     container_name: omastack-automation-n8n
     restart: unless-stopped
     ports:
-      - "\${PORT_N8N:-5678}:5678"
+      - "127.0.0.1:\${PORT_N8N:-5678}:5678"
     environment:
       - DB_TYPE=postgresdb
       - DB_POSTGRESDB_HOST=postgres
       - DB_POSTGRESDB_PORT=5432
       - DB_POSTGRESDB_DATABASE=n8n
       - DB_POSTGRESDB_USER=n8n
-      - DB_POSTGRESDB_PASSWORD=n8npassword
+      - DB_POSTGRESDB_PASSWORD=\${OMASTACK_DB_PASS:-n8npassword}
       - EXECUTIONS_MODE=queue
       - QUEUE_BULL_REDIS_HOST=redis
       - QUEUE_BULL_REDIS_PASSWORD=\${OMASTACK_SECRET_KEY:-n8nsecret}
+    depends_on:
+      postgres:
+        condition: service_healthy
     networks:
       - omastack-net
 
@@ -270,18 +278,27 @@ services:
     image: postgres:16-alpine
     container_name: omastack-automation-db
     restart: unless-stopped
+    environment:
+      POSTGRES_DB: n8n
+      POSTGRES_USER: n8n
+      POSTGRES_PASSWORD: '\${OMASTACK_DB_PASS:-n8npassword}'
     ports:
-      - "\${PORT_POSTGRES:-5432}:5432"
+      - "127.0.0.1:\${PORT_POSTGRES:-5432}:5432"
     networks:
       - omastack-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U n8n"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   redis:
     image: redis:alpine
     container_name: omastack-automation-redis
     restart: unless-stopped
-    command: redis-server --requirepass \${OMASTACK_SECRET_KEY:-n8nsecret}
+    command: redis-server --requirepass '\${OMASTACK_SECRET_KEY:-n8nsecret}'
     ports:
-      - "\${PORT_REDIS:-6379}:6379"
+      - "127.0.0.1:\${PORT_REDIS:-6379}:6379"
     networks:
       - omastack-net`,
   },
@@ -313,7 +330,7 @@ services:
     container_name: omastack-web3-rpc
     restart: unless-stopped
     ports:
-      - "\${PORT_RPC:-8545}:8545"
+      - "127.0.0.1:\${PORT_RPC:-8545}:8545"
     networks:
       - omastack-net
 
@@ -321,18 +338,27 @@ services:
     image: postgres:16-alpine
     container_name: omastack-web3-db
     restart: unless-stopped
+    environment:
+      POSTGRES_DB: web3db
+      POSTGRES_USER: web3
+      POSTGRES_PASSWORD: '\${OMASTACK_DB_PASS:-web3secret}'
     ports:
-      - "\${PORT_POSTGRES:-5432}:5432"
+      - "127.0.0.1:\${PORT_POSTGRES:-5432}:5432"
     networks:
       - omastack-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U web3 -d web3db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   redis:
     image: redis:alpine
     container_name: omastack-web3-redis
     restart: unless-stopped
-    command: redis-server --requirepass \${OMASTACK_SECRET_KEY:-web3secret}
+    command: redis-server --requirepass '\${OMASTACK_SECRET_KEY:-web3secret}'
     ports:
-      - "\${PORT_REDIS:-6379}:6379"
+      - "127.0.0.1:\${PORT_REDIS:-6379}:6379"
     networks:
       - omastack-net`,
   },
@@ -394,6 +420,8 @@ services:
     image: axllent/mailpit:latest
     container_name: omastack-rails-mailpit
     restart: unless-stopped
+    environment:
+      MP_UI_AUTH: "admin:\${OMASTACK_DB_PASS:-railspassword}"
     ports:
       - "127.0.0.1:\${PORT_MAILPIT_HTTP:-8025}:8025"
       - "127.0.0.1:\${PORT_MAILPIT_SMTP:-1025}:1025"
@@ -684,6 +712,8 @@ services:
     image: axllent/mailpit:latest
     container_name: omastack-django-mailpit
     restart: unless-stopped
+    environment:
+      MP_UI_AUTH: "admin:\${OMASTACK_DB_PASS:-djangopassword}"
     ports:
       - "127.0.0.1:\${PORT_MAILPIT_HTTP:-8025}:8025"
       - "127.0.0.1:\${PORT_MAILPIT_SMTP:-1025}:1025"
@@ -884,6 +914,8 @@ services:
     image: axllent/mailpit:latest
     container_name: omastack-keycloak-mailpit
     restart: unless-stopped
+    environment:
+      MP_UI_AUTH: "admin:\${OMASTACK_DB_PASS:-keycloakpassword}"
     ports:
       - "127.0.0.1:\${PORT_MAILPIT_HTTP:-8025}:8025"
       - "127.0.0.1:\${PORT_MAILPIT_SMTP:-1025}:1025"
@@ -1028,6 +1060,8 @@ services:
     image: axllent/mailpit:latest
     container_name: omastack-wp-mailpit
     restart: unless-stopped
+    environment:
+      MP_UI_AUTH: "admin:\${OMASTACK_DB_PASS:-wppassword}"
     ports:
       - "127.0.0.1:\${PORT_MAILPIT_HTTP:-8025}:8025"
       - "127.0.0.1:\${PORT_MAILPIT_SMTP:-1025}:1025"
