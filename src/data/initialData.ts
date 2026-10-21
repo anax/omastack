@@ -762,19 +762,23 @@ services:
     image: prom/prometheus:latest
     container_name: omastack-obs-prometheus
     restart: unless-stopped
-    expose:
-      - "9090"
-    networks:
-      - omastack-net
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--web.listen-address=127.0.0.1:9090"
+    network_mode: "service:grafana"
+    depends_on:
+      - grafana
 
   loki:
     image: grafana/loki:latest
     container_name: omastack-obs-loki
     restart: unless-stopped
-    expose:
-      - "3100"
-    networks:
-      - omastack-net
+    command:
+      - "-config.file=/etc/loki/local-config.yaml"
+      - "-server.http-listen-address=127.0.0.1"
+    network_mode: "service:grafana"
+    depends_on:
+      - grafana
 
   redis:
     image: redis:alpine
