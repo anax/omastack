@@ -732,18 +732,14 @@ services:
     ],
     domains: [
       { domain: 'grafana.oma.local', portVar: 'PORT_GRAFANA' },
-      { domain: 'prometheus.oma.local', portVar: 'PORT_PROMETHEUS' },
     ],
     confContent: `# stack.conf - Metadata and Default Ports for observability-lgtm
 STACK_NAME="observability-lgtm"
 STACK_DESCRIPTION="Grafana LGTM Observability: Grafana Dashboards, Prometheus Metrics, Loki Logs & Redis"
 PORT_GRAFANA=3001
-PORT_PROMETHEUS=9090
-PORT_LOKI=3100
 PORT_REDIS=6379
 
-DOMAIN_GRAFANA="grafana.oma.local:PORT_GRAFANA"
-DOMAIN_PROMETHEUS="prometheus.oma.local:PORT_PROMETHEUS"`,
+DOMAIN_GRAFANA="grafana.oma.local:PORT_GRAFANA"`,
     composeContent: `networks:
   omastack-net:
     external: true
@@ -755,7 +751,7 @@ services:
     restart: unless-stopped
     environment:
       GF_SECURITY_ADMIN_USER: admin
-      GF_SECURITY_ADMIN_PASSWORD: adminpassword
+      GF_SECURITY_ADMIN_PASSWORD: \${OMASTACK_DB_PASS:-adminpassword}
       GF_AUTH_ANONYMOUS_ENABLED: "false"
     ports:
       - "127.0.0.1:\${PORT_GRAFANA:-3001}:3000"
@@ -766,8 +762,8 @@ services:
     image: prom/prometheus:latest
     container_name: omastack-obs-prometheus
     restart: unless-stopped
-    ports:
-      - "127.0.0.1:\${PORT_PROMETHEUS:-9090}:9090"
+    expose:
+      - "9090"
     networks:
       - omastack-net
 
@@ -775,8 +771,8 @@ services:
     image: grafana/loki:latest
     container_name: omastack-obs-loki
     restart: unless-stopped
-    ports:
-      - "127.0.0.1:\${PORT_LOKI:-3100}:3100"
+    expose:
+      - "3100"
     networks:
       - omastack-net
 
@@ -784,7 +780,7 @@ services:
     image: redis:alpine
     container_name: omastack-obs-redis
     restart: unless-stopped
-    command: redis-server --requirepass \${OMASTACK_SECRET_KEY:-adminpassword}
+    command: redis-server --requirepass '\${OMASTACK_SECRET_KEY:-adminpassword}'
     ports:
       - "127.0.0.1:\${PORT_REDIS:-6379}:6379"
     networks:

@@ -177,8 +177,6 @@ MAILPIT_PASSWORD=${db_pass}"
 GRAFANA_URL=http://127.0.0.1:${PORT_GRAFANA:-3001}
 GRAFANA_USER=admin
 GRAFANA_PASSWORD=${db_pass}
-PROMETHEUS_URL=http://127.0.0.1:${PORT_PROMETHEUS:-9090}
-LOKI_URL=http://127.0.0.1:${PORT_LOKI:-3100}
 REDIS_URL=redis://default:${secret_key}@127.0.0.1:${PORT_REDIS:-6379}
 REDIS_PASSWORD=${secret_key}"
             ;;
