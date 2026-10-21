@@ -35,6 +35,7 @@ services:
     command:
       - "-config.file=/etc/loki/local-config.yaml"
       - "-server.http-listen-address=127.0.0.1"
+      - "-server.grpc-listen-address=127.0.0.1"
     network_mode: "service:grafana"
     depends_on:
       - grafana
